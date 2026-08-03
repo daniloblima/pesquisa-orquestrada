@@ -1,0 +1,119 @@
+# Template do prompt mestre
+
+Enviado igual aos três agentes na rodada 1. Preencher os campos entre colchetes com o que saiu da clarificação e apagar o que não se aplica.
+
+O prompt é escrito em português. Os motores respondem no idioma da pergunta, e o relatório final é em português.
+
+---
+
+```
+Você é um pesquisador. Pesquise na web e responda com base em fontes que você
+consultou agora, não em memória. Hoje é [DATA POR EXTENSO, ex: 3 de agosto de 2026].
+
+## Tema
+
+[TEMA DA PESQUISA, uma frase clara]
+
+## Para que serve esta pesquisa
+
+[OBJETIVO E USO — o que o leitor vai fazer com o resultado]
+
+## O que já se sabe
+
+[O QUE O DANILO JÁ SABE. Não gaste espaço reafirmando isto. Vá além.]
+
+## Hipótese a testar
+
+[HIPÓTESE]
+
+Procure ativamente evidência que confirme e evidência que refute. Não favoreça
+nenhum dos lados.
+
+## Ângulos obrigatórios
+
+[LISTA DE ÂNGULOS. Cada um precisa ser coberto explicitamente.]
+
+## Perspectiva contrária
+
+[O QUE PRECISA SER ENTENDIDO MESMO QUE ENFRAQUEÇA A HIPÓTESE]
+
+## Recorte
+
+Geográfico: [ex: Brasil]
+Temporal: [ex: 2024 até hoje; priorizar os últimos 12 meses]
+
+## Como responder
+
+- Seja específico: número, data, nome próprio e valor sempre que existirem.
+- Diga de onde veio cada afirmação relevante.
+- Se a informação for disputada ou incerta, diga isso em vez de escolher um lado.
+- Se não encontrar algo sobre um ângulo pedido, escreva que não encontrou. Não preencha
+  com conhecimento geral.
+- Não invente URL. Só liste páginas que você realmente consultou.
+
+## Formato obrigatório
+
+Termine a resposta com uma seção exatamente assim:
+
+FONTES CONSULTADAS
+https://...
+https://...
+
+Uma URL completa por linha, sem numeração e sem comentário. Liste todas as páginas
+que você consultou, inclusive as que contradisseram a hipótese.
+```
+
+---
+
+## Template dos prompts cirúrgicos da rodada 2
+
+Um por agente, contendo só o que aquele agente precisa checar.
+
+```
+Você é um pesquisador verificando informações específicas. Pesquise na web agora.
+Hoje é [DATA POR EXTENSO].
+
+Contexto: [TEMA, uma frase]
+
+Verifique cada item abaixo de forma independente. Para cada um, responda em qual
+destes estados ele se encontra:
+
+CONFIRMADO — você encontrou fonte que sustenta
+REFUTADO — você encontrou fonte que contradiz
+NÃO ENCONTRADO — você pesquisou e não achou nada a respeito
+
+Não presuma que os itens são verdadeiros. Eles vieram de outra pesquisa e é
+exatamente isso que está sendo testado.
+
+## Itens a verificar
+
+1. [AFIRMAÇÃO, com o número ou data exatos que precisam ser conferidos]
+2. [AFIRMAÇÃO]
+
+## Se houver contradição a arbitrar
+
+[DESCREVER AS DUAS VERSÕES SEM DIZER QUAL AGENTE DISSE O QUÊ, e pedir que ele
+determine qual está correta, com fonte.]
+
+## Formato obrigatório
+
+Para cada item: o número, o estado (CONFIRMADO, REFUTADO ou NÃO ENCONTRADO), uma
+frase de explicação e a URL que sustenta.
+
+Termine com:
+
+FONTES CONSULTADAS
+https://...
+```
+
+---
+
+## Por que o prompt é assim
+
+**A data entra explícita** porque sem ela o modelo tende a responder com o corte de treinamento e a apresentar dado velho como atual.
+
+**As duas versões da contradição vão sem atribuição** para não induzir o agente a concordar com quem ele acha mais forte. Ele arbitra pelo que encontrar, não por autoridade.
+
+**"NÃO ENCONTRADO" é um estado válido e nomeado** porque sem essa opção o modelo inventa confirmação para ser útil.
+
+**A seção de fontes tem formato fixo** porque o script extrai as URLs do texto além das citações estruturadas, e formato solto reduz o que ele consegue capturar.

@@ -1,0 +1,58 @@
+{
+  "_comentario": "Configuração dos motores. Trocar de modelo é trocar a string 'modelo'. Catálogo em https://openrouter.ai/models",
+
+  "_licao_busca": "O plugin web SEM 'engine' explícito é ignorado em silêncio pelos modelos Google: eles respondem de memória, sem fonte nenhuma. Sempre declarar o engine. Verificado em 03/08/2026.",
+
+  "_licao_diversidade": "Cada agente usa o índice de busca da sua própria família (engine 'native'). Se todos usassem o mesmo motor (ex: exa), leriam as mesmas páginas e o consenso viraria artefato do método, não validação independente.",
+
+  "agentes": {
+    "A": {
+      "modelo": "perplexity/sonar-deep-research",
+      "rotulo": "Perplexity Deep Research",
+      "busca_nativa": true,
+      "indice": "Perplexity",
+      "caracteristica": "Busca profunda com citações. Pode levar de 3 a 10 minutos."
+    },
+    "B": {
+      "modelo": "openai/gpt-5.6-terra",
+      "rotulo": "GPT-5.6 Terra",
+      "busca_nativa": false,
+      "engine_busca": "native",
+      "reasoning_effort": "low",
+      "indice": "OpenAI",
+      "caracteristica": "Raciocínio forte, boa cobertura. Busca pelo índice da OpenAI."
+    },
+    "C": {
+      "modelo": "google/gemini-3.1-pro-preview",
+      "rotulo": "Gemini 3.1 Pro",
+      "busca_nativa": false,
+      "engine_busca": "native",
+      "reasoning_effort": "low",
+      "indice": "Google",
+      "caracteristica": "Contexto amplo, índice do Google. reasoning low é obrigatório: sem ele gasta o orçamento inteiro em raciocínio e devolve texto curto."
+    }
+  },
+
+  "_licao_truncamento": "No primeiro uso real, 8000 tokens no modo normal truncaram o relatório do agente B no meio (finish=length). Relatório cortado é pior que relatório curto, porque as fontes ficam de fora. Tetos subidos em 03/08/2026.",
+
+  "modos": {
+    "rapida": { "max_tokens_r1": 6000, "max_tokens_r2": 3000, "max_results_busca": 5 },
+    "normal": { "max_tokens_r1": 12000, "max_tokens_r2": 5000, "max_results_busca": 8 },
+    "profunda": { "max_tokens_r1": 20000, "max_tokens_r2": 8000, "max_results_busca": 12 }
+  },
+
+  "modo_padrao": "normal",
+  "timeout_segundos": 900,
+
+  "_licao_estimativa": "Um único valor de input para todos os agentes erra por fator de 2 a 3 nas duas direções. Os perfis são opostos: o GPT recebe os resultados de busca no prompt e chega a 80 mil tokens de input; o Perplexity pesquisa do lado dele e recebe menos de 2 mil, cobrando por busca em vez de por token. Valores abaixo medidos em execuções reais de 03/08/2026.",
+
+  "precos_por_milhao_usd": {
+    "perplexity/sonar-deep-research": { "in": 2.0, "out": 8.0, "taxa_fixa": 1.05, "tokens_input_busca": 2000 },
+    "openai/gpt-5.6-terra": { "in": 1.0, "out": 6.0, "taxa_fixa": 0.0, "tokens_input_busca": 60000 },
+    "google/gemini-3.1-pro-preview": { "in": 2.0, "out": 12.0, "taxa_fixa": 0.0, "tokens_input_busca": 2000 }
+  },
+  "fracao_saida_tipica": 0.55,
+
+  "_saida": "Vazio resolve para a pasta outputs/ ao lado da skill. Preencha com um caminho absoluto para gravar em outro lugar.",
+  "saida_padrao": ""
+}

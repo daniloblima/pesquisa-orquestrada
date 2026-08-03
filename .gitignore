@@ -1,0 +1,20 @@
+# Resultados de pesquisa: podem conter material confidencial de cliente
+outputs/
+
+# Segredos — a chave mora em ~/.claude/.env, nunca aqui
+.env
+*.key
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Documentos de planejamento interno — ficam locais, fora do repositório público
+PRD.md
+tasks.md
+rules.md
+implementation_plan.md
+design_guidelines.md
