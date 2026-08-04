@@ -187,7 +187,10 @@ h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em
 .tile .val{font-size:30px;font-weight:600;letter-spacing:-0.02em;line-height:1.1}
 .tile .sub{font-size:12px;color:var(--muted);margin-top:4px}
 .tabela-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--ring);border-radius:10px}
-table{border-collapse:collapse;width:100%;font-size:14px;min-width:720px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:760px}
+table.motores{min-width:1020px}
+table.motores td:first-child{min-width:210px}
+table.motores .obj{white-space:nowrap}
 th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);
   text-transform:uppercase;letter-spacing:0.05em;padding:12px 14px;border-bottom:1px solid var(--grid)}
 td{padding:13px 14px;border-bottom:1px solid var(--grid);vertical-align:top}
@@ -402,7 +405,7 @@ def montar_html(pesquisas, raiz):
 
         bloco_motores = (
             "<h2>Desempenho por motor</h2>"
-            '<div class="tabela-wrap"><table><thead><tr>'
+            '<div class="tabela-wrap"><table class="motores"><thead><tr>'
             "<th>Motor</th><th class='num'>Pesquisas</th><th class='num'>Fontes</th>"
             "<th>Exclusivas</th><th class='num'>% exclusivo</th>"
             "<th class='num'>Custo</th><th class='num'>Por exclusiva</th>"

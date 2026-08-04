@@ -58,11 +58,13 @@ O painel fica em `outputs/dashboard.html` e abre com duplo clique. Mostra custo 
 
 Configuração em [skill/config.json](skill/config.json). Trocar de motor é trocar uma string.
 
-| Slot | Padrão | Índice |
-|---|---|---|
-| A | `perplexity/sonar-deep-research` | Perplexity |
-| B | `openai/gpt-5.6-terra` | OpenAI |
-| C | `google/gemini-3.1-pro-preview` | Google |
+| Slot | Padrão | Índice | Custo típico |
+|---|---|---|---|
+| A | `x-ai/grok-4.20-multi-agent` | xAI | US$ 0,50 |
+| B | `openai/gpt-5.6-terra` | OpenAI | US$ 0,18 |
+| C | `google/gemini-3.1-pro-preview` | Google | US$ 0,12 |
+
+`perplexity/sonar-deep-research` fica disponível como opção. Saiu do padrão por custar US$ 1,12 por chamada contra US$ 0,32 do Grok, com busca real confirmada nos dois. A escolha dos motores é oferecida a cada pesquisa.
 
 Para ver o que existe hoje no OpenRouter e conferir se o que está configurado ainda vale:
 
