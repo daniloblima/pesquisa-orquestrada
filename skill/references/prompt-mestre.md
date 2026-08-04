@@ -45,7 +45,9 @@ Temporal: [ex: 2024 até hoje; priorizar os últimos 12 meses]
 ## Como responder
 
 - Seja específico: número, data, nome próprio e valor sempre que existirem.
-- Diga de onde veio cada afirmação relevante.
+- **Cada afirmação relevante traz, no próprio parágrafo, a URL completa que a sustenta,
+  entre parênteses.** Não basta listar tudo no fim: a URL precisa estar junto do que ela
+  prova. Afirmação sem link ao lado será tratada como não verificada.
 - Se a informação for disputada ou incerta, diga isso em vez de escolher um lado.
 - Se não encontrar algo sobre um ângulo pedido, escreva que não encontrou. Não preencha
   com conhecimento geral.
@@ -119,6 +121,8 @@ https://...
 **"NÃO ENCONTRADO" é um estado válido e nomeado** porque sem essa opção o modelo inventa confirmação para ser útil.
 
 **A seção de fontes tem formato fixo** porque o script extrai as URLs do texto além das citações estruturadas, e formato solto reduz o que ele consegue capturar.
+
+**A citação vai junto da afirmação, e não só na lista do fim**, porque é o que permite recuperar o que estava em jogo quando uma fonte é reprovada. Na segunda pesquisa real, um motor listou todas as URLs apenas ao final: sete foram identificadas como inventadas e nenhuma pôde ser ligada a uma afirmação específica, o que obrigou a descartar a contribuição inteira dele em vez de revalidar ponto a ponto. Fonte solta no rodapé não prova nada e não dá para verificar.
 
 ## Afirmações órfãs de fonte
 

@@ -26,6 +26,7 @@ import os
 import re
 import sys
 import time
+import threading
 import traceback
 import unicodedata
 import urllib.error
@@ -49,9 +50,57 @@ LOCAIS_CHAVE = [
 
 # ---------------------------------------------------------------- infra
 
+_ARQUIVO_LOG = None
+_LOCK_LOG = threading.Lock()
+
+
+def abrir_log(caminho):
+    """Passa a gravar o log em arquivo, além da tela.
+
+    Log que só vai para a tela morre quando a sessão fecha, e aí não há como saber o que
+    quebrou, onde nem por quê. O arquivo fica ao lado do JSON da rodada.
+    """
+    global _ARQUIVO_LOG
+    try:
+        caminho.parent.mkdir(parents=True, exist_ok=True)
+        _ARQUIVO_LOG = open(caminho, "a", encoding="utf-8")
+        _ARQUIVO_LOG.write(f"\n{'=' * 78}\n")
+        _ARQUIVO_LOG.write(f"execução iniciada em {datetime.now():%Y-%m-%d %H:%M:%S}\n")
+        _ARQUIVO_LOG.write(f"comando: {' '.join(sys.argv)}\n")
+        _ARQUIVO_LOG.write(f"{'=' * 78}\n")
+        _ARQUIVO_LOG.flush()
+        return caminho
+    except Exception as e:
+        print(f"AVISO: não consegui abrir o log em {caminho}: {type(e).__name__}: {e}", flush=True)
+        return None
+
+
 def log(etapa, mensagem):
     """Formato de log do projeto: [HH:MM:SS] [ETAPA] mensagem."""
-    print(f"[{datetime.now():%H:%M:%S}] [{etapa}] {mensagem}", flush=True)
+    linha = f"[{datetime.now():%H:%M:%S}] [{etapa}] {mensagem}"
+    print(linha, flush=True)
+    if _ARQUIVO_LOG:
+        # Os agentes rodam em paralelo e escrevem no mesmo arquivo.
+        with _LOCK_LOG:
+            try:
+                _ARQUIVO_LOG.write(linha + "\n")
+                _ARQUIVO_LOG.flush()
+            except Exception:
+                pass  # log quebrado nunca derruba a pesquisa
+
+
+def log_excecao(etapa, e):
+    """Registra a exceção inteira, com pilha, no arquivo e na tela."""
+    log(etapa, f"EXCEÇÃO {type(e).__name__}: {e}")
+    pilha = traceback.format_exc()
+    print(pilha, flush=True)
+    if _ARQUIVO_LOG:
+        with _LOCK_LOG:
+            try:
+                _ARQUIVO_LOG.write(pilha + "\n")
+                _ARQUIVO_LOG.flush()
+            except Exception:
+                pass
 
 
 def carregar_config():
@@ -526,6 +575,7 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave,
         "urls_inexistentes": [],
         "urls_suspeitas": [],
         "afirmacoes_a_revalidar": [],
+        "reprovadas_sem_rastro": False,
         "erro": None,
     }
 
@@ -576,6 +626,13 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave,
             resultado["erro"] = "modelo respondeu vazio"
             log(f"AGENTE {slot}", "ATENÇÃO: conteúdo vazio na resposta")
 
+        # O provedor às vezes devolve 200 com finish_reason de erro. Sem isto o agente
+        # entra em agentes_ok e a rodada parece ter dado certo.
+        if resultado.get("finish_reason") == "error":
+            resultado["erro"] = (resultado["erro"] or "") + \
+                " | provedor devolveu finish_reason=error"
+            log(f"AGENTE {slot}", "FALHOU: finish_reason=error — resposta interrompida pelo provedor")
+
         # Trava de qualidade. Um agente que não devolveu nenhuma URL provavelmente
         # respondeu de memória. Não pode contar como fonte de confirmação.
         if not resultado["erro"] and not resultado["urls"]:
@@ -605,6 +662,12 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave,
                 log(f"AGENTE {slot}",
                     f"{len(problemas) - sem_contexto} de {len(problemas)} fontes reprovadas "
                     f"têm o trecho que sustentavam; {sem_contexto} aparecem só na lista de fontes")
+            if sem_contexto and sem_contexto == len(problemas):
+                resultado["reprovadas_sem_rastro"] = True
+                log(f"AGENTE {slot}",
+                    "ALERTA GRAVE: todas as fontes reprovadas deste agente aparecem apenas na "
+                    "lista final, sem trecho associado. Não dá para saber o que se apoiava "
+                    "nelas, então NADA deste agente pode contar como confirmação.")
 
             resultado["urls_problematicas"] = problemas
             resultado["afirmacoes_a_revalidar"] = [
@@ -632,8 +695,7 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave,
 
     except Exception as e:
         resultado["erro"] = f"{type(e).__name__}: {e}"
-        log(f"AGENTE {slot}", f"FALHOU · {type(e).__name__}: {e}")
-        traceback.print_exc()
+        log_excecao(f"AGENTE {slot}", e)
 
     resultado["duracao_s"] = round(time.time() - inicio, 1)
 
@@ -731,6 +793,11 @@ def main():
 
     if not args.estimar and not args.saida:
         p.error("--saida é obrigatório quando não se usa --estimar")
+
+    if args.saida:
+        caminho_log = abrir_log(Path(args.saida).expanduser().resolve().with_suffix(".log"))
+        if caminho_log:
+            print(f"log desta execução: {caminho_log}", flush=True)
 
     cfg = carregar_config()
     modo = args.modo or cfg.get("modo_padrao", "normal")

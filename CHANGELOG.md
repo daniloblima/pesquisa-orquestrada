@@ -732,6 +732,115 @@ tratava descarte como se fosse solução.
 
 ---
 
+## [2026-08-04 18:50] — Segunda pesquisa real: o que funcionou e os quatro furos
+
+Pesquisa sobre B-optante com geração distribuída, duas rodadas completas, três motores.
+Primeira execução com todas as travas ligadas.
+
+### NÚMEROS
+
+| | Rodada 1 | Rodada 2 |
+|---|---|---|
+| Duração | 258 s | 159 s |
+| Custo real | US$ 0,807 | US$ 0,786 |
+| Custo estimado | US$ 0,57 | US$ 0,42 |
+| Agentes com falha | nenhum | Gemini |
+
+Contribuição declarada no `meta.json`: GPT com 22 afirmações e 11 confirmadas, Grok com 14 e
+10, Gemini com 9 e 5. Doze afirmações ficaram como fonte única e duas divergências não se
+resolveram.
+
+### O QUE FUNCIONOU
+
+O ciclo fechou pela primeira vez de ponta a ponta. Uma afirmação sobre identificação do
+B-optante na fatura da Enel perdeu a fonte na verificação, foi para a rodada 2, não se
+confirmou e chegou ao relatório na seção de limitações, nomeada, com a consequência prática
+explicada. Antes ela teria sumido sem deixar rastro.
+
+Melhor ainda: a rodada 2 **refutou** uma afirmação sobre a Consulta Pública ANEEL 7/2025 e a
+Nota Técnica 148/2025 tratarem do regime do B-optante. Informação falsa que teria entrado no
+relatório como fato foi barrada pela segunda rodada. É exatamente o que o desenho existe
+para fazer.
+
+### TAXA DE URL FALSA POR MOTOR — o dado mais relevante
+
+| Motor | URLs | Inventadas | Fora do tema | Total reprovado |
+|---|---|---|---|---|
+| Grok 4.20 multi-agent | 14 | 0 | 0 | 0 |
+| GPT-5.6 Terra | 38 | 3 | 2 | 5 |
+| Gemini 3.1 Pro | 23 | 7 | 1 | 11 |
+
+O Gemini inventou 7 de 23 URLs, cerca de 30%, muito acima da faixa de 3% a 13% que a
+literatura reporta. O Grok não produziu nenhuma reprovação em 14. Uma pesquisa não decide
+nada, mas é o primeiro sinal comparável entre motores, e ele é forte.
+
+### FURO 1 — a revalidação não alcançou o motor que mais precisa dela
+
+O Gemini teve 7 URLs inventadas e **zero afirmações extraídas para revalidação**.
+
+Causa: ele lista todas as URLs apenas na seção final de fontes, sem citar nada no corpo. A
+posição do cabeçalho no texto era 6.878 de 7.718 caracteres, e todas as URLs reprovadas
+estavam depois disso. A função `contexto_da_url` ignora, por desenho, ocorrências dentro da
+lista final — ali é item de lista, não uso — e devolveu vazio para todas.
+
+O mecanismo estava tecnicamente correto e inútil na prática. Fonte solta no rodapé não prova
+nada e não dá para verificar: não há como saber o que se apoiava nela.
+
+Correção na raiz: o prompt mestre passa a exigir que cada afirmação relevante traga a URL no
+próprio parágrafo, e diz que afirmação sem link ao lado será tratada como não verificada.
+Verificado logo depois num teste barato — com citação inline exigida, o trecho foi recuperado.
+
+Defesa para quando isso falhar de novo: `reprovadas_sem_rastro` marca o agente em que todas
+as fontes reprovadas ficaram sem trecho, com alerta grave no log, e nada dele pode contar
+como confirmação.
+
+Nota: a sessão que conduziu a pesquisa percebeu a limitação sozinha e escreveu nas limitações
+do relatório que as URLs reprovadas do Gemini não sustentavam trecho específico. O relatório
+saiu honesto apesar da falha do mecanismo.
+
+### FURO 2 — falha do provedor entrando como sucesso
+
+O Gemini na rodada 2 devolveu `finish_reason=error`, 700 caracteres, zero URLs — e entrou em
+`agentes_ok`, porque o campo `erro` estava nulo. A rodada parecia ter dado certo nos três.
+
+Correção: `finish_reason == "error"` passa a marcar o agente como falho.
+
+### FURO 3 — estimativa ainda subestimando
+
+US$ 0,57 estimado contra US$ 0,807 real na rodada 1, e US$ 0,42 contra US$ 0,786 na rodada 2.
+
+Causa: o Grok lê muito mais do que o medido no primeiro teste — 422 mil tokens de entrada na
+rodada 1 e 486 mil na rodada 2, contra os 232 mil que calibraram o `config.json`. E ele não
+economiza na rodada 2: o prompt cirúrgico é pequeno, mas a busca dele não.
+
+`tokens_input_busca` do Grok subiu de 200 mil para 450 mil. Nova estimativa para a mesma
+pesquisa: entre US$ 0,77 e US$ 0,88, contra US$ 0,807 reais.
+
+### FURO 4 — log que morria com a sessão
+
+Apontado pelo Danilo. Todo o diagnóstico existia apenas na tela: fechada a sessão, não havia
+como saber o que quebrou, onde nem por quê. Esta própria análise dependeu de reconstituir
+tudo a partir dos JSON.
+
+`abrir_log()` grava o log em arquivo ao lado do JSON da rodada, com cabeçalho de data e o
+comando completo que originou a execução. Escrita protegida por trava, porque os agentes
+rodam em paralelo. `log_excecao()` registra a pilha inteira. Falha ao gravar log nunca
+derruba a pesquisa.
+
+### CUSTO ACUMULADO
+
+Duas pesquisas, US$ 4,00. A segunda saiu por US$ 1,59 com os três motores, contra US$ 2,57
+da primeira — a troca do Perplexity pelo Grok economizou cerca de 40%.
+
+### LIÇÃO
+
+Uma trava pode estar correta linha a linha e não alcançar o caso que motivou sua criação. A
+extração de contexto funcionava exatamente como especificada e produziu zero resultado no
+motor com 30% de URLs inventadas, porque o formato de citação dele estava fora do que o
+desenho pressupunha. Vale sempre perguntar em que formato de entrada a defesa deixa de valer.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão
