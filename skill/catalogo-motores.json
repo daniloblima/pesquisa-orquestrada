@@ -1,0 +1,3385 @@
+{
+  "atualizado_em": "2026-08-04",
+  "modelos": {
+    "qwen/qwen3.8-max": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 2.0,
+      "out": 6.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~deepseek/deepseek-v4-flash-latest": {
+      "familia": "~deepseek",
+      "classe": "sem-busca",
+      "in": 0.09,
+      "out": 0.18,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-v4-flash-0731": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.09,
+      "out": 0.18,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "thinkingmachines/inkling-small": {
+      "familia": "thinkingmachines",
+      "classe": "sem-busca",
+      "in": 0.5,
+      "out": 1.2,
+      "contexto": 524288,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.7-flash": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.03,
+      "out": 0.13,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-5-fast": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 10.0,
+      "out": 50.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-5": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 5.0,
+      "out": 25.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "inclusionai/ling-3.0-flash:free": {
+      "familia": "inclusionai",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "poolside/laguna-s-2.1": {
+      "familia": "poolside",
+      "classe": "sem-busca",
+      "in": 0.09,
+      "out": 0.18,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "poolside/laguna-s-2.1:free": {
+      "familia": "poolside",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.6-flash": {
+      "familia": "Google",
+      "classe": "busca-nativa",
+      "in": 1.5,
+      "out": 7.5,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.5-flash-lite": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.3,
+      "out": 2.5,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meituan/longcat-2.0": {
+      "familia": "meituan",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 1.2,
+      "contexto": 1048756,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "thinkingmachines/inkling": {
+      "familia": "thinkingmachines",
+      "classe": "sem-busca",
+      "in": 1.0,
+      "out": 4.05,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openrouter/auto-beta": {
+      "familia": "openrouter",
+      "classe": "sem-busca",
+      "in": -1000000.0,
+      "out": -1000000.0,
+      "contexto": 2000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "moonshotai/kimi-k3": {
+      "familia": "moonshotai",
+      "classe": "sem-busca",
+      "in": 3.0,
+      "out": 15.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta/muse-spark-1.1": {
+      "familia": "meta",
+      "classe": "sem-busca",
+      "in": 1.25,
+      "out": 4.25,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "kwaipilot/kat-coder-air-v2.5": {
+      "familia": "kwaipilot",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 0.6,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "kwaipilot/kat-coder-pro-v2.5": {
+      "familia": "kwaipilot",
+      "classe": "sem-busca",
+      "in": 0.74,
+      "out": 2.96,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.6-luna-pro": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 0.1,
+      "out": 0.6,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.6-luna": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 0.1,
+      "out": 0.6,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.6-terra-pro": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 1.0,
+      "out": 6.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.6-terra": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 1.0,
+      "out": 6.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.6-sol-pro": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 5.0,
+      "out": 30.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.6-sol": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 5.0,
+      "out": 30.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "x-ai/grok-4.5": {
+      "familia": "xAI",
+      "classe": "busca-nativa",
+      "in": 2.0,
+      "out": 6.0,
+      "contexto": 500000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~x-ai/grok-latest": {
+      "familia": "~x-ai",
+      "classe": "sem-busca",
+      "in": 2.0,
+      "out": 6.0,
+      "contexto": 500000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "aion-labs/aion-3.0-mini": {
+      "familia": "aion-labs",
+      "classe": "sem-busca",
+      "in": 0.7,
+      "out": 1.4,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "aion-labs/aion-3.0": {
+      "familia": "aion-labs",
+      "classe": "sem-busca",
+      "in": 3.0,
+      "out": 6.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "tencent/hy3": {
+      "familia": "tencent",
+      "classe": "sem-busca",
+      "in": 0.132,
+      "out": 0.528,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "poolside/laguna-xs-2.1": {
+      "familia": "poolside",
+      "classe": "sem-busca",
+      "in": 0.06,
+      "out": 0.12,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "poolside/laguna-xs-2.1:free": {
+      "familia": "poolside",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-sonnet-5": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 2.0,
+      "out": 10.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.1-flash-lite-image": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.25,
+      "out": 1.5,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nex-agi/nex-n2-mini": {
+      "familia": "nex-agi",
+      "classe": "sem-busca",
+      "in": 0.025,
+      "out": 0.1,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "sakana/fugu-ultra": {
+      "familia": "sakana",
+      "classe": "sem-busca",
+      "in": 5.0,
+      "out": 30.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.1-flash-image": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.5,
+      "out": 3.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3-pro-image": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 2.0,
+      "out": 12.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "cohere/north-mini-code:free": {
+      "familia": "cohere",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-5.2": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.76,
+      "out": 2.42,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openrouter/fusion": {
+      "familia": "openrouter",
+      "classe": "sem-busca",
+      "in": -1000000.0,
+      "out": -1000000.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "moonshotai/kimi-k2.7-code": {
+      "familia": "moonshotai",
+      "classe": "sem-busca",
+      "in": 0.73,
+      "out": 3.5,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~anthropic/claude-fable-latest": {
+      "familia": "~anthropic",
+      "classe": "sem-busca",
+      "in": 10.0,
+      "out": 50.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-fable-5": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 10.0,
+      "out": 50.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nex-agi/nex-n2-pro": {
+      "familia": "nex-agi",
+      "classe": "sem-busca",
+      "in": 0.25,
+      "out": 1.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-3.5-content-safety:free": {
+      "familia": "nvidia",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-3-ultra-550b-a55b": {
+      "familia": "nvidia",
+      "classe": "sem-busca",
+      "in": 0.6,
+      "out": 3.6,
+      "contexto": 512288,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-3-ultra-550b-a55b:free": {
+      "familia": "nvidia",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.7-plus": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.32,
+      "out": 1.28,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "minimax/minimax-m3": {
+      "familia": "minimax",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 1.2,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "stepfun/step-3.7-flash": {
+      "familia": "stepfun",
+      "classe": "sem-busca",
+      "in": 0.2,
+      "out": 1.15,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-4.8-fast": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 10.0,
+      "out": 50.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-4.8": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 5.0,
+      "out": 25.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.7-max": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 1.475,
+      "out": 4.425,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "x-ai/grok-build-0.1": {
+      "familia": "xAI",
+      "classe": "descartado",
+      "in": 1.0,
+      "out": 2.0,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.5-flash": {
+      "familia": "Google",
+      "classe": "busca-nativa",
+      "in": 1.5,
+      "out": 9.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-4.7-fast": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 30.0,
+      "out": 150.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "perceptron/perceptron-mk1": {
+      "familia": "perceptron",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 1.5,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "inclusionai/ring-2.6-1t": {
+      "familia": "inclusionai",
+      "classe": "sem-busca",
+      "in": 0.075,
+      "out": 0.625,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.1-flash-lite": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.25,
+      "out": 1.5,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-chat-latest": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 5.0,
+      "out": 30.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "x-ai/grok-4.3": {
+      "familia": "xAI",
+      "classe": "busca-nativa",
+      "in": 1.25,
+      "out": 2.5,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "ibm-granite/granite-4.1-8b": {
+      "familia": "ibm-granite",
+      "classe": "sem-busca",
+      "in": 0.05,
+      "out": 0.1,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-medium-3-5": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 1.5,
+      "out": 7.5,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {
+      "familia": "nvidia",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~anthropic/claude-haiku-latest": {
+      "familia": "~anthropic",
+      "classe": "sem-busca",
+      "in": 1.0,
+      "out": 5.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~openai/gpt-mini-latest": {
+      "familia": "~openai",
+      "classe": "sem-busca",
+      "in": 0.75,
+      "out": 4.5,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~google/gemini-pro-latest": {
+      "familia": "~google",
+      "classe": "sem-busca",
+      "in": 2.0,
+      "out": 12.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~moonshotai/kimi-latest": {
+      "familia": "~moonshotai",
+      "classe": "sem-busca",
+      "in": 2.9,
+      "out": 14.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~google/gemini-flash-latest": {
+      "familia": "~google",
+      "classe": "sem-busca",
+      "in": 1.5,
+      "out": 7.5,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~anthropic/claude-sonnet-latest": {
+      "familia": "~anthropic",
+      "classe": "sem-busca",
+      "in": 2.0,
+      "out": 10.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~openai/gpt-latest": {
+      "familia": "~openai",
+      "classe": "sem-busca",
+      "in": 5.0,
+      "out": 30.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.5-plus-20260420": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 1.8,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.6-flash": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.1875,
+      "out": 1.125,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.6-35b-a3b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.14,
+      "out": 1.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.6-max-preview": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 1.027,
+      "out": 6.162,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.6-27b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.289,
+      "out": 2.4,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.5-pro": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 30.0,
+      "out": 180.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.5": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 5.0,
+      "out": 30.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-v4-pro": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.435,
+      "out": 0.87,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-v4-flash": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.14,
+      "out": 0.28,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "inclusionai/ling-2.6-1t": {
+      "familia": "inclusionai",
+      "classe": "sem-busca",
+      "in": 0.075,
+      "out": 0.625,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "tencent/hy3-preview": {
+      "familia": "tencent",
+      "classe": "sem-busca",
+      "in": 0.063,
+      "out": 0.21,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "xiaomi/mimo-v2.5-pro": {
+      "familia": "xiaomi",
+      "classe": "sem-busca",
+      "in": 0.435,
+      "out": 0.87,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "xiaomi/mimo-v2.5": {
+      "familia": "xiaomi",
+      "classe": "sem-busca",
+      "in": 0.14,
+      "out": 0.28,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.4-image-2": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 8.0,
+      "out": 15.0,
+      "contexto": 272000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "inclusionai/ling-2.6-flash": {
+      "familia": "inclusionai",
+      "classe": "sem-busca",
+      "in": 0.01,
+      "out": 0.03,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "~anthropic/claude-opus-latest": {
+      "familia": "~anthropic",
+      "classe": "sem-busca",
+      "in": 5.0,
+      "out": 25.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openrouter/pareto-code": {
+      "familia": "openrouter",
+      "classe": "sem-busca",
+      "in": -1000000.0,
+      "out": -1000000.0,
+      "contexto": 2000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "moonshotai/kimi-k2.6": {
+      "familia": "moonshotai",
+      "classe": "sem-busca",
+      "in": 0.589,
+      "out": 2.48,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-4.7": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 5.0,
+      "out": 25.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-5.1": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.966,
+      "out": 3.036,
+      "contexto": 204800,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-4-26b-a4b-it": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.07,
+      "out": 0.34,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-4-26b-a4b-it:free": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-4-31b-it": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.1,
+      "out": 0.34,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-4-31b-it:free": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.6-plus": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.325,
+      "out": 1.95,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-5v-turbo": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 1.2,
+      "out": 4.0,
+      "contexto": 202752,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "arcee-ai/trinity-large-thinking": {
+      "familia": "arcee-ai",
+      "classe": "sem-busca",
+      "in": 0.22,
+      "out": 0.85,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "x-ai/grok-4.20-multi-agent": {
+      "familia": "xAI",
+      "classe": "deep-research",
+      "in": 1.25,
+      "out": 2.5,
+      "contexto": 2000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "x-ai/grok-4.20": {
+      "familia": "xAI",
+      "classe": "busca-nativa",
+      "in": 1.25,
+      "out": 2.5,
+      "contexto": 2000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/lyria-3-pro-preview": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/lyria-3-clip-preview": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "kwaipilot/kat-coder-pro-v2": {
+      "familia": "kwaipilot",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 1.2,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "rekaai/reka-edge": {
+      "familia": "rekaai",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.1,
+      "contexto": 16384,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "minimax/minimax-m2.7": {
+      "familia": "minimax",
+      "classe": "sem-busca",
+      "in": 0.25,
+      "out": 1.0,
+      "contexto": 204800,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.4-nano": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.2,
+      "out": 1.25,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.4-mini": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 0.75,
+      "out": 4.5,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-small-2603": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 0.6,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-5-turbo": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 1.2,
+      "out": 4.0,
+      "contexto": 202752,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-3-super-120b-a12b": {
+      "familia": "nvidia",
+      "classe": "sem-busca",
+      "in": 0.085,
+      "out": 0.4,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-3-super-120b-a12b:free": {
+      "familia": "nvidia",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "bytedance-seed/seed-2.0-lite": {
+      "familia": "bytedance-seed",
+      "classe": "descartado",
+      "in": 0.25,
+      "out": 2.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.5-9b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.15,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.4-pro": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 30.0,
+      "out": 180.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.4": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 2.5,
+      "out": 15.0,
+      "contexto": 1050000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "inception/mercury-2": {
+      "familia": "inception",
+      "classe": "sem-busca",
+      "in": 0.25,
+      "out": 0.75,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.3-chat": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.75,
+      "out": 14.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.1-flash-lite-preview": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.25,
+      "out": 1.5,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "bytedance-seed/seed-2.0-mini": {
+      "familia": "bytedance-seed",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.4,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.1-flash-image-preview": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.5,
+      "out": 3.0,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.5-35b-a3b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.14,
+      "out": 1.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.5-27b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.195,
+      "out": 1.56,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.5-122b-a10b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.26,
+      "out": 2.08,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.5-flash-02-23": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.065,
+      "out": 0.26,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.1-pro-preview-customtools": {
+      "familia": "Google",
+      "classe": "busca-nativa",
+      "in": 2.0,
+      "out": 12.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.3-codex": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.75,
+      "out": 14.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "aion-labs/aion-2.0": {
+      "familia": "aion-labs",
+      "classe": "sem-busca",
+      "in": 0.8,
+      "out": 1.6,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3.1-pro-preview": {
+      "familia": "Google",
+      "classe": "busca-nativa",
+      "in": 2.0,
+      "out": 12.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-sonnet-4.6": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 3.0,
+      "out": 15.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.5-plus-02-15": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.26,
+      "out": 1.56,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3.5-397b-a17b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.39,
+      "out": 2.34,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "minimax/minimax-m2.5": {
+      "familia": "minimax",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 0.9,
+      "contexto": 204800,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-5": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.95,
+      "out": 2.55,
+      "contexto": 204800,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-max-thinking": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.78,
+      "out": 3.9,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-4.6": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 5.0,
+      "out": 25.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-coder-next": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.12,
+      "out": 0.8,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openrouter/free": {
+      "familia": "openrouter",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "stepfun/step-3.5-flash": {
+      "familia": "stepfun",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.3,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "moonshotai/kimi-k2.5": {
+      "familia": "moonshotai",
+      "classe": "sem-busca",
+      "in": 0.57,
+      "out": 2.85,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "upstage/solar-pro-3": {
+      "familia": "upstage",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 0.6,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "minimax/minimax-m2-her": {
+      "familia": "minimax",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 1.2,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "writer/palmyra-x5": {
+      "familia": "writer",
+      "classe": "sem-busca",
+      "in": 0.6,
+      "out": 6.0,
+      "contexto": 1040000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-audio": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 2.5,
+      "out": 10.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-audio-mini": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.6,
+      "out": 2.4,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-4.7-flash": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.06,
+      "out": 0.4,
+      "contexto": 202752,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.2-codex": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.75,
+      "out": 14.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "bytedance-seed/seed-1.6-flash": {
+      "familia": "bytedance-seed",
+      "classe": "sem-busca",
+      "in": 0.075,
+      "out": 0.3,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "bytedance-seed/seed-1.6": {
+      "familia": "bytedance-seed",
+      "classe": "sem-busca",
+      "in": 0.25,
+      "out": 2.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "minimax/minimax-m2.1": {
+      "familia": "minimax",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 1.2,
+      "contexto": 204800,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-4.7": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.4,
+      "out": 1.75,
+      "contexto": 204800,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3-flash-preview": {
+      "familia": "Google",
+      "classe": "busca-nativa",
+      "in": 0.5,
+      "out": 3.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-3-nano-30b-a3b": {
+      "familia": "nvidia",
+      "classe": "descartado",
+      "in": 0.05,
+      "out": 0.2,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-3-nano-30b-a3b:free": {
+      "familia": "nvidia",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.2-chat": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.75,
+      "out": 14.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.2-pro": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 21.0,
+      "out": 168.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.2": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 1.75,
+      "out": 14.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "relace/relace-search": {
+      "familia": "relace",
+      "classe": "descartado",
+      "in": 1.0,
+      "out": 3.0,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-4.6v": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 0.9,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openrouter/bodybuilder": {
+      "familia": "openrouter",
+      "classe": "descartado",
+      "in": -1000000.0,
+      "out": -1000000.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.1-codex-max": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.25,
+      "out": 10.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "amazon/nova-2-lite-v1": {
+      "familia": "amazon",
+      "classe": "descartado",
+      "in": 0.3,
+      "out": 2.5,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/ministral-14b-2512": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.2,
+      "out": 0.2,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/ministral-8b-2512": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 0.15,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/ministral-3b-2512": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.1,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-large-2512": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.5,
+      "out": 1.5,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-v3.2": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.269,
+      "out": 0.4,
+      "contexto": 163840,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-4.5": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 5.0,
+      "out": 25.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "allenai/olmo-3-32b-think": {
+      "familia": "allenai",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 0.5,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-3-pro-image-preview": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 2.0,
+      "out": 12.0,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepcogito/cogito-v2.1-671b": {
+      "familia": "deepcogito",
+      "classe": "sem-busca",
+      "in": 1.25,
+      "out": 1.25,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.1": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 1.25,
+      "out": 10.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.1-codex": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.25,
+      "out": 10.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5.1-codex-mini": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.25,
+      "out": 2.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "moonshotai/kimi-k2-thinking": {
+      "familia": "moonshotai",
+      "classe": "sem-busca",
+      "in": 0.6,
+      "out": 2.5,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "amazon/nova-premier-v1": {
+      "familia": "amazon",
+      "classe": "sem-busca",
+      "in": 2.5,
+      "out": 12.5,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "perplexity/sonar-pro-search": {
+      "familia": "Perplexity",
+      "classe": "deep-research",
+      "in": 3.0,
+      "out": 15.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/voxtral-small-24b-2507": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.3,
+      "contexto": 32000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-oss-safeguard-20b": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.075,
+      "out": 0.3,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-nano-12b-v2-vl:free": {
+      "familia": "nvidia",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "minimax/minimax-m2": {
+      "familia": "minimax",
+      "classe": "sem-busca",
+      "in": 0.255,
+      "out": 1.02,
+      "contexto": 204800,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-vl-32b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.104,
+      "out": 0.416,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "ibm-granite/granite-4.0-h-micro": {
+      "familia": "ibm-granite",
+      "classe": "sem-busca",
+      "in": 0.017,
+      "out": 0.112,
+      "contexto": 131000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5-image-mini": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 2.5,
+      "out": 2.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-haiku-4.5": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 1.0,
+      "out": 5.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-vl-8b-thinking": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.18,
+      "out": 2.1,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-vl-8b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.117,
+      "out": 0.455,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5-image": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 10.0,
+      "out": 10.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-2.5-flash-image": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.3,
+      "out": 2.5,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-vl-30b-a3b-thinking": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.2,
+      "out": 2.4,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-vl-30b-a3b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 0.6,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5-pro": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 15.0,
+      "out": 120.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-4.6": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.5,
+      "out": 2.0,
+      "contexto": 204800,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-sonnet-4.5": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 3.0,
+      "out": 15.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-v3.2-exp": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.27,
+      "out": 0.41,
+      "contexto": 163840,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "thedrummer/cydonia-24b-v4.1": {
+      "familia": "thedrummer",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 0.5,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "relace/relace-apply-3": {
+      "familia": "relace",
+      "classe": "descartado",
+      "in": 0.85,
+      "out": 1.25,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-vl-235b-a22b-thinking": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.98,
+      "out": 3.95,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-vl-235b-a22b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.21,
+      "out": 1.9,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-max": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.78,
+      "out": 3.9,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-coder-plus": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.65,
+      "out": 3.25,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-v3.1-terminus": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.27,
+      "out": 1.0,
+      "contexto": 163840,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-coder-flash": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.195,
+      "out": 0.975,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-next-80b-a3b-thinking": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 1.2,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-next-80b-a3b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.09,
+      "out": 1.1,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen-plus-2025-07-28": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.26,
+      "out": 0.78,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen-plus-2025-07-28:thinking": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.4,
+      "out": 1.2,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nvidia/nemotron-nano-9b-v2:free": {
+      "familia": "nvidia",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "moonshotai/kimi-k2-0905": {
+      "familia": "moonshotai",
+      "classe": "sem-busca",
+      "in": 0.6,
+      "out": 2.5,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-30b-a3b-thinking-2507": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.2,
+      "out": 2.4,
+      "contexto": 81920,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nousresearch/hermes-4-70b": {
+      "familia": "nousresearch",
+      "classe": "sem-busca",
+      "in": 0.13,
+      "out": 0.4,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nousresearch/hermes-4-405b": {
+      "familia": "nousresearch",
+      "classe": "sem-busca",
+      "in": 1.0,
+      "out": 3.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-chat-v3.1": {
+      "familia": "deepseek",
+      "classe": "descartado",
+      "in": 0.25,
+      "out": 0.95,
+      "contexto": 163840,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-medium-3.1": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.4,
+      "out": 2.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-4.5v": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.6,
+      "out": 1.8,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "ai21/jamba-large-1.7": {
+      "familia": "ai21",
+      "classe": "sem-busca",
+      "in": 2.0,
+      "out": 8.0,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 1.25,
+      "out": 10.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5-mini": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 0.25,
+      "out": 2.0,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-5-nano": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.05,
+      "out": 0.4,
+      "contexto": 400000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-oss-120b": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.037,
+      "out": 0.17,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-oss-20b": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.03,
+      "out": 0.13,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-oss-20b:free": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.0,
+      "out": 0.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-4.1": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 15.0,
+      "out": 75.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/codestral-2508": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 0.9,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-coder-30b-a3b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.07,
+      "out": 0.27,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-30b-a3b-instruct-2507": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.0481,
+      "out": 0.193,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-4.5": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.6,
+      "out": 2.2,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "z-ai/glm-4.5-air": {
+      "familia": "z-ai",
+      "classe": "sem-busca",
+      "in": 0.13,
+      "out": 0.85,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-235b-a22b-thinking-2507": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.23,
+      "out": 2.3,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-coder": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.3,
+      "out": 1.0,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "bytedance/ui-tars-1.5-7b": {
+      "familia": "bytedance",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.2,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-2.5-flash-lite": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.1,
+      "out": 0.4,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-235b-a22b-2507": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.1495,
+      "out": 0.598,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "moonshotai/kimi-k2": {
+      "familia": "moonshotai",
+      "classe": "sem-busca",
+      "in": 0.57,
+      "out": 2.3,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "cognitivecomputations/dolphin-mistral-24b-venice-edition": {
+      "familia": "cognitivecomputations",
+      "classe": "sem-busca",
+      "in": 0.2,
+      "out": 0.9,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "tencent/hunyuan-a13b-instruct": {
+      "familia": "tencent",
+      "classe": "sem-busca",
+      "in": 0.14,
+      "out": 0.57,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "morph/morph-v3-large": {
+      "familia": "morph",
+      "classe": "sem-busca",
+      "in": 0.9,
+      "out": 1.9,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "morph/morph-v3-fast": {
+      "familia": "morph",
+      "classe": "sem-busca",
+      "in": 0.8,
+      "out": 1.2,
+      "contexto": 81920,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "baidu/ernie-4.5-vl-424b-a47b": {
+      "familia": "baidu",
+      "classe": "sem-busca",
+      "in": 0.42,
+      "out": 1.25,
+      "contexto": 123000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-small-3.2-24b-instruct": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.075,
+      "out": 0.2,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "minimax/minimax-m1": {
+      "familia": "minimax",
+      "classe": "sem-busca",
+      "in": 0.55,
+      "out": 2.2,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-2.5-flash": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.3,
+      "out": 2.5,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-2.5-pro": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 1.25,
+      "out": 10.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/o3-pro": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 20.0,
+      "out": 80.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-2.5-pro-preview": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 1.25,
+      "out": 10.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-r1-0528": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.5,
+      "out": 2.15,
+      "contexto": 163840,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-opus-4": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 15.0,
+      "out": 75.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-sonnet-4": {
+      "familia": "Anthropic",
+      "classe": "busca-nativa",
+      "in": 3.0,
+      "out": 15.0,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-3n-e4b-it": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.06,
+      "out": 0.12,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-medium-3": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.4,
+      "out": 2.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemini-2.5-pro-preview-05-06": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 1.25,
+      "out": 10.0,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "arcee-ai/virtuoso-large": {
+      "familia": "arcee-ai",
+      "classe": "sem-busca",
+      "in": 0.75,
+      "out": 1.2,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta-llama/llama-guard-4-12b": {
+      "familia": "meta-llama",
+      "classe": "descartado",
+      "in": 0.18,
+      "out": 0.18,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-30b-a3b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.12,
+      "out": 0.5,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-8b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.117,
+      "out": 0.455,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-14b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.2275,
+      "out": 0.91,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-32b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.08,
+      "out": 0.28,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen3-235b-a22b": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.455,
+      "out": 1.82,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/o4-mini-high": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 1.1,
+      "out": 4.4,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/o3": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 2.0,
+      "out": 8.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/o4-mini": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 1.1,
+      "out": 4.4,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4.1": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 2.0,
+      "out": 8.0,
+      "contexto": 1047576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4.1-mini": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.4,
+      "out": 1.6,
+      "contexto": 1047576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4.1-nano": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.1,
+      "out": 0.4,
+      "contexto": 1047576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta-llama/llama-4-maverick": {
+      "familia": "meta-llama",
+      "classe": "sem-busca",
+      "in": 0.2,
+      "out": 0.8,
+      "contexto": 1048576,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta-llama/llama-4-scout": {
+      "familia": "meta-llama",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.3,
+      "contexto": 1310720,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-chat-v3-0324": {
+      "familia": "deepseek",
+      "classe": "descartado",
+      "in": 0.27,
+      "out": 1.12,
+      "contexto": 163840,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/o1-pro": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 150.0,
+      "out": 600.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-small-3.1-24b-instruct": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.351,
+      "out": 0.555,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-3-4b-it": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.05,
+      "out": 0.1,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-3-12b-it": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.05,
+      "out": 0.15,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "cohere/command-a": {
+      "familia": "cohere",
+      "classe": "sem-busca",
+      "in": 2.5,
+      "out": 10.0,
+      "contexto": 256000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "rekaai/reka-flash-3": {
+      "familia": "rekaai",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.2,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-3-27b-it": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.08,
+      "out": 0.45,
+      "contexto": 262144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "thedrummer/skyfall-36b-v2": {
+      "familia": "thedrummer",
+      "classe": "sem-busca",
+      "in": 0.55,
+      "out": 0.8,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "perplexity/sonar-reasoning-pro": {
+      "familia": "Perplexity",
+      "classe": "deep-research",
+      "in": 2.0,
+      "out": 8.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "perplexity/sonar-pro": {
+      "familia": "Perplexity",
+      "classe": "deep-research",
+      "in": 3.0,
+      "out": 15.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "perplexity/sonar-deep-research": {
+      "familia": "Perplexity",
+      "classe": "deep-research",
+      "in": 2.0,
+      "out": 8.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-saba": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.2,
+      "out": 0.6,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/o3-mini-high": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.1,
+      "out": 4.4,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "aion-labs/aion-rp-llama-3.1-8b": {
+      "familia": "aion-labs",
+      "classe": "sem-busca",
+      "in": 0.8,
+      "out": 1.6,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen2.5-vl-72b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.25,
+      "out": 0.75,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen-plus": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.26,
+      "out": 0.78,
+      "contexto": 1000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/o3-mini": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.1,
+      "out": 4.4,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-small-24b-instruct-2501": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.05,
+      "out": 0.08,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "perplexity/sonar": {
+      "familia": "Perplexity",
+      "classe": "deep-research",
+      "in": 1.0,
+      "out": 1.0,
+      "contexto": 127072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-r1-distill-llama-70b": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.8,
+      "out": 0.8,
+      "contexto": 8192,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-r1": {
+      "familia": "deepseek",
+      "classe": "sem-busca",
+      "in": 0.7,
+      "out": 2.5,
+      "contexto": 163840,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "minimax/minimax-01": {
+      "familia": "minimax",
+      "classe": "sem-busca",
+      "in": 0.2,
+      "out": 1.1,
+      "contexto": 1000192,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "microsoft/phi-4": {
+      "familia": "microsoft",
+      "classe": "sem-busca",
+      "in": 0.07,
+      "out": 0.14,
+      "contexto": 16384,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "deepseek/deepseek-chat": {
+      "familia": "deepseek",
+      "classe": "descartado",
+      "in": 0.2574,
+      "out": 1.0287,
+      "contexto": 163840,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "sao10k/l3.3-euryale-70b": {
+      "familia": "sao10k",
+      "classe": "sem-busca",
+      "in": 0.65,
+      "out": 0.75,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/o1": {
+      "familia": "OpenAI",
+      "classe": "busca-nativa",
+      "in": 15.0,
+      "out": 60.0,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "cohere/command-r7b-12-2024": {
+      "familia": "cohere",
+      "classe": "sem-busca",
+      "in": 0.0375,
+      "out": 0.15,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta-llama/llama-3.3-70b-instruct": {
+      "familia": "meta-llama",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.32,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "amazon/nova-lite-v1": {
+      "familia": "amazon",
+      "classe": "descartado",
+      "in": 0.06,
+      "out": 0.24,
+      "contexto": 300000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "amazon/nova-micro-v1": {
+      "familia": "amazon",
+      "classe": "sem-busca",
+      "in": 0.035,
+      "out": 0.14,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "amazon/nova-pro-v1": {
+      "familia": "amazon",
+      "classe": "sem-busca",
+      "in": 0.8,
+      "out": 3.2,
+      "contexto": 300000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4o-2024-11-20": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 2.5,
+      "out": 10.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-large-2407": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 2.0,
+      "out": 6.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen-2.5-coder-32b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.66,
+      "out": 1.0,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "thedrummer/unslopnemo-12b": {
+      "familia": "thedrummer",
+      "classe": "sem-busca",
+      "in": 0.4,
+      "out": 0.4,
+      "contexto": 1024000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthracite-org/magnum-v4-72b": {
+      "familia": "anthracite-org",
+      "classe": "sem-busca",
+      "in": 3.0,
+      "out": 5.0,
+      "contexto": 16384,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen-2.5-7b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.1,
+      "out": 0.2,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "thedrummer/rocinante-12b": {
+      "familia": "thedrummer",
+      "classe": "sem-busca",
+      "in": 0.25,
+      "out": 0.5,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta-llama/llama-3.2-1b-instruct": {
+      "familia": "meta-llama",
+      "classe": "sem-busca",
+      "in": 0.027,
+      "out": 0.201,
+      "contexto": 60000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta-llama/llama-3.2-3b-instruct": {
+      "familia": "meta-llama",
+      "classe": "sem-busca",
+      "in": 0.05,
+      "out": 0.33,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "qwen/qwen-2.5-72b-instruct": {
+      "familia": "qwen",
+      "classe": "sem-busca",
+      "in": 0.36,
+      "out": 0.4,
+      "contexto": 32768,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "cohere/command-r-08-2024": {
+      "familia": "cohere",
+      "classe": "sem-busca",
+      "in": 0.15,
+      "out": 0.6,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "cohere/command-r-plus-08-2024": {
+      "familia": "cohere",
+      "classe": "sem-busca",
+      "in": 2.5,
+      "out": 10.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "sao10k/l3.1-euryale-70b": {
+      "familia": "sao10k",
+      "classe": "sem-busca",
+      "in": 0.85,
+      "out": 0.85,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nousresearch/hermes-3-llama-3.1-70b": {
+      "familia": "nousresearch",
+      "classe": "sem-busca",
+      "in": 0.7,
+      "out": 0.7,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "nousresearch/hermes-3-llama-3.1-405b": {
+      "familia": "nousresearch",
+      "classe": "sem-busca",
+      "in": 1.0,
+      "out": 1.0,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "sao10k/l3-lunaris-8b": {
+      "familia": "sao10k",
+      "classe": "sem-busca",
+      "in": 0.04,
+      "out": 0.05,
+      "contexto": 8192,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4o-2024-08-06": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 2.5,
+      "out": 10.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta-llama/llama-3.1-70b-instruct": {
+      "familia": "meta-llama",
+      "classe": "sem-busca",
+      "in": 0.4,
+      "out": 0.4,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "meta-llama/llama-3.1-8b-instruct": {
+      "familia": "meta-llama",
+      "classe": "sem-busca",
+      "in": 0.05,
+      "out": 0.08,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-nemo": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 0.019,
+      "out": 0.03,
+      "contexto": 131072,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4o-mini": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.15,
+      "out": 0.6,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4o-mini-2024-07-18": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.15,
+      "out": 0.6,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "google/gemma-2-27b-it": {
+      "familia": "Google",
+      "classe": "descartado",
+      "in": 0.65,
+      "out": 0.65,
+      "contexto": 8192,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4o": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 2.5,
+      "out": 10.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4o-2024-05-13": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 5.0,
+      "out": 15.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mixtral-8x22b-instruct": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 2.0,
+      "out": 6.0,
+      "contexto": 65536,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "microsoft/wizardlm-2-8x22b": {
+      "familia": "microsoft",
+      "classe": "sem-busca",
+      "in": 0.62,
+      "out": 0.62,
+      "contexto": 65535,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4-turbo": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 10.0,
+      "out": 30.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "anthropic/claude-3-haiku": {
+      "familia": "Anthropic",
+      "classe": "descartado",
+      "in": 0.25,
+      "out": 1.25,
+      "contexto": 200000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mistralai/mistral-large": {
+      "familia": "mistralai",
+      "classe": "sem-busca",
+      "in": 2.0,
+      "out": 6.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-3.5-turbo-0613": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.0,
+      "out": 2.0,
+      "contexto": 4095,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4-turbo-preview": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 10.0,
+      "out": 30.0,
+      "contexto": 128000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openrouter/auto": {
+      "familia": "openrouter",
+      "classe": "sem-busca",
+      "in": -1000000.0,
+      "out": -1000000.0,
+      "contexto": 2000000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-3.5-turbo-instruct": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 1.5,
+      "out": 2.0,
+      "contexto": 4095,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-3.5-turbo-16k": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 3.0,
+      "out": 4.0,
+      "contexto": 16385,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "mancer/weaver": {
+      "familia": "mancer",
+      "classe": "sem-busca",
+      "in": 0.5,
+      "out": 0.75,
+      "contexto": 8000,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "undi95/remm-slerp-l2-13b": {
+      "familia": "undi95",
+      "classe": "sem-busca",
+      "in": 0.45,
+      "out": 0.65,
+      "contexto": 6144,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "gryphe/mythomax-l2-13b": {
+      "familia": "gryphe",
+      "classe": "sem-busca",
+      "in": 0.08,
+      "out": 0.11,
+      "contexto": 8192,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-3.5-turbo": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 0.5,
+      "out": 1.5,
+      "contexto": 16385,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    },
+    "openai/gpt-4": {
+      "familia": "OpenAI",
+      "classe": "descartado",
+      "in": 30.0,
+      "out": 60.0,
+      "contexto": 8191,
+      "testado": false,
+      "notas": "",
+      "visto_em": "2026-08-04"
+    }
+  }
+}

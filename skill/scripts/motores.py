@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 """
-motores.py — consulta o catálogo do OpenRouter e mostra os candidatos a motor de pesquisa.
+motores.py — mantém o catálogo de motores de pesquisa do OpenRouter.
 
-O catálogo muda rápido: modelo sai, preço muda, geração nova aparece. Rode isto antes de
-decidir trocar um motor, e sempre que um agente começar a falhar sem explicação.
-
-Só considera famílias com busca nativa no OpenRouter — Anthropic, Google, OpenAI, Perplexity
-e xAI. Modelo sem busca nativa depende de motor externo, e aí os agentes passam a ler as
-mesmas páginas, o que destrói a independência entre eles.
+Na primeira execução classifica o catálogo inteiro e grava em catalogo-motores.json.
+Nas seguintes consulta a API e trabalha apenas o diferencial: modelos novos entram
+para classificação, modelos que sumiram são marcados. O que já foi classificado fica
+como está, inclusive as correções feitas à mão.
 
 Uso:
-    python3 motores.py                 # candidatos + conferência do que está configurado
-    python3 motores.py --todos         # não filtra por preço
+    python3 motores.py                 # atualiza o catálogo e mostra o diferencial
+    python3 motores.py --listar        # mostra os candidatos já classificados
+    python3 motores.py --reclassificar # joga fora a classificação e refaz do zero
 """
 
 import argparse
 import json
 import urllib.request
+from datetime import date
 from pathlib import Path
 
 RAIZ_SKILL = Path(__file__).resolve().parent.parent
+CATALOGO = RAIZ_SKILL / "catalogo-motores.json"
 API = "https://openrouter.ai/api/v1/models"
 
 # Famílias com índice de busca próprio. A independência entre motores vem daqui.
@@ -31,20 +32,26 @@ FAMILIAS = {
     "anthropic/": "Anthropic",
 }
 
-# Ruído que nunca serve como motor de pesquisa aqui. Além dos formatos que não são de
-# texto, exclui modelos de peso aberto — que rodam em provedor terceiro e por isso não
-# têm o índice de busca da família — e gerações antigas.
-EXCLUIR = (
+# Não serve como motor de pesquisa: outros formatos, peso aberto (roda em provedor
+# terceiro, portanto sem o índice da família) e gerações antigas.
+DESCARTAR = (
     "-image", "-codex", "-nano", "-lite", "embedding", "tts", "whisper",
     "-chat", "guard", "moderation", "relace", "build", "audio",
-    "gemma", "gpt-oss",                      # peso aberto, sem busca nativa
-    "gpt-3.5", "gpt-4", "claude-3", "gemini-2", "o1-", "o3-mini",   # gerações antigas
+    "gemma", "gpt-oss", "gpt-3.5", "gpt-4", "claude-3", "gemini-2", "o1-", "o3-mini",
+    "lyria", "veo", "imagen", "sora",   # áudio, vídeo e imagem
 )
+
+# Sinais de que o modelo faz pesquisa profunda, não só uma consulta e uma resposta.
+SINAIS_DEEP = ("deep-research", "multi-agent", "pro-search", "sonar")
+
+
+def log(msg):
+    print(msg, flush=True)
 
 
 def preco(m, campo):
     try:
-        return float(m.get("pricing", {}).get(campo, 0) or 0) * 1e6
+        return round(float(m.get("pricing", {}).get(campo, 0) or 0) * 1e6, 4)
     except (TypeError, ValueError):
         return 0.0
 
@@ -56,80 +63,136 @@ def familia(mid):
     return None
 
 
+def classificar(m):
+    """Classe do modelo. Heurística, revisável à mão no catálogo depois."""
+    mid = m["id"]
+    fam = familia(mid)
+
+    # Preço de saída zerado indica modelo que não gera texto cobrado por token —
+    # imagem, áudio ou embedding. Não serve como motor.
+    if any(x in mid for x in DESCARTAR) or preco(m, "completion") == 0:
+        classe = "descartado"
+    elif not fam:
+        classe = "sem-busca"       # família sem índice próprio no OpenRouter
+    elif any(s in mid for s in SINAIS_DEEP):
+        classe = "deep-research"
+    else:
+        classe = "busca-nativa"
+
+    return {
+        "familia": fam or mid.split("/")[0],
+        "classe": classe,
+        "in": preco(m, "prompt"),
+        "out": preco(m, "completion"),
+        "contexto": m.get("context_length") or 0,
+        "testado": False,
+        "notas": "",
+        "visto_em": str(date.today()),
+    }
+
+
+def carregar():
+    if CATALOGO.exists():
+        return json.loads(CATALOGO.read_text(encoding="utf-8"))
+    return {"atualizado_em": None, "modelos": {}}
+
+
 def main():
-    p = argparse.ArgumentParser(description="Candidatos a motor de pesquisa no OpenRouter.")
-    p.add_argument("--todos", action="store_true", help="Não filtra por preço de saída.")
-    p.add_argument("--teto-saida", type=float, default=15.0,
-                   help="Preço máximo de saída por milhão de tokens (padrão 15).")
+    p = argparse.ArgumentParser(description="Catálogo de motores de pesquisa.")
+    p.add_argument("--listar", action="store_true", help="Só mostra os candidatos já classificados.")
+    p.add_argument("--reclassificar", action="store_true", help="Refaz a classificação do zero.")
     args = p.parse_args()
 
-    print(f"consultando {API} ...\n")
-    with urllib.request.urlopen(API, timeout=60) as r:
-        dados = json.loads(r.read().decode("utf-8"))["data"]
+    cat = {"atualizado_em": None, "modelos": {}} if args.reclassificar else carregar()
+    conhecidos = cat["modelos"]
 
+    if not args.listar:
+        log(f"consultando {API} ...")
+        with urllib.request.urlopen(API, timeout=60) as r:
+            dados = json.loads(r.read().decode("utf-8"))["data"]
+        vivos = {m["id"] for m in dados}
+
+        # O diferencial: só o que ainda não foi classificado passa pela heurística.
+        novos = [m for m in dados if m["id"] not in conhecidos]
+        for m in novos:
+            conhecidos[m["id"]] = classificar(m)
+
+        # Preço muda sem o modelo mudar de nome, então vale reler sempre.
+        mudou_preco = []
+        for m in dados:
+            reg = conhecidos[m["id"]]
+            p_in, p_out = preco(m, "prompt"), preco(m, "completion")
+            if (reg["in"], reg["out"]) != (p_in, p_out) and m["id"] not in {x["id"] for x in novos}:
+                mudou_preco.append((m["id"], reg["in"], reg["out"], p_in, p_out))
+                reg["in"], reg["out"] = p_in, p_out
+            reg["visto_em"] = str(date.today())
+
+        sumidos = [mid for mid in conhecidos if mid not in vivos and not conhecidos[mid].get("sumiu")]
+        for mid in sumidos:
+            conhecidos[mid]["sumiu"] = str(date.today())
+
+        cat["atualizado_em"] = str(date.today())
+        CATALOGO.write_text(json.dumps(cat, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        primeira = novos and len(novos) == len(conhecidos)
+        log(f"\n{'PRIMEIRA CLASSIFICAÇÃO' if primeira else 'DIFERENCIAL'}")
+        log(f"  {len(conhecidos)} modelos no catálogo · {len(novos)} novos · "
+            f"{len(sumidos)} sumiram · {len(mudou_preco)} mudaram de preço")
+
+        interessantes = [m for m in novos
+                         if conhecidos[m["id"]]["classe"] in ("deep-research", "busca-nativa")]
+        if interessantes:
+            log("\n  NOVOS CANDIDATOS A MOTOR")
+            for m in sorted(interessantes, key=lambda x: x["id"]):
+                r = conhecidos[m["id"]]
+                log(f"    {m['id']:44} {r['classe']:14} in {r['in']:6.2f}  out {r['out']:6.2f}")
+            log("\n    Nenhum foi testado ainda. Antes de promover a slot, rode uma pesquisa em")
+            log("    modo rapida e confira no log se ele traz URLs.")
+        elif novos:
+            log(f"\n  Os {len(novos)} novos são descartados ou sem busca nativa. Nada a fazer.")
+
+        if mudou_preco:
+            log("\n  MUDANÇA DE PREÇO")
+            for mid, ai, ao, ni, no in mudou_preco:
+                log(f"    {mid:44} in {ai:.2f}→{ni:.2f}  out {ao:.2f}→{no:.2f}")
+
+        if sumidos:
+            log("\n  SUMIRAM DO CATÁLOGO")
+            for mid in sumidos:
+                log(f"    {mid}")
+
+    # Conferência do que está configurado
     cfg = json.loads((RAIZ_SKILL / "config.json").read_text(encoding="utf-8"))
-    em_uso = {a["modelo"]: s for s, a in cfg["agentes"].items()}
-    catalogo = {m["id"] for m in dados}
-
-    candidatos = []
-    for m in dados:
-        mid = m["id"]
-        fam = familia(mid)
-        if not fam or any(x in mid for x in EXCLUIR):
-            continue
-        p_out = preco(m, "completion")
-        if not args.todos and (p_out > args.teto_saida or p_out == 0):
-            continue
-        candidatos.append({
-            "id": mid, "familia": fam,
-            "in": preco(m, "prompt"), "out": p_out,
-            "ctx": m.get("context_length") or 0,
-            "usando": em_uso.get(mid),
-        })
-
-    candidatos.sort(key=lambda c: (c["familia"], c["out"]))
-
-    print(f"{'MODELO':45} {'FAMÍLIA':11} {'IN':>7} {'OUT':>7} {'CONTEXTO':>10}  EM USO")
-    print("-" * 96)
-    fam_ant = None
-    for c in candidatos:
-        if c["familia"] != fam_ant:
-            if fam_ant:
-                print()
-            fam_ant = c["familia"]
-        marca = f"slot {c['usando']}" if c["usando"] else ""
-        print(f"{c['id']:45} {c['familia']:11} {c['in']:7.2f} {c['out']:7.2f} "
-              f"{c['ctx']:>10,}  {marca}")
-
-    print("\n" + "=" * 96)
-    print("CONFERÊNCIA DO QUE ESTÁ CONFIGURADO\n")
-    problema = False
+    log("\n" + "=" * 92)
+    log("EM USO AGORA\n")
     for slot, a in cfg["agentes"].items():
-        if a["modelo"] in catalogo:
-            m = next(x for x in dados if x["id"] == a["modelo"])
-            print(f"  slot {slot}: {a['modelo']} — no catálogo, "
-                  f"in {preco(m,'prompt'):.2f} out {preco(m,'completion'):.2f}")
+        reg = conhecidos.get(a["modelo"])
+        if not reg:
+            log(f"  slot {slot}: {a['modelo']} — não está no catálogo")
+        elif reg.get("sumiu"):
+            log(f"  slot {slot}: {a['modelo']} — SUMIU DO CATÁLOGO em {reg['sumiu']}, precisa trocar")
         else:
-            problema = True
-            print(f"  slot {slot}: {a['modelo']} — SUMIU DO CATÁLOGO, precisa trocar")
+            log(f"  slot {slot}: {a['modelo']:42} {reg['classe']:14} "
+                f"in {reg['in']:6.2f}  out {reg['out']:6.2f}  [{reg['familia']}]")
 
-    if problema:
-        print("\n  Edite skill/config.json e ajuste também precos_por_milhao_usd.")
+    log("\nCARDÁPIO OFERECIDO NA CLARIFICAÇÃO\n")
+    for m in cfg.get("motores_disponiveis", []):
+        marca = "padrão" if m.get("padrao") else "opcional"
+        log(f"  {m['rotulo']:26} {m['indice']:11} ~US$ {m['custo_tipico_usd']:.2f}  ({marca})")
 
-    print("""
-COMO ESCOLHER
+    log(f"""
+COMO USAR ISTO
 
-  Independência antes de preço. Três motores de famílias diferentes valem mais que
-  cinco da mesma, porque o que dá validação é ler páginas diferentes, não gerar
-  mais texto sobre as mesmas.
+  O catálogo fica em {CATALOGO.name}, ao lado do config. A classificação é heurística
+  e pode ser corrigida à mão: mude "classe", marque "testado": true e escreva em "notas"
+  o que você mediu. A próxima execução respeita o que já está lá.
 
-  Preço de saída pesa mais que o de entrada em modelo que escreve relatório longo,
-  exceto onde a cobrança é por busca — aí o preço por token engana e só a medição
-  real resolve. Ver o CHANGELOG do projeto.
+  Para promover um motor a slot: edite config.json em tres lugares — o bloco agentes,
+  precos_por_milhao_usd e motores_disponiveis. Depois rode uma pesquisa em modo rapida
+  e confira se ele traz URLs. Modelo que volta sem URL não está buscando.
 
-  Ao trocar um motor: atualize modelo e precos_por_milhao_usd no config.json, rode
-  uma pesquisa em modo rapida e confira no log se ele traz URLs. Modelo que volta
-  sem URL não está buscando, e nesse estado não serve para nada aqui.
+  Independência antes de preço: um índice por família. Dois motores da mesma família
+  leem as mesmas páginas, e aí a concordância entre eles não valida nada.
 """)
 
 

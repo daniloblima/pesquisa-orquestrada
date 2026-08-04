@@ -28,6 +28,7 @@ import sys
 import time
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -193,6 +194,10 @@ DOMINIOS_NAO_FONTE = (
 )
 
 # O modelo às vezes confessa a invenção no próprio texto, ao lado do link.
+# O archive.org limita requisições com agressividade. Acima disto a checagem passa a
+# devolver 429, que não conclui nada. As primeiras já bastam para revelar o padrão.
+LIMITE_ARQUIVO = 12
+
 MARCADORES_SUBSTITUICAO = (
     "substitu", "aproximad", "ilustrativ", "exemplo de url", "url fictícia",
     "não foi possível recuperar", "link genérico", "placeholder", "hipotétic",
@@ -295,7 +300,37 @@ def verificar_urls(urls, texto, slot, verificar_rede=True):
                 if reg["estado"] == "ok":
                     reg["estado"] = "inconclusiva"
 
-    graves = [u for u, r in achados.items() if r["estado"] in ("inexistente", "suspeita")]
+    # Para o que não resolveu, o arquivo da internet separa dois casos que a resposta
+    # HTTP confunde: página que existiu e saiu do ar, contra URL que nunca existiu.
+    # Só a segunda é indício de invenção. Critério emprestado da literatura de
+    # verificação de citações (arXiv 2604.03173, 2605.06635).
+    mortas = [u for u, r in achados.items() if r["estado"] == "inexistente"][:LIMITE_ARQUIVO]
+    if mortas:
+        log(f"AGENTE {slot}", f"consultando o arquivo da internet para {len(mortas)} URLs que não resolveram")
+
+        # Sequencial e com pausa: o archive.org devolve 429 rapidamente sob paralelismo,
+        # e 429 não distingue nada — só desperdiça a checagem.
+        for i, u in enumerate(mortas):
+            if i:
+                time.sleep(1.2)
+            try:
+                api = "https://archive.org/wayback/available?url=" + urllib.parse.quote(u, safe="")
+                with urllib.request.urlopen(api, timeout=25) as r:
+                    d = json.loads(r.read().decode("utf-8"))
+                arquivada = bool((d.get("archived_snapshots") or {}).get("closest"))
+            except Exception as e:
+                log(f"AGENTE {slot}", f"arquivo não respondeu para {u[:50]}: {type(e).__name__} — sem conclusão")
+                continue
+
+            if arquivada:
+                achados[u]["motivos"].append("existiu e saiu do ar — há registro no arquivo da internet")
+                achados[u]["estado"] = "removida"
+            else:
+                achados[u]["motivos"].append("nenhum registro no arquivo da internet — provavelmente nunca existiu")
+                achados[u]["estado"] = "inventada"
+
+    graves = [u for u, r in achados.items()
+              if r["estado"] in ("inexistente", "suspeita", "inventada", "removida")]
     if graves:
         log(f"AGENTE {slot}", f"ALERTA: {len(graves)} URLs inexistentes ou suspeitas")
         for u in graves[:6]:

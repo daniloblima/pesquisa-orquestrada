@@ -1,6 +1,6 @@
 ---
 name: pesquisa
-description: Pesquisa profunda com validação cruzada entre três motores de busca independentes (Perplexity, OpenAI, Google) via OpenRouter. O Claude Code orquestra, extrai o que foi confirmado por mais de uma fonte, dispara uma segunda rodada para resolver divergências e entrega relatório em markdown com todas as referências. Usar quando o pedido for de pesquisa que precisa ser confiável, com fontes, sobre tema factual ou de mercado. Triggers "pesquisa", "/pesquisa", "pesquisa profunda", "pesquisa orquestrada", "levanta as fontes sobre".
+description: Pesquisa profunda com validação cruzada entre três motores de busca independentes (xAI, OpenAI, Google, com Perplexity opcional) via OpenRouter. O Claude Code orquestra, extrai o que foi confirmado por mais de uma fonte, dispara uma segunda rodada para resolver divergências e entrega relatório em markdown com todas as referências. Usar quando o pedido for de pesquisa que precisa ser confiável, com fontes, sobre tema factual ou de mercado. Triggers "pesquisa", "/pesquisa", "pesquisa profunda", "pesquisa orquestrada", "levanta as fontes sobre".
 ---
 
 # /pesquisa — pesquisa com validação cruzada
@@ -45,6 +45,16 @@ Use `AskUserQuestion` para conduzir, com opções concretas em vez de perguntas 
 - Recorte temporal e geográfico, quando fizer diferença
 
 Pergunte também o modo, se ele não disse: `rapida`, `normal` ou `profunda`. O padrão é `normal`.
+
+**A última aba é sempre a escolha dos motores.** Monte-a a partir de `motores_disponiveis` no `config.json`, com `multiSelect: true`, mostrando rótulo, índice e custo típico de cada um. Os marcados com `padrao: true` são a sugestão.
+
+Regra ao montar o cardápio: um índice por família. Dois motores da mesma família leem as mesmas páginas, e aí a concordância entre eles não valida nada — só encarece. Se o Danilo escolher dois da mesma família, diga isso e confirme antes de seguir.
+
+Três é o número de trabalho. Com dois não há como arbitrar contradição, e cada motor além de três é mais material para comparar sem ganho proporcional de independência. Se ele escolher dois, avise que a rodada 2 perde o árbitro; se escolher quatro ou mais, avise que a análise fica mais rasa.
+
+Quando a lista de `motores_disponiveis` passar de quatro, pare de oferecer um a um: monte a aba com combinações prontas por perfil — econômica, equilibrada, profunda — mais uma opção de escolher manualmente.
+
+Depois da escolha, grave os slots escolhidos e use `--agentes` nas duas rodadas. Se ele escolher um conjunto diferente do configurado, não edite o `config.json`: passe a seleção na linha de comando e registre no `meta.json`.
 
 Não avance sem objetivo e hipótese. O resto pode ficar em aberto.
 

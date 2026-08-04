@@ -511,6 +511,96 @@ consulta de busca, e nenhuma média serve para os dois.
 
 ---
 
+## [2026-08-04 09:00] — Troca do motor A, catálogo persistente e o que a literatura já sabia
+
+### TROCA — Perplexity sai da rodada 1, Grok entra
+
+Slot A passou de `perplexity/sonar-deep-research` para `x-ai/grok-4.20-multi-agent`.
+
+Medições que sustentam: US$ 1,12 contra US$ 0,32 por chamada, ambos com busca real
+confirmada. O Grok multi-agent leu 232 mil tokens de entrada numa chamada e devolveu oito
+fontes — é o que mais se aproxima de busca profunda fora da Perplexity. A cobrança dele é
+toda em token, sem taxa por consulta, o que torna a estimativa previsível.
+
+O Perplexity continua em `motores_disponiveis` e volta trocando uma linha. A decisão é
+provisória, para acumular série comparável com a medição de contribuição ligada.
+
+### CATÁLOGO PERSISTENTE DE MOTORES
+
+`motores.py` reescrito. Antes consultava a API e imprimia tudo a cada execução. Agora
+mantém `catalogo-motores.json`: classifica o catálogo inteiro na primeira execução e nas
+seguintes trabalha só o diferencial — modelos novos entram para classificação, os que
+sumiram são marcados, mudanças de preço são detectadas mesmo em modelo já conhecido.
+
+Primeira classificação: 338 modelos. 6 deep-research, 46 busca-nativa, 198 sem busca,
+88 descartados. Os 6 de busca profunda são cinco da Perplexity mais o Grok multi-agent.
+
+A classificação é heurística e revisável à mão. Correção manual sobrevive à próxima
+execução, que é o ponto de guardar em arquivo.
+
+Dois filtros descobertos no uso: modelos de peso aberto rodam em provedor terceiro e por
+isso não têm o índice de busca da família, apesar do prefixo; e preço de saída zerado
+indica modelo que não gera texto cobrado por token — foi assim que dois modelos de música
+entraram como candidatos a motor de pesquisa na primeira rodada.
+
+### SELEÇÃO DE MOTORES NA CLARIFICAÇÃO
+
+A última aba do `AskUserQuestion` passa a ser a escolha dos motores, montada a partir de
+`motores_disponiveis`, com seleção múltipla. Regras escritas no `SKILL.md`: um índice por
+família, três como número de trabalho, aviso quando a escolha sai disso e mudança para
+combinações por perfil quando a lista passar de quatro opções.
+
+Escolha diferente do padrão não edita o `config.json` — vai por `--agentes` e fica
+registrada no `meta.json`.
+
+### O QUE A LITERATURA JÁ SABIA
+
+Busca por trabalho anterior, a pedido do Danilo. O achado relevante não foram os projetos
+parecidos, e sim a pesquisa que mede exatamente o Problema 8.
+
+Estudos recentes de verificação de citação em agentes de pesquisa (arXiv 2604.03173 e
+2605.06635) mediram mais de 50 mil URLs do DRBench e 168 mil do ExpertQA: de 3% a 13% das
+URLs citadas são alucinadas, sem registro no arquivo da internet e provavelmente nunca
+existiram, e de 5% a 18% não resolvem. Outros trabalhos relatam de 11% a 57%.
+
+Duas consequências diretas:
+
+O que aconteceu com o Gemini não foi azar, é taxa base conhecida. Qualquer sistema que
+cite fontes sem verificá-las carrega esse percentual.
+
+E o dado mais desconfortável: agentes de busca profunda geram mais citações por consulta
+que modelos com busca simples, e alucinam URL a taxas maiores. Ou seja, o motor mais caro
+e mais completo é também o mais propenso ao modo de falha grave. Isso reforça a verificação
+como obrigatória, não como refinamento.
+
+### MELHORIA VINDA DA LITERATURA — arquivo da internet
+
+Os papers usam o Wayback Machine para separar dois casos que a resposta HTTP confunde:
+página que existiu e saiu do ar contra URL que nunca existiu. Só a segunda indica invenção.
+Uma reportagem removida do site continua sendo evidência de que a informação foi publicada.
+
+Implementado: URLs que dão 404 ou não resolvem passam pelo arquivo. Com registro, viram
+`removida`; sem registro, viram `inventada`.
+
+Duas travas descobertas no teste. O archive.org devolve 429 sob paralelismo, então a
+consulta virou sequencial com pausa de 1,2 segundo e teto de 12 URLs por agente. E quando
+o arquivo não responde, o estado permanece `inexistente` em vez de concluir invenção —
+falha de checagem nunca vira acusação.
+
+Erro cometido no próprio teste, que vale registrar: usei como controle positivo uma URL do
+NYTimes que eu mesmo fabriquei, e o detector a classificou como inventada. Passei alguns
+minutos achando que era falso positivo do código quando era falso positivo do meu teste.
+Controle de teste também precisa ser verificado.
+
+### PROJETOS PARECIDOS
+
+Existem motores de consenso multimodelo — K-LLM, duh, mLLMCelltype — mas resolvem outro
+problema: divergência de opinião ou de julgamento entre modelos, com síntese ao final.
+Nenhum trata fonte como objeto de primeira classe nem verifica se a citação existe. A
+diferença de propósito é essa: aqui o que se valida é a evidência, não a resposta.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão
