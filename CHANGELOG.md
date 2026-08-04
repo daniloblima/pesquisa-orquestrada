@@ -663,6 +663,75 @@ semântico.
 
 ---
 
+## [2026-08-04 10:30] — Fonte reprovada manda a afirmação para revalidação, não para o lixo
+
+### O FURO APONTADO PELO DANILO
+
+A regra anterior mandava descartar a afirmação apoiada em fonte reprovada. Descarte é perda
+de informação: o modelo pode ter lido algo verdadeiro e citado a fonte errada. Pior, o
+descarte era silencioso — a afirmação sumia do relatório e nem o leitor nem o Danilo ficavam
+sabendo que ela existiu.
+
+Nas palavras dele: não adianta descartar, porque a pesquisa continua falsa em algumas
+partes. O que faltava era carregar o diagnóstico para a rodada 2 e mandar validar a
+informação, não a URL.
+
+### IMPLEMENTAÇÃO
+
+`contexto_da_url()` recupera o trecho em que cada fonte reprovada foi usada como prova.
+Localiza a URL no texto, ignora as ocorrências que estão depois do cabeçalho da lista de
+fontes — ali é item de lista, não uso — e devolve o parágrafo em volta.
+
+O resultado entra em `afirmacoes_a_revalidar`, no JSON de cada agente, com URL, estado,
+motivos e o trecho. O markdown do agente ganhou uma seção com esses trechos, para leitura
+direta.
+
+Quando a URL só aparece na lista de fontes, não há afirmação colada nela e o campo fica
+vazio. O log diz quantas ficaram sem contexto, para que a lacuna não passe despercebida.
+
+### TRÊS REGRAS DE DESENHO, TODAS NO SKILL.md
+
+**Quem citou não valida a própria citação.** A afirmação vai para os outros motores. Quem
+produziu o link tende a defendê-lo, e aí o teste deixa de testar.
+
+**Não se conta ao motor que a fonte era falsa.** O item vai como qualquer outro: o trecho e
+o que se procura. Avisar que a citação anterior caiu induz o modelo a concordar com a
+reprovação em vez de pesquisar — e um número correto seria descartado junto com a fonte
+ruim.
+
+**Afirmação em quarentena não vira consenso.** Mesmo que outro motor diga algo parecido, ela
+espera a rodada 2. Sem isso, uma afirmação com fonte inventada poderia ser promovida a fato
+por semelhança com outra.
+
+### O QUE MUDA NO RELATÓRIO
+
+Antes: a afirmação sumia.
+
+Agora: vai para a rodada 2 e recebe um dos dois destinos. Confirmada por fonte que existe,
+entra normalmente. Não confirmada, vai para limitações, nomeada, dizendo o que se tentou
+verificar e o que aconteceu. O `formato-relatorio.md` traz o exemplo redigido.
+
+### TESTE
+
+Texto com duas afirmações apoiadas em URLs falsas, mais a lista de fontes ao final. As duas
+URLs foram reprovadas, os dois trechos recuperados com número e data intactos, e a URL que
+aparecia somente na lista de fontes foi corretamente identificada como sem contexto.
+
+### CUSTO
+
+A rodada 2 fica um pouco maior, com mais itens no prompt cirúrgico. Prompt cirúrgico é a
+parte barata do sistema, e o que se compra com isso é a diferença entre um relatório que
+perde informação boa em silêncio e um que diz o que não conseguiu verificar.
+
+### LIÇÃO
+
+Uma trava que só sabe rejeitar não é uma trava completa. Detectar o problema é metade do
+trabalho; a outra metade é o que se faz com o que foi detectado. A primeira versão da
+verificação de fontes estava tecnicamente correta e mesmo assim degradava o produto, porque
+tratava descarte como se fosse solução.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

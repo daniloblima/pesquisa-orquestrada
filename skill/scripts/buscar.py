@@ -342,6 +342,51 @@ def verificar_urls(urls, texto, slot, verificar_rede=True):
     return {u: r for u, r in achados.items() if r["estado"] != "ok"}
 
 
+# Cabeçalhos da lista de fontes no fim da resposta. URL que aparece só ali não tem
+# afirmação colada nela, e o contexto precisa ser procurado de outro jeito.
+CABECALHOS_FONTES = ("fontes consultadas", "fontes:", "referências", "referencias", "sources")
+
+
+def contexto_da_url(url, texto, janela=700):
+    """Devolve o trecho onde a URL é usada como prova.
+
+    Uma fonte reprovada não pode simplesmente sumir: a afirmação que ela sustentava pode
+    ser verdadeira, com a citação errada. Sem recuperar o trecho, o descarte apaga
+    informação boa em silêncio e ninguém fica sabendo.
+    """
+    if not texto or url not in texto:
+        return None
+
+    # Onde começa a lista de fontes. Ocorrência depois disso é item de lista, não uso.
+    minusculo = texto.lower()
+    corte = len(texto)
+    for cab in CABECALHOS_FONTES:
+        pos = minusculo.rfind(cab)
+        if pos > 0:
+            corte = min(corte, pos)
+
+    inicio_busca = 0
+    while True:
+        pos = texto.find(url, inicio_busca)
+        if pos < 0:
+            return None
+        if pos < corte:
+            break
+        inicio_busca = pos + len(url)
+
+    # O parágrafo em que a URL aparece, mais o que vem logo antes dela.
+    ini = texto.rfind("\n\n", 0, pos)
+    if ini < 0 or pos - ini > janela:
+        ini = max(0, pos - janela)
+    fim = texto.find("\n\n", pos)
+    if fim < 0 or fim - pos > 300:
+        fim = min(len(texto), pos + 300)
+
+    trecho = texto[ini:fim].strip()
+    trecho = re.sub(r"\s+", " ", trecho)
+    return trecho or None
+
+
 def _sem_acento(t):
     return "".join(c for c in unicodedata.normalize("NFD", t.lower())
                    if unicodedata.category(c) != "Mn")
@@ -480,6 +525,7 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave,
         "urls_problematicas": {},
         "urls_inexistentes": [],
         "urls_suspeitas": [],
+        "afirmacoes_a_revalidar": [],
         "erro": None,
     }
 
@@ -546,9 +592,25 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave,
             problemas = verificar_urls(resultado["urls"], conteudo, slot, verificar_rede)
             if verificar_rede and termos:
                 verificar_tema(problemas, resultado["urls"], termos, slot)
-            resultado["urls_problematicas"] = {u: r for u, r in problemas.items()
-                                               if r["estado"] != "ok"}
-            problemas = resultado["urls_problematicas"]
+            problemas = {u: r for u, r in problemas.items() if r["estado"] != "ok"}
+
+            # Sem o trecho em que a fonte foi usada, descartar a afirmação apaga
+            # informação possivelmente verdadeira sem deixar rastro.
+            sem_contexto = 0
+            for u, reg in problemas.items():
+                reg["contexto"] = contexto_da_url(u, conteudo)
+                if not reg["contexto"]:
+                    sem_contexto += 1
+            if problemas:
+                log(f"AGENTE {slot}",
+                    f"{len(problemas) - sem_contexto} de {len(problemas)} fontes reprovadas "
+                    f"têm o trecho que sustentavam; {sem_contexto} aparecem só na lista de fontes")
+
+            resultado["urls_problematicas"] = problemas
+            resultado["afirmacoes_a_revalidar"] = [
+                {"url": u, "estado": r["estado"], "motivos": r["motivos"], "trecho": r["contexto"]}
+                for u, r in problemas.items() if r.get("contexto")
+            ]
             resultado["urls_inexistentes"] = [
                 u for u, r in problemas.items() if r["estado"] == "inexistente"
             ]
@@ -757,9 +819,22 @@ def main():
             )
             aviso += (
                 f"\n> ALERTA DE FONTE: {len(r['urls_problematicas'])} URLs não passaram na\n"
-                "> verificação. Nada que se apoie apenas nelas pode entrar no relatório.\n>\n"
+                "> verificação. Nada que se apoie apenas nelas entra no relatório sem passar\n"
+                "> pela rodada 2.\n>\n"
                 f"{linhas_p}\n"
             )
+            if r.get("afirmacoes_a_revalidar"):
+                blocos = "\n\n".join(
+                    f"**{i}.** [{a['estado']}] {a['url']}\n\n> {a['trecho']}"
+                    for i, a in enumerate(r["afirmacoes_a_revalidar"], 1)
+                )
+                aviso += (
+                    "\n### Afirmações a revalidar na rodada 2\n\n"
+                    "Cada trecho abaixo se apoiava numa fonte que não passou. Pode ser verdadeiro "
+                    "com a citação errada, então vai para verificação em vez de descarte. "
+                    "Quem cita não valida a própria citação.\n\n"
+                    f"{blocos}\n"
+                )
         md.write_text(
             f"# Agente {r['slot']} — {r['rotulo']}\n\n"
             f"Modelo: `{r['modelo']}` · {r['duracao_s']}s · {len(r['urls'])} URLs · US$ {r['custo_usd']:.4f}\n"

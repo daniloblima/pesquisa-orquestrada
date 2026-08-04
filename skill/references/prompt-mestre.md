@@ -88,7 +88,9 @@ exatamente isso que está sendo testado.
 ## Itens a verificar
 
 1. [AFIRMAÇÃO, com o número ou data exatos que precisam ser conferidos]
+   O que se procura: fonte primária que sustente ou refute isto.
 2. [AFIRMAÇÃO]
+   O que se procura: [...]
 
 ## Se houver contradição a arbitrar
 
@@ -117,3 +119,14 @@ https://...
 **"NÃO ENCONTRADO" é um estado válido e nomeado** porque sem essa opção o modelo inventa confirmação para ser útil.
 
 **A seção de fontes tem formato fixo** porque o script extrai as URLs do texto além das citações estruturadas, e formato solto reduz o que ele consegue capturar.
+
+## Afirmações órfãs de fonte
+
+Quando a fonte de uma afirmação não passa na verificação, o trecho que ela sustentava vem pronto em `afirmacoes_a_revalidar`, e entra na rodada 2 como mais um item da lista acima. Três regras ao montá-lo.
+
+**Vai para outro motor, nunca para quem escreveu.** Quem produziu a citação tende a defendê-la, e aí o teste deixa de testar.
+
+**Não se diz que a fonte era falsa.** O item é o trecho e o que se procura, exatamente como qualquer outro. Contar que a citação anterior caiu induz o modelo a concordar com a reprovação em vez de pesquisar, e um número correto seria descartado junto com a fonte ruim.
+
+**O trecho vai inteiro, com número e data.** É o que permite que o outro motor procure a informação, não a página. A pergunta é se o fato procede, não se aquela URL existe.
+

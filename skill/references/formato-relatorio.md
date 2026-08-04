@@ -65,9 +65,16 @@ Resolução: [o que a rodada 2 determinou, com a fonte que decidiu]
 [Obrigatória sempre que qualquer uma destas ocorrer:
 
 - algum motor falhou ou respondeu sem fontes
+- alguma afirmação perdeu a fonte na verificação e não foi confirmada na rodada 2
 - algum ângulo pedido não foi coberto por nenhum motor
 - as fontes se concentram em poucos veículos ou num único período
 - a hipótese não pôde ser testada com o material encontrado
+
+Para afirmação que perdeu a fonte, diga o que se tentou verificar e o que aconteceu, sem
+transcrever a URL reprovada como se fosse referência. Exemplo: "A pesquisa encontrou a
+afirmação de que o custo cairia 40% até 2030, atribuída a um estudo de Stanford. A fonte
+citada não existe, e a rodada 2 não localizou o estudo em nenhum outro motor. A afirmação
+foi retirada." O leitor precisa saber que aquilo apareceu e por que não entrou.
 
 Se nada disso aconteceu, escrever "Nenhuma limitação relevante identificada".
 Nunca omitir a seção.]
