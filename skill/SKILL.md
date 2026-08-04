@@ -14,7 +14,7 @@ Você é o orquestrador. O script `scripts/buscar.py` é o único ponto que gast
 Estas não se negociam. Violar qualquer uma invalida o relatório.
 
 1. **Agente sem URL não confirma nada.** Se o script marcar `sem_fontes: true`, aquele agente respondeu de memória. Não conta como fonte, não sustenta consenso, não vira "confirmado por dois". Registre a falha na seção de limitações do relatório.
-2. **URL que não passou na verificação não sustenta afirmação.** O script confere se cada URL existe de fato e devolve `urls_inexistentes` e `urls_suspeitas`, com o alerta no topo do markdown do agente. Afirmação que se apoia só nelas está fora do relatório, mesmo que pareça correta e mesmo que outro agente diga algo parecido. Se o ponto importa, mande verificar na rodada 2 e trate como não encontrado até que volte com fonte que existe.
+2. **URL que não passou na verificação não sustenta afirmação.** O script confere cada URL em quatro camadas — se existe, se a forma é de fonte real, se o modelo confessou tê-la construído e se a página ao menos trata do tema — e devolve `urls_inexistentes` e `urls_suspeitas`, com o alerta no topo do markdown do agente. Os estados possíveis são `inventada` (não existe e nunca esteve no arquivo da internet), `removida` (existiu e saiu do ar, então a informação pode ser real), `fora do tema` (existe mas fala de outra coisa) e `suspeita` (forma ou contexto ruins). Afirmação que se apoia só nelas está fora do relatório, mesmo que pareça correta e mesmo que outro agente diga algo parecido. Se o ponto importa, mande verificar na rodada 2 e trate como não encontrado até que volte com fonte que existe.
 
    Este é o modo de falha mais perigoso do produto. Zero URL é visível. URL presente que aponta para uma página inventada parece verificada e ninguém confere. Já aconteceu: um motor construiu link plausível para um estudo que os outros dois depois declararam inexistente.
 3. **Nenhuma URL verificada é descartada.** Toda URL que passou entra nas referências, mesmo sustentando informação fraca. As reprovadas não entram como referência: vão para a seção de limitações, nomeadas, com o motivo.
@@ -82,8 +82,13 @@ Apresente o valor ao Danilo e espere o aval. Se o modo for `profunda`, avise que
 ```bash
 python3 ~/.claude/skills/pesquisa/scripts/buscar.py \
   --prompt-file <pasta>/prompt_mestre.md \
-  --saida <pasta>/r1.json --rodada 1 --modo <modo>
+  --saida <pasta>/r1.json --rodada 1 --modo <modo> \
+  --termos "termo1,termo2,termo3,termo4,termo5"
 ```
+
+`--termos` liga a conferência de assunto: o script baixa o início de cada página e verifica se ela ao menos fala do tema. Página que existe e responde, mas não menciona nenhum termo, é marcada como fora do tema — é o que acontece quando o modelo acerta o domínio e inventa o caminho, ou cita a home de um site em vez do artigo. Não custa API e leva segundos.
+
+Escolha de cinco a oito substantivos centrais do tema, com quatro letras ou mais. Nomes próprios, termos técnicos e siglas por extenso funcionam bem. Evite palavras genéricas como "análise" ou "mercado", que aparecem em qualquer página e não separam nada. Acentuação não importa.
 
 O script grava `r1.json` e um `r1_A.md`, `r1_B.md`, `r1_C.md` por agente. **Leia os três markdown, um por vez** — não carregue o JSON inteiro, que é grande e repete o conteúdo.
 
@@ -118,7 +123,8 @@ Grave `<pasta>/prompts_r2.json`:
 ```bash
 python3 ~/.claude/skills/pesquisa/scripts/buscar.py \
   --prompts-file <pasta>/prompts_r2.json \
-  --saida <pasta>/r2.json --rodada 2 --modo <modo>
+  --saida <pasta>/r2.json --rodada 2 --modo <modo> \
+  --termos "os mesmos termos da rodada 1"
 ```
 
 Leia os markdown da rodada 2 do mesmo jeito.

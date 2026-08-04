@@ -601,6 +601,68 @@ diferença de propósito é essa: aqui o que se valida é a evidência, não a r
 
 ---
 
+## [2026-08-04 09:15] — Conferência de assunto: a página existe, mas fala do quê?
+
+### PERGUNTA DO DANILO
+
+Verificar se cada fonte sustenta o que o motor diz que ela sustenta, levado ao limite, vira
+uma pesquisa para validar a pesquisa. Ele pediu o meio do caminho: conferir que a fonte
+existe, é real e fala sobre o tema.
+
+### BALANÇO ANTES DE IMPLEMENTAR
+
+| Nível | O que pega | Custo API | Tokens do Claude | Tempo |
+|---|---|---|---|---|
+| Existência (já existia) | URL que não resolve ou nunca existiu | zero | zero | 10 a 20 s |
+| **Assunto (implementado)** | página real que trata de outra coisa | **zero** | **zero** | **menos de 5 s** |
+| Sustentação por LLM | página do tema que não prova a afirmação | ~US$ 0,01 | zero | ~20 s |
+| Leitura completa | tudo | zero | alto | minutos |
+
+O nível de assunto foi escolhido por dominar os outros na relação entre o que pega e o que
+custa. O de sustentação ficou desenhado e não implementado: o custo em dólar é desprezível,
+mas exige mapear cada afirmação à fonte certa, e um julgamento errado vira acusação falsa
+contra uma fonte boa. Sem evidência de que o nível de assunto não basta, implementá-lo seria
+otimizar no escuro.
+
+### IMPLEMENTAÇÃO
+
+`verificar_tema()` baixa os primeiros 120 KB de cada página, extrai título, meta descrição,
+og:tags, h1 e o começo do corpo, normaliza sem acento e procura os termos centrais da
+pesquisa. Página que não menciona nenhum vira `fora do tema`.
+
+Novo argumento `--termos`, com cinco a oito substantivos centrais do tema. Sem ele a
+conferência não roda e o log diz isso.
+
+Degradações que nunca viram acusação, porque falha de checagem não é prova de nada:
+conteúdo que não é HTML, como PDF; página com menos de 250 caracteres de texto legível,
+típico de site que monta tudo por script ou de paywall; e qualquer erro de rede.
+
+### TESTE
+
+Quatro URLs reais, duas do tema e duas de assunto alheio, com os termos de uma pesquisa
+sobre baterias:
+
+- `gov.br/aneel` e uma matéria sobre BESS — aprovadas
+- um paper de economia do NBER e o verbete de panificação da Wikipédia — `fora do tema`
+
+Tempo total: 0,8 segundo para quatro páginas. Zero falso positivo, zero custo de API.
+
+### O QUE ISTO PEGA QUE O RESTO NÃO PEGAVA
+
+O caso em que o modelo acerta o domínio e inventa o caminho, que é frequente e passava por
+todas as travas anteriores: o domínio resolve, a URL tem forma de fonte, o modelo não
+confessa nada, e o servidor devolve 200 numa página de erro ou na home. Também pega citação
+trocada, quando a URL é real mas pertence a outro assunto.
+
+### LIÇÃO
+
+A verificação mais barata não era a mais fraca. Comparar palavras do tema com o texto da
+página não julga nada de sofisticado e mesmo assim cobre o modo de falha mais comum, a
+custo nenhum. Vale medir o alcance de uma checagem simples antes de partir para julgamento
+semântico.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

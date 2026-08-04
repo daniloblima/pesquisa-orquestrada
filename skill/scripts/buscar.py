@@ -27,6 +27,7 @@ import re
 import sys
 import time
 import traceback
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -193,11 +194,14 @@ DOMINIOS_NAO_FONTE = (
     "bit.ly", "tinyurl.com", "t.co", "goo.gl", "lnkd.in", "example.com",
 )
 
-# O modelo às vezes confessa a invenção no próprio texto, ao lado do link.
 # O archive.org limita requisições com agressividade. Acima disto a checagem passa a
 # devolver 429, que não conclui nada. As primeiras já bastam para revelar o padrão.
 LIMITE_ARQUIVO = 12
 
+# Teto de páginas baixadas por agente para a conferência de tema.
+LIMITE_TEMA = 40
+
+# O modelo às vezes confessa a invenção no próprio texto, ao lado do link.
 MARCADORES_SUBSTITUICAO = (
     "substitu", "aproximad", "ilustrativ", "exemplo de url", "url fictícia",
     "não foi possível recuperar", "link genérico", "placeholder", "hipotétic",
@@ -338,7 +342,92 @@ def verificar_urls(urls, texto, slot, verificar_rede=True):
     return {u: r for u, r in achados.items() if r["estado"] != "ok"}
 
 
-def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave, verificar_rede=True):
+def _sem_acento(t):
+    return "".join(c for c in unicodedata.normalize("NFD", t.lower())
+                   if unicodedata.category(c) != "Mn")
+
+
+def _texto_do_html(html):
+    """Título, descrição e começo do corpo. Regex basta: não é para renderizar a página,
+    é só para saber do que ela trata."""
+    partes = []
+    for padrao in (r"<title[^>]*>(.*?)</title>",
+                   r'<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']',
+                   r'<meta[^>]+property=["\']og:(?:title|description)["\'][^>]+content=["\'](.*?)["\']',
+                   r"<h1[^>]*>(.*?)</h1>"):
+        partes += re.findall(padrao, html, re.I | re.S)
+
+    corpo = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html, flags=re.I | re.S)
+    corpo = re.sub(r"<[^>]+>", " ", corpo)
+    partes.append(corpo[:4000])
+
+    texto = " ".join(partes)
+    texto = re.sub(r"&[a-z]+;|&#\d+;", " ", texto)
+    return re.sub(r"\s+", " ", texto).strip()
+
+
+def verificar_tema(problemas, urls, termos, slot):
+    """Confere se a página trata do tema da pesquisa.
+
+    Existir não é sustentar. Uma URL pode responder 200 e falar de outra coisa — é o que
+    acontece quando o modelo acerta o domínio e inventa o caminho, ou quando cita a home
+    de um site em vez do artigo. Não julga se a página prova a afirmação: só se ela é
+    sobre o assunto. O julgamento fino continua sendo trabalho de leitura.
+    """
+    uteis = [t for t in (_sem_acento(x).strip() for x in termos) if len(t) >= 4]
+    if not uteis or not urls:
+        return
+
+    alvos = [u for u in urls if problemas.get(u, {}).get("estado") not in
+             ("inexistente", "inventada", "removida")][:LIMITE_TEMA]
+    if not alvos:
+        return
+
+    log(f"AGENTE {slot}", f"conferindo se {len(alvos)} páginas tratam do tema ({len(uteis)} termos)")
+
+    def checar(u):
+        try:
+            req = urllib.request.Request(u, headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+                "Range": "bytes=0-120000",
+            })
+            with urllib.request.urlopen(req, timeout=20) as r:
+                tipo = (r.headers.get("Content-Type") or "").lower()
+                bruto = r.read(120000)
+        except Exception as e:
+            return u, None, f"{type(e).__name__}"
+
+        # PDF e afins não têm HTML para ler. Não dá para concluir, e não se acusa.
+        if "html" not in tipo and "text" not in tipo:
+            return u, None, f"tipo {tipo.split(';')[0] or 'desconhecido'}"
+
+        texto = _texto_do_html(bruto.decode("utf-8", errors="ignore"))
+        if len(texto) < 250:
+            return u, None, "página quase sem texto legível"
+
+        alvo = _sem_acento(texto)
+        achados = [t for t in uteis if re.search(rf"\b{re.escape(t)}", alvo)]
+        return u, achados, None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        for u, achados, motivo_nulo in ex.map(checar, alvos):
+            if achados is None:
+                continue  # inconclusivo: nunca vira acusação
+            if not achados:
+                reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})
+                reg["estado"] = "fora do tema"
+                reg["motivos"].append(
+                    "a página existe mas não menciona nenhum termo central da pesquisa")
+
+    fora = [u for u, r in problemas.items() if r["estado"] == "fora do tema"]
+    if fora:
+        log(f"AGENTE {slot}", f"ALERTA: {len(fora)} páginas existem mas não falam do tema")
+        for u in fora[:5]:
+            log(f"AGENTE {slot}", f"  fora do tema: {u[:80]}")
+
+
+def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave, verificar_rede=True,
+                  termos=None):
     """Chama um motor. Nunca levanta exceção — devolve o erro dentro do dict."""
     modelo = agente["modelo"]
     inicio = time.time()
@@ -455,12 +544,16 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave,
         # não existe ou que o próprio modelo construiu.
         if resultado["urls"]:
             problemas = verificar_urls(resultado["urls"], conteudo, slot, verificar_rede)
-            resultado["urls_problematicas"] = problemas
+            if verificar_rede and termos:
+                verificar_tema(problemas, resultado["urls"], termos, slot)
+            resultado["urls_problematicas"] = {u: r for u, r in problemas.items()
+                                               if r["estado"] != "ok"}
+            problemas = resultado["urls_problematicas"]
             resultado["urls_inexistentes"] = [
                 u for u, r in problemas.items() if r["estado"] == "inexistente"
             ]
             resultado["urls_suspeitas"] = [
-                u for u, r in problemas.items() if r["estado"] == "suspeita"
+                u for u, r in problemas.items() if r["estado"] in ("suspeita", "fora do tema")
             ]
 
         if resultado.get("finish_reason") == "length":
@@ -569,6 +662,9 @@ def main():
     p.add_argument("--estimar", action="store_true", help="Só estima o custo e sai, sem chamar nada.")
     p.add_argument("--sem-verificar-urls", action="store_true",
                    help="Pula a checagem de existência das URLs. Não recomendado.")
+    p.add_argument("--termos", default=None,
+                   help="Termos centrais do tema, separados por vírgula. Ativa a conferência "
+                        "de que cada página realmente trata do assunto.")
     args = p.parse_args()
 
     if not args.estimar and not args.saida:
@@ -581,7 +677,12 @@ def main():
     max_results = par["max_results_busca"]
     timeout = cfg.get("timeout_segundos", 900)
 
+    termos = [t.strip() for t in (args.termos or "").split(",") if t.strip()]
     log("INÍCIO", f"rodada={args.rodada} · modo={modo} · max_tokens={max_tokens} · timeout={timeout}s")
+    if termos:
+        log("INÍCIO", f"conferência de tema ligada: {', '.join(termos)}")
+    else:
+        log("INÍCIO", "sem --termos: as páginas não serão conferidas quanto ao assunto")
 
     prompts = montar_prompts(args, cfg)
     ativos = [s for s, pr in prompts.items() if pr]
@@ -603,7 +704,7 @@ def main():
         futuros = {
             executor.submit(
                 chamar_agente, s, cfg["agentes"][s], prompts[s], max_tokens, max_results,
-                timeout, chave, not args.sem_verificar_urls
+                timeout, chave, not args.sem_verificar_urls, termos
             ): s
             for s in ativos
         }

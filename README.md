@@ -90,7 +90,11 @@ Estão todos documentados em [CHANGELOG.md](CHANGELOG.md), com sintoma, causa e 
 
 **Busca web que falha em silêncio.** O plugin de busca do OpenRouter sem `engine` explícito é ignorado pelos modelos Google. Sem erro, sem aviso: o modelo responde de memória e o resultado parece normal. Só a inspeção da contagem de tokens de entrada revelou. Toda integração com busca precisa de um sinal verificável de que a busca aconteceu.
 
-**URL que existe na forma e não no mundo.** A primeira trava protegia contra o motor que volta sem nenhuma fonte, que é o caso visível. O caso grave é o oposto: link plausível, bem formado, apontando para uma página inventada, que entra nas referências parecendo verificado. Hoje toda URL é conferida por requisição HTTP, por forma e por confissão do modelo no texto ao redor.
+**URL que existe na forma e não no mundo.** A primeira trava protegia contra o motor que volta sem nenhuma fonte, que é o caso visível. O caso grave é o oposto: link plausível, bem formado, apontando para uma página inventada, que entra nas referências parecendo verificado.
+
+A literatura mede esse fenômeno: de 3% a 13% das URLs citadas por agentes de pesquisa nunca existiram, e agentes de busca profunda alucinam a taxas maiores que modelos com busca simples ([arXiv 2604.03173](https://arxiv.org/abs/2604.03173), [arXiv 2605.06635](https://arxiv.org/html/2605.06635v1)). Não é acidente de um modelo ruim, é taxa base.
+
+Hoje cada URL passa por quatro camadas: se existe, se a forma é de fonte real, se o modelo confessou tê-la construído no texto ao redor e se a página trata do tema. Quando não resolve, o arquivo da internet separa página removida de URL que nunca existiu — só a segunda indica invenção. Nenhuma camada custa API, e falha de checagem nunca vira acusação: o estado fica inconclusivo.
 
 **Estimativa de custo com parâmetro único.** Motores cobram de formas incompatíveis: um recebe os resultados de busca no prompt e chega a 80 mil tokens de entrada, outro pesquisa do lado do provedor e cobra por consulta. Nenhuma média serve para os dois, e a estimativa errava por fator de 2 a 3 nas duas direções.
 
