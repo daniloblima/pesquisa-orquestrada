@@ -1150,6 +1150,72 @@ continuar na que está.
 
 ---
 
+## [2026-08-05 11:45] — Dado de uso não é parte do produto
+
+### PERGUNTA DO DANILO
+
+Quem clona o repositório e instala a skill herda as notas de qualidade dos motores, ou começa
+do zero? A pergunta expôs um erro de classificação que eu tinha cometido sem perceber.
+
+### O ERRO
+
+`skill/qualidade-motores.json` estava versionado, porque mora dentro de `skill/`. Dois
+problemas distintos.
+
+O primeiro é de privacidade: o campo `historico` lista o nome da pasta de cada pesquisa, e o
+nome da pasta é o tema. As três pesquisas feitas apareciam identificadas no repositório
+público. Não é conteúdo nem cliente nomeado, mas revela no que o usuário trabalha, e ninguém
+autorizou isso.
+
+O segundo é de projeto, e é o que a pergunta do Danilo apontou: nota de motor calculada sobre
+as pesquisas de outra pessoa não diz nada sobre o uso de quem instala. Pior, contamina a série
+dele desde o primeiro dia com uma linha de base que não é sua.
+
+A raiz do erro foi de classificação. `outputs/` sempre esteve no `.gitignore` por ser dado de
+uso. O arquivo de qualidade é exatamente a mesma categoria — dado derivado do uso — mas como
+ficava dentro da pasta do código, entrou junto sem ninguém questionar.
+
+### CORRIGIDO
+
+`skill/qualidade-motores.json` foi para o `.gitignore`. Instalação nova começa a própria série
+do zero, e o script passa a explicar isso em vez de imprimir uma seção vazia: até acumular o
+mínimo de pesquisas e URLs, todos os motores são tratados como confirmação com ressalva.
+
+`catalogo-motores.json` continua versionado. É o catálogo público do OpenRouter classificado,
+sem nenhum dado de uso, e poupa a primeira consulta de quem instala.
+
+O conhecimento agregado foi para o README, sem identificar pesquisa: a faixa de precisão
+observada entre motores, a observação de que o pior foi também o único a produzir URLs sem
+registro no arquivo da internet, e o vínculo com a literatura sobre o trade-off entre volume e
+precisão de citação. Ordem de grandeza para quem for calibrar os limiares, declarada como
+experiência de um usuário e não como benchmark.
+
+### LIMPEZA DO HISTÓRICO
+
+O arquivo já estava público em commits anteriores. Repositório apagado e recriado, como da
+outra vez.
+
+Armadilha encontrada no caminho: recriar a partir do repositório local traria o arquivo de
+volta, porque ele continuava em doze commits do histórico local. Foi preciso reescrever o
+histórico com `git filter-branch --index-filter` antes de recriar, e depois apagar as refs de
+backup que o próprio filter-branch cria em `refs/original/` — sem isso, o arquivo continua
+alcançável e a verificação acusa. Os doze commits foram preservados; só o arquivo saiu deles.
+
+Verificação final: busca por cada um dos três temas no repositório remoto devolve zero
+ocorrências, e o arquivo responde 404.
+
+### LIÇÃO
+
+A pergunta certa sobre qualquer arquivo novo não é onde ele mora, é de onde ele vem. Um
+arquivo gerado pelo uso é dado do usuário, mesmo quando fica na pasta do código, e ir para o
+repositório por proximidade de diretório é acidente de organização, não decisão.
+
+Vale como regra geral para este projeto: antes de versionar arquivo que algum script escreve,
+perguntar se ele existiria numa instalação que nunca rodou nada. Se não existiria, é dado de
+uso e não entra.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão
