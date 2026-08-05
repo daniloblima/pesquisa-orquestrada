@@ -165,20 +165,19 @@ def main():
     cfg = json.loads((RAIZ_SKILL / "config.json").read_text(encoding="utf-8"))
     log("\n" + "=" * 92)
     log("EM USO AGORA\n")
-    for slot, a in cfg["agentes"].items():
-        reg = conhecidos.get(a["modelo"])
-        if not reg:
-            log(f"  slot {slot}: {a['modelo']} — não está no catálogo")
-        elif reg.get("sumiu"):
-            log(f"  slot {slot}: {a['modelo']} — SUMIU DO CATÁLOGO em {reg['sumiu']}, precisa trocar")
-        else:
-            log(f"  slot {slot}: {a['modelo']:42} {reg['classe']:14} "
-                f"in {reg['in']:6.2f}  out {reg['out']:6.2f}  [{reg['familia']}]")
-
-    log("\nCARDÁPIO OFERECIDO NA CLARIFICAÇÃO\n")
-    for m in cfg.get("motores_disponiveis", []):
+    for m in cfg.get("motores", []):
+        reg = conhecidos.get(m["modelo"])
         marca = "padrão" if m.get("padrao") else "opcional"
-        log(f"  {m['rotulo']:26} {m['indice']:11} ~US$ {m['custo_tipico_usd']:.2f}  ({marca})")
+        if not reg:
+            log(f"  {m['id']:12} {m['modelo']:42} não está no catálogo  ({marca})")
+        elif reg.get("sumiu"):
+            log(f"  {m['id']:12} {m['modelo']:42} SUMIU DO CATÁLOGO em {reg['sumiu']}, precisa trocar")
+        else:
+            log(f"  {m['id']:12} {m['modelo']:42} {reg['classe']:14} "
+                f"in {reg['in']:6.2f}  out {reg['out']:6.2f}  "
+                f"~US$ {m.get('custo_tipico_usd', 0):.2f}  ({marca})")
+
+    log("\n  Só os marcados como padrão rodam quando --motores é omitido.")
 
     log(f"""
 COMO USAR ISTO
@@ -187,9 +186,11 @@ COMO USAR ISTO
   e pode ser corrigida à mão: mude "classe", marque "testado": true e escreva em "notas"
   o que você mediu. A próxima execução respeita o que já está lá.
 
-  Para promover um motor a slot: edite config.json em tres lugares — o bloco agentes,
-  precos_por_milhao_usd e motores_disponiveis. Depois rode uma pesquisa em modo rapida
-  e confira se ele traz URLs. Modelo que volta sem URL não está buscando.
+  Para acrescentar um motor: um item novo na lista "motores" do config.json, com um id
+  curto e "padrao": false, mais a entrada correspondente em precos_por_milhao_usd. Não
+  há teto de quantidade e nada mais precisa ser mexido. Depois rode uma pesquisa em modo
+  rapida com --motores <id> e confira se ele traz URLs. Modelo que volta sem URL não
+  está buscando, e nesse estado não serve para nada aqui.
 
   Independência antes de preço: um índice por família. Dois motores da mesma família
   leem as mesmas páginas, e aí a concordância entre eles não valida nada.

@@ -104,10 +104,36 @@ def log_excecao(etapa, e):
 
 
 def carregar_config():
+    """Lê o config e normaliza os motores num dicionário por id.
+
+    Não há teto nem letra de slot: acrescentar motor é acrescentar item na lista
+    'motores' do config.json. O id é o nome usado em --motores e nas chaves do
+    arquivo de prompts da rodada 2.
+    """
     log("CONFIG", f"lendo {CONFIG_PATH}")
     with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = json.load(f)
-    log("CONFIG", f"agentes: {', '.join(a['modelo'] for a in cfg['agentes'].values())}")
+
+    if "motores" not in cfg:
+        raise SystemExit(
+            "ERRO: config.json sem a lista 'motores'. Este script não usa mais os slots "
+            "A, B e C. Migre o config para o formato de lista com 'id' por motor."
+        )
+
+    catalogo, vistos = {}, set()
+    for m in cfg["motores"]:
+        mid = (m.get("id") or "").strip()
+        if not mid:
+            raise SystemExit(f"ERRO: motor sem 'id' no config.json: {m.get('modelo')}")
+        if mid in vistos:
+            raise SystemExit(f"ERRO: id repetido no config.json: {mid}")
+        vistos.add(mid)
+        catalogo[mid] = m
+    cfg["_catalogo"] = catalogo
+
+    padrao = [mid for mid, m in catalogo.items() if m.get("padrao")]
+    log("CONFIG", f"{len(catalogo)} motores no config: {', '.join(catalogo)}")
+    log("CONFIG", f"padrão quando --motores é omitido: {', '.join(padrao) or 'nenhum'}")
     return cfg
 
 
@@ -711,29 +737,89 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave,
 
 # ---------------------------------------------------------------- fluxo
 
-def montar_prompts(args, cfg):
-    """Devolve {slot: prompt|None} a partir de --prompt-file ou --prompts-file."""
-    slots = list(cfg["agentes"].keys())
+def escolher_motores(args, cfg):
+    """Quais motores rodam. Sem --motores, só os marcados como padrão no config.
 
+    Motor caro nunca entra por omissão: quem não é padrão precisa ser pedido pelo nome.
+    """
+    catalogo = cfg["_catalogo"]
+    pedido = args.motores or args.agentes  # --agentes continua aceito como apelido antigo
+
+    if not pedido:
+        escolhidos = [mid for mid, m in catalogo.items() if m.get("padrao")]
+        if not escolhidos:
+            raise SystemExit("ERRO: nenhum motor marcado como padrão no config.json e "
+                             "nenhum informado em --motores.")
+        return escolhidos
+
+    escolhidos, desconhecidos = [], []
+    for nome in (x.strip() for x in pedido.split(",")):
+        if not nome:
+            continue
+        if nome in catalogo:
+            escolhidos.append(nome)
+            continue
+        # Aceita também o id do modelo inteiro, para quem preferir ser explícito.
+        por_modelo = [mid for mid, m in catalogo.items() if m["modelo"] == nome]
+        if por_modelo:
+            escolhidos.append(por_modelo[0])
+        else:
+            desconhecidos.append(nome)
+
+    if desconhecidos:
+        raise SystemExit(
+            f"ERRO: motor não encontrado no config.json: {', '.join(desconhecidos)}\n"
+            f"Disponíveis: {', '.join(catalogo)}"
+        )
+    return list(dict.fromkeys(escolhidos))
+
+
+def avisar_composicao(escolhidos, cfg):
+    """As regras de desenho continuam valendo, agora calculadas sobre o número escolhido."""
+    catalogo = cfg["_catalogo"]
+    n = len(escolhidos)
+
+    indices = {}
+    for mid in escolhidos:
+        indices.setdefault(catalogo[mid].get("indice", "?"), []).append(mid)
+    repetidos = {i: ms for i, ms in indices.items() if len(ms) > 1}
+    if repetidos:
+        for indice, ms in repetidos.items():
+            log("COMPOSIÇÃO", f"ATENÇÃO: {len(ms)} motores do índice {indice} ({', '.join(ms)}). "
+                              "Eles leem as mesmas páginas, então concordância entre eles não valida nada.")
+
+    if n < 2:
+        log("COMPOSIÇÃO", "ATENÇÃO: um motor só. Não há validação cruzada nenhuma nesta pesquisa.")
+    elif n == 2:
+        log("COMPOSIÇÃO", "ATENÇÃO: dois motores. Sem terceiro, contradição não tem árbitro na rodada 2.")
+    elif n > 3:
+        log("COMPOSIÇÃO", f"{n} motores: mais material para comparar, sem ganho proporcional de "
+                          "independência. A análise tende a ficar mais rasa.")
+
+    custo = sum(catalogo[m].get("custo_tipico_usd", 0) for m in escolhidos)
+    log("COMPOSIÇÃO", f"{n} motores · {len(indices)} índices distintos · custo típico US$ {custo:.2f} por rodada")
+
+
+def montar_prompts(args, cfg, escolhidos):
+    """Devolve {id: prompt|None} a partir de --prompt-file ou --prompts-file."""
     if args.prompts_file:
         with open(args.prompts_file, encoding="utf-8") as f:
             bruto = json.load(f)
-        prompts = {s: (bruto.get(s) or None) for s in slots}
-        desconhecidos = set(bruto) - set(slots)
+        prompts = {mid: (bruto.get(mid) or None) for mid in escolhidos}
+        desconhecidos = set(bruto) - set(cfg["_catalogo"])
         if desconhecidos:
-            log("PROMPTS", f"ATENÇÃO: slots ignorados por não existirem no config: {sorted(desconhecidos)}")
+            log("PROMPTS", f"ATENÇÃO: ignorados por não existirem no config: {sorted(desconhecidos)}")
+        fora = set(bruto) & set(cfg["_catalogo"]) - set(escolhidos)
+        if fora:
+            log("PROMPTS", f"ATENÇÃO: têm prompt mas não foram escolhidos: {sorted(fora)}")
     else:
         with open(args.prompt_file, encoding="utf-8") as f:
             texto = f.read()
-        prompts = {s: texto for s in slots}
+        prompts = {mid: texto for mid in escolhidos}
 
-    if args.agentes:
-        pedidos = {s.strip().upper() for s in args.agentes.split(",") if s.strip()}
-        prompts = {s: (p if s in pedidos else None) for s, p in prompts.items()}
-
-    for s in slots:
-        estado = f"{len(prompts[s])} chars" if prompts[s] else "não será chamado"
-        log("PROMPTS", f"slot {s}: {estado}")
+    for mid in escolhidos:
+        estado = f"{len(prompts[mid])} chars" if prompts[mid] else "não será chamado"
+        log("PROMPTS", f"{mid}: {estado}")
     return prompts
 
 
@@ -749,10 +835,10 @@ def estimar(prompts, cfg, max_tokens):
     fracao = cfg.get("fracao_saida_tipica", 0.55)
 
     minimo, teto, detalhe = 0.0, 0.0, {}
-    for s, prompt in prompts.items():
+    for mid, prompt in prompts.items():
         if not prompt:
             continue
-        agente = cfg["agentes"][s]
+        agente = cfg["_catalogo"][mid]
         p = precos.get(
             agente["modelo"],
             {"in": 3.0, "out": 15.0, "taxa_fixa": 0.0, "tokens_input_busca": 20000},
@@ -763,12 +849,12 @@ def estimar(prompts, cfg, max_tokens):
         c_teto = base + (max_tokens / 1e6) * p["out"]
         c_min = base + (max_tokens * fracao / 1e6) * p["out"]
 
-        detalhe[s] = {"tipico": round(c_min, 4), "teto": round(c_teto, 4)}
+        detalhe[mid] = {"tipico": round(c_min, 4), "teto": round(c_teto, 4)}
         minimo += c_min
         teto += c_teto
 
     log("CUSTO", f"estimado entre US$ {minimo:.2f} e US$ {teto:.2f} · por agente: {detalhe}")
-    if any(cfg["agentes"][s].get("busca_nativa") for s, pr in prompts.items() if pr):
+    if any(cfg["_catalogo"][m].get("busca_nativa") for m, pr in prompts.items() if pr):
         log("CUSTO", "o motor de busca profunda cobra por consulta interna, então o valor real "
                      "varia com o tema e pode passar do teto em pesquisa muito ampla")
     return {"tipico_usd": round(minimo, 2), "teto_usd": round(teto, 2), "por_agente": detalhe}
@@ -782,7 +868,10 @@ def main():
     p.add_argument("--saida", help="Caminho do JSON de saída. Os .md por agente ficam ao lado.")
     p.add_argument("--rodada", type=int, default=1, choices=[1, 2], help="1 ou 2. Define o teto de tokens.")
     p.add_argument("--modo", default=None, choices=["rapida", "normal", "profunda"])
-    p.add_argument("--agentes", default=None, help="Subconjunto, ex: A,C")
+    p.add_argument("--motores", default=None,
+                   help="Motores a usar, por id, ex: grok,gpt,gemini. Omitido, usa os marcados "
+                        "como padrão no config.json. Não há teto.")
+    p.add_argument("--agentes", default=None, help="Apelido antigo de --motores.")
     p.add_argument("--estimar", action="store_true", help="Só estima o custo e sai, sem chamar nada.")
     p.add_argument("--sem-verificar-urls", action="store_true",
                    help="Pula a checagem de existência das URLs. Não recomendado.")
@@ -813,10 +902,13 @@ def main():
     else:
         log("INÍCIO", "sem --termos: as páginas não serão conferidas quanto ao assunto")
 
-    prompts = montar_prompts(args, cfg)
-    ativos = [s for s, pr in prompts.items() if pr]
+    escolhidos = escolher_motores(args, cfg)
+    avisar_composicao(escolhidos, cfg)
+
+    prompts = montar_prompts(args, cfg, escolhidos)
+    ativos = [m for m, pr in prompts.items() if pr]
     if not ativos:
-        raise SystemExit("ERRO: nenhum agente tem prompt. Nada a fazer.")
+        raise SystemExit("ERRO: nenhum motor tem prompt. Nada a fazer.")
 
     estimativa = estimar(prompts, cfg, max_tokens)
     if args.estimar:
@@ -824,18 +916,19 @@ def main():
         return
 
     chave = carregar_chave()
-    log("RODADA", f"disparando {len(ativos)} agentes em paralelo: {', '.join(ativos)}")
-    if "A" in ativos and cfg["agentes"]["A"].get("busca_nativa"):
-        log("RODADA", "o agente A faz busca profunda e pode levar de 3 a 10 minutos")
+    log("RODADA", f"disparando {len(ativos)} motores em paralelo: {', '.join(ativos)}")
+    for m in ativos:
+        if cfg["_catalogo"][m].get("busca_nativa"):
+            log("RODADA", f"{m} faz busca profunda própria e pode levar de 3 a 10 minutos")
 
     inicio = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(ativos)) as executor:
         futuros = {
             executor.submit(
-                chamar_agente, s, cfg["agentes"][s], prompts[s], max_tokens, max_results,
+                chamar_agente, m, cfg["_catalogo"][m], prompts[m], max_tokens, max_results,
                 timeout, chave, not args.sem_verificar_urls, termos
-            ): s
-            for s in ativos
+            ): m
+            for m in ativos
         }
         resultados = [f.result() for f in concurrent.futures.as_completed(futuros)]
 

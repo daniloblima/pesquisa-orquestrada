@@ -841,6 +841,100 @@ desenho pressupunha. Vale sempre perguntar em que formato de entrada a defesa de
 
 ---
 
+## [2026-08-05 09:20] — Número variável de motores e o limite da validação cruzada
+
+Entrada em resposta à nota da sessão do NossEnergia, que teve de editar o `config.json` no
+meio de uma pesquisa para cumprir uma escolha do Danilo.
+
+### O QUE A OUTRA SESSÃO ENCONTROU
+
+O Danilo quis rodar com quatro motores, incluindo o Perplexity. O `config.json` tinha três
+slots nomeados A, B e C, e o `buscar.py` só aceitava subconjunto dos slots existentes. Sem
+slot, não havia como cumprir a escolha, e o `SKILL.md` mandava justamente não editar o
+config — instrução que pressupunha um slot que não existia.
+
+A saída foi criar um slot D à mão. Correta como remendo, perigosa como estado permanente:
+`--agentes` era opcional, então qualquer execução futura que o omitisse passaria a chamar
+quatro motores e a gastar US$ 1,15 a mais por rodada, sem ninguém pedir. A mitigação era um
+aviso dentro de um campo de texto que nenhum código lê.
+
+### CAUSA
+
+O número de motores estava amarrado em dois lugares: as letras de slot no `config.json` e as
+mesmas letras como chaves do `prompts_r2.json`. Havia ainda uma duplicação silenciosa —
+`agentes` definia quem podia ser chamado e `motores_disponiveis` definia o cardápio oferecido
+na clarificação. Os dois podiam divergir, e divergiram: o Perplexity estava no cardápio e não
+era chamável.
+
+### SOLUÇÃO — identificação por id, lista aberta
+
+`agentes` e `motores_disponiveis` viraram uma lista só, `motores`, em que cada item tem um
+`id` curto: `grok`, `gpt`, `gemini`, `perplexity`. O id é o mesmo nome usado em `--motores` e
+nas chaves do `prompts_r2.json`. Acrescentar motor é acrescentar item na lista, sem tocar em
+código e sem teto de quantidade.
+
+`--motores` substitui `--agentes`, que continua aceito como apelido. Aceita o id ou o nome
+completo do modelo, e erra com a lista de disponíveis quando o nome não existe.
+
+**Só entra quem é `padrao: true` quando `--motores` é omitido.** É o que impede motor caro de
+entrar por esquecimento, substituindo o aviso em campo de texto por comportamento de código.
+
+`avisar_composicao()` passou a calcular as regras de desenho sobre o número escolhido, em vez
+da constante três: motores repetindo o mesmo índice, ausência de árbitro com dois, análise
+mais rasa acima de três, e o custo típico somado. Os avisos informam, não bloqueiam.
+
+Verificação, com o Perplexity presente no config: sem `--motores`, rodam três e o custo
+estimado fica em US$ 0,77 a 0,88; com os quatro, sobe para US$ 1,88 a 2,03 e o aviso de
+análise mais rasa aparece. Um quinto motor, acrescentado só no config para teste, entrou sem
+nenhuma alteração de código.
+
+Efeito colateral pego na hora: o `motores.py` quebrou com `KeyError: 'agentes'`. Corrigido.
+É o tipo de coisa que só aparece rodando os três scripts depois de mexer no formato do config.
+
+### O ACHADO MAIS SÉRIO — consenso sobre ausência não é prova de ausência
+
+Da mesma nota: na pesquisa de 04/08, os três motores afirmaram que nenhum dispositivo impunha
+teto de 75 kW à potência de geração. O art. 23, § 6º, da REN ANEEL 1.000/2021 diz exatamente
+isso. Nenhum dos três o localizou, e o erro só apareceu na conferência manual do texto
+oficial.
+
+Isto é mais grave que URL inventada, e por um motivo estrutural: URL falsa é detectável por
+código, ausência falsa não deixa rastro nenhum. Pior, o desenho atual **premiava** o erro —
+três motores concordando entrava como consenso, o grau mais alto de confiança do relatório.
+A validação cruzada confirma o que os motores encontram; ela não diz nada sobre o que todos
+deixaram de encontrar, e três buscas que falham pelo mesmo motivo parecem três confirmações.
+
+Duas mudanças no `SKILL.md`.
+
+Regra dura nova, a de número 8: nunca escrever "não existe" com base em concordância, e sim
+"os motores não localizaram", dizendo onde se procurou. Quando a resposta negativa importa
+para a decisão — e importa quase sempre, porque "não há impedimento" costuma virar
+autorização — abrir a fonte primária.
+
+Passo 5b, obrigatório para tema normativo e sempre que uma conclusão se apoiar em ausência:
+abrir o texto oficial, não a matéria que o comenta nem o site que o compila. Motor de busca
+alcança bem o que foi comentado e mal o que só existe no original. Não custa API, custa
+minutos de leitura, e separa relatório utilizável de relatório que parece pronto.
+
+### PENDÊNCIA DA NOTA JÁ RESOLVIDA ANTES
+
+`tokens_input_busca` do Grok já estava em 450 mil, corrigido em 04/08 na análise da segunda
+pesquisa, com as mesmas medições que a nota cita.
+
+### LIÇÃO
+
+Duas listas descrevendo a mesma coisa divergem, e a divergência aparece no pior momento — no
+meio de uma pesquisa, com o usuário esperando. `agentes` e `motores_disponiveis` nasceram em
+dias diferentes para propósitos parecidos, e a distância entre "está no cardápio" e "pode ser
+chamado" foi o que obrigou a edição manual.
+
+E a lição maior: um método de validação tem um domínio, fora do qual ele não só deixa de
+ajudar como engana. Confirmação cruzada mede convergência entre buscas, não existência no
+mundo. Vale perguntar de todo mecanismo de verificação qual pergunta ele responde de fato, e
+qual ele apenas parece responder.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

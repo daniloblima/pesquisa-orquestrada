@@ -7,34 +7,55 @@
 
   "_troca_04_08_2026": "Slot A passou de perplexity/sonar-deep-research para x-ai/grok-4.20-multi-agent. Motivo: US$ 1,12 contra US$ 0,32 por chamada, com busca real nos dois. O Perplexity segue disponível em motores_disponiveis e volta trocando uma linha.",
 
-  "agentes": {
-    "A": {
+  "_motores": "Lista aberta, sem teto e sem letra de slot. Cada motor é identificado pelo 'id', que é o mesmo nome usado em --motores e nas chaves do prompts_r2.json. Acrescentar motor é acrescentar item aqui. Só os marcados com padrao:true rodam quando --motores é omitido — é o que impede um motor caro de entrar por esquecimento.",
+
+  "motores": [
+    {
+      "id": "grok",
       "modelo": "x-ai/grok-4.20-multi-agent",
       "rotulo": "Grok 4.20 Multi-Agent",
+      "indice": "xAI",
+      "padrao": true,
       "busca_nativa": false,
       "engine_busca": "native",
-      "indice": "xAI",
-      "caracteristica": "Lê muito material por chamada (entrada medida de 232 mil tokens). Cobrança toda em tokens, sem taxa de busca."
+      "custo_tipico_usd": 0.50,
+      "quando_usar": "Lê muito material por chamada, entrada medida entre 420 e 490 mil tokens. O mais próximo de busca profunda fora da Perplexity, por um terço do preço. Zero URLs reprovadas na pesquisa de 04/08."
     },
-    "B": {
+    {
+      "id": "gpt",
       "modelo": "openai/gpt-5.6-terra",
       "rotulo": "GPT-5.6 Terra",
+      "indice": "OpenAI",
+      "padrao": true,
       "busca_nativa": false,
       "engine_busca": "native",
       "reasoning_effort": "low",
-      "indice": "OpenAI",
-      "caracteristica": "Raciocínio forte, boa cobertura. Busca pelo índice da OpenAI."
+      "custo_tipico_usd": 0.18,
+      "quando_usar": "O que mais traz fontes. Índice da OpenAI."
     },
-    "C": {
+    {
+      "id": "gemini",
       "modelo": "google/gemini-3.1-pro-preview",
       "rotulo": "Gemini 3.1 Pro",
+      "indice": "Google",
+      "padrao": true,
       "busca_nativa": false,
       "engine_busca": "native",
       "reasoning_effort": "low",
-      "indice": "Google",
-      "caracteristica": "Contexto amplo, índice do Google. reasoning low é obrigatório: sem ele gasta o orçamento inteiro em raciocínio e devolve texto curto."
+      "custo_tipico_usd": 0.18,
+      "quando_usar": "Índice do Google, que alcança material que os outros não veem. reasoning low é obrigatório: sem ele gasta o orçamento inteiro em raciocínio e devolve texto curto. Atenção: 7 de 23 URLs inventadas em 04/08, a maior taxa medida."
+    },
+    {
+      "id": "perplexity",
+      "modelo": "perplexity/sonar-deep-research",
+      "rotulo": "Perplexity Deep Research",
+      "indice": "Perplexity",
+      "padrao": false,
+      "busca_nativa": true,
+      "custo_tipico_usd": 1.12,
+      "quando_usar": "Busca própria e profunda, melhor em admitir o que não conseguiu verificar. Caro e lento: 3 a 10 minutos, cobra por consulta interna. Vale quando o ponto é a existência ou não de um precedente."
     }
-  },
+  ],
 
   "_licao_truncamento": "No primeiro uso real, 8000 tokens no modo normal truncaram o relatório do agente B no meio (finish=length). Relatório cortado é pior que relatório curto, porque as fontes ficam de fora. Tetos subidos em 03/08/2026.",
 
@@ -57,30 +78,6 @@
     "x-ai/grok-4.20": { "in": 1.25, "out": 2.5, "taxa_fixa": 0.0, "tokens_input_busca": 50000 }
   },
 
-  "_motores_disponiveis": "Cardápio oferecido ao Danilo na clarificação. Um índice por família: escolher dois da mesma família derruba a independência, que é o que sustenta a validação. Medições em 03 e 04/08/2026.",
-
-  "motores_disponiveis": [
-    {
-      "modelo": "x-ai/grok-4.20-multi-agent", "rotulo": "Grok 4.20 Multi-Agent", "indice": "xAI",
-      "custo_tipico_usd": 0.32, "padrao": true,
-      "quando_usar": "Lê muito material por chamada. O mais próximo de busca profunda fora da Perplexity, por um terço do preço."
-    },
-    {
-      "modelo": "openai/gpt-5.6-terra", "rotulo": "GPT-5.6 Terra", "indice": "OpenAI",
-      "custo_tipico_usd": 0.18, "padrao": true,
-      "quando_usar": "Boa cobertura e o que mais trouxe fontes até agora. Índice da OpenAI."
-    },
-    {
-      "modelo": "google/gemini-3.1-pro-preview", "rotulo": "Gemini 3.1 Pro", "indice": "Google",
-      "custo_tipico_usd": 0.18, "padrao": true,
-      "quando_usar": "Índice do Google, que alcança material que os outros não veem. Exige reasoning baixo."
-    },
-    {
-      "modelo": "perplexity/sonar-deep-research", "rotulo": "Perplexity Deep Research", "indice": "Perplexity",
-      "custo_tipico_usd": 1.12, "padrao": false,
-      "quando_usar": "Busca mais profunda e melhor em admitir o que não conseguiu verificar. Caro e lento: 3 a 10 minutos, cobra por consulta interna."
-    }
-  ],
   "fracao_saida_tipica": 0.55,
 
   "_saida": "Vazio resolve para a pasta outputs/ ao lado da skill. Preencha com um caminho absoluto para gravar em outro lugar.",
