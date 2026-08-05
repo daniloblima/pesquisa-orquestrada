@@ -935,6 +935,75 @@ qual ele apenas parece responder.
 
 ---
 
+## [2026-08-05 10:20] — Índice de qualidade por motor e o que a literatura já mediu
+
+### PERGUNTA DO DANILO
+
+Desconfiança com o Gemini, que estaria inventando demais, e a dúvida se o problema é o uso
+via API ou se sempre foi assim e ele não percebia na plataforma. Pediu um índice de qualidade
+por motor e uma busca sobre trabalho anterior nesse tema.
+
+### A DESCONFIANÇA ESTÁ CERTA E MEDIDA
+
+Precisão de fonte nas duas pesquisas reais, calculada sobre as URLs que passaram na
+verificação:
+
+| Motor | URLs citadas | Reprovadas | Precisão |
+|---|---|---|---|
+| Grok 4.20 multi-agent | 52 | 5 | 90% |
+| GPT-5.6 Terra | 120 | 12 | 90% |
+| Perplexity Deep Research | 74 | 10 | 86% |
+| Gemini 3.1 Pro | 57 | 13 | **77%** |
+
+O Gemini é o pior dos quatro, com folga.
+
+### E A LITERATURA JÁ SABIA
+
+O DeepResearch Bench avalia agentes de pesquisa com dois frameworks, RACE para a qualidade do
+relatório e FACT para abundância factual e confiabilidade de citação. Nele, o Gemini Deep
+Research lidera em citações efetivas, com 111,21 em média, e fica atrás do Perplexity em
+Citation Accuracy, onde a Perplexity marca 90,24%.
+
+O padrão é geral e tem nome: quem cita mais, cita pior. Medições recentes mostram modelos da
+OpenAI com o maior volume de atribuições e acerto factual entre 39% e 59%; Anthropic com menos
+volume e acerto de 69% a 77%; Google no meio, entre 45% e 49%. Especificamente, o Gemini Deep
+Research troca precisão por cobertura — 0,145 contra 0,269 de precisão, com 32,42 referências
+por relatório contra 4,27.
+
+A explicação proposta é diluição de atenção na síntese: agregar informação de muitas passagens
+aumenta a chance de atribuir o fato à fonte errada.
+
+Isso responde a dúvida do Danilo sobre API contra plataforma. O comportamento não é efeito do
+acesso por API; é característica documentada do modelo, e ele já consumia isso antes sem ter
+como perceber, porque não havia verificação de fonte.
+
+### ÍNDICE IMPLEMENTADO
+
+Três dimensões, com os nomes alinhados aos da literatura, calculadas sobre o que o sistema já
+media:
+
+- **Precisão de fonte**, equivalente ao Citation Accuracy: URLs aprovadas sobre URLs citadas
+- **Taxa de confirmação**: afirmações que outro motor sustentou, sobre as que o motor trouxe
+- **Confiabilidade operacional**: execuções sem falha nem truncamento
+
+O índice combina as três com pesos 3, 2 e 1, de 0 a 100. Volume de fontes ficou de fora da
+nota de propósito: premiar quantidade é premiar exatamente o comportamento que a literatura
+associa a menor precisão. Volume continua visível como contexto, em coluna própria.
+
+### SOBRE TRABALHO ANTERIOR
+
+Orquestração multimodelo existe e é ativa: MARCH, debate adversarial com votação, frameworks
+de papéis especializados em que um agente gera, outro verifica fatos e um terceiro confere
+citações. Ganhos relatados de 67% a 85% de redução de alucinação.
+
+Duas ressalvas úteis. Há trabalho mostrando cascata de alucinação, em que cadeias longas de
+agentes reduzem a alucinação e também a acurácia factual — suprimir demais custa informação
+verdadeira, o mesmo trade-off que apareceu aqui na regra de descartar afirmação com fonte
+reprovada. E quase tudo é orquestração dentro de um provedor, com subagentes do mesmo modelo.
+Orquestrar provedores diferentes, com índices de busca independentes, continua sendo raro.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

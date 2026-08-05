@@ -188,7 +188,7 @@ h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em
 .tile .sub{font-size:12px;color:var(--muted);margin-top:4px}
 .tabela-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--ring);border-radius:10px}
 table{border-collapse:collapse;width:100%;font-size:14px;min-width:760px}
-table.motores{min-width:1020px}
+table.motores{min-width:1240px}
 table.motores td:first-child{min-width:210px}
 table.motores .obj{white-space:nowrap}
 th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);
@@ -323,7 +323,8 @@ def montar_html(pesquisas, raiz):
                 a["modelo"] or slot,
                 {"rotulo": a["rotulo"], "pesquisas": 0, "urls": 0, "exclusivas": 0,
                  "falhas": 0, "custo": 0.0, "truncou": 0, "reprovadas": 0,
-                 "afirmacoes": 0, "confirmadas": 0, "tem_contrib": False, "notas": []},
+                 "afirmacoes": 0, "confirmadas": 0, "tem_contrib": False, "notas": [],
+                 "execucoes": 0, "incidentes": 0},
             )
             m["pesquisas"] += 1
             m["urls"] += a["urls"]
@@ -332,6 +333,9 @@ def montar_html(pesquisas, raiz):
             m["custo"] += a["custo"]
             m["truncou"] += 1 if a["truncou"] else 0
             m["reprovadas"] += a.get("reprovadas", 0)
+            m["execucoes"] = m.get("execucoes", 0) + 1
+            if a["falhas"] or a["truncou"]:
+                m["incidentes"] = m.get("incidentes", 0) + 1
             c = a.get("contrib") or {}
             if c.get("afirmacoes") is not None and c.get("afirmacoes") != 0:
                 m["tem_contrib"] = True
@@ -339,6 +343,21 @@ def montar_html(pesquisas, raiz):
                 m["confirmadas"] += c.get("confirmadas") or 0
             if a.get("nota"):
                 m["notas"].append(a["nota"])
+
+    # As três dimensões vêm do que a literatura de avaliação de agentes de pesquisa mede
+    # (frameworks FACT e RACE do DeepResearch Bench): precisão de citação, abundância
+    # efetiva e confiabilidade. Volume entra como contexto, nunca como nota: está
+    # documentado que quem cita mais tende a citar pior.
+    for m in motores.values():
+        citadas = m["urls"]
+        m["precisao"] = ((citadas - m["reprovadas"]) / citadas) if citadas else None
+        m["confirmacao"] = (m["confirmadas"] / m["afirmacoes"]) if m["afirmacoes"] else None
+        m["confiabilidade"] = (1 - m["incidentes"] / m["execucoes"]) if m["execucoes"] else None
+
+        partes = [(m["precisao"], 3), (m["confirmacao"], 2), (m["confiabilidade"], 1)]
+        validas = [(v, peso) for v, peso in partes if v is not None]
+        m["indice"] = (sum(v * peso for v, peso in validas) / sum(peso for _, peso in validas)
+                       if validas else None)
 
     bloco_motores = ""
     if motores:
@@ -359,6 +378,14 @@ def montar_html(pesquisas, raiz):
                 alerta.append(f'{m["reprovadas"]} URLs reprovadas')
             nota_txt = (
                 f'<div class="obj bad">{esc(" · ".join(alerta))}</div>' if alerta else ""
+            )
+
+            pr = m["precisao"]
+            cls_pr = ("bad" if pr is not None and pr < 0.8
+                      else "warn" if pr is not None and pr < 0.95 else "")
+            col_qualidade = (
+                f"<td class='num {cls_pr}'>{'%.0f%%' % (pr * 100) if pr is not None else '—'}</td>"
+                f"<td class='num'><strong>{'%.0f' % (m['indice'] * 100) if m['indice'] is not None else '—'}</strong></td>"
             )
 
             extra = ""
@@ -384,7 +411,7 @@ def montar_html(pesquisas, raiz):
                 f"<td class='num'>{pct:.0f}%</td>"
                 f"<td class='num'>US$ {m['custo']:.2f}</td>"
                 f"<td class='num'>{'US$ %.2f' % por_exc if por_exc is not None else '—'}</td>"
-                f"{extra}</tr>"
+                f"{col_qualidade}{extra}</tr>"
             )
 
         cab_extra = (
@@ -409,10 +436,17 @@ def montar_html(pesquisas, raiz):
             "<th>Motor</th><th class='num'>Pesquisas</th><th class='num'>Fontes</th>"
             "<th>Exclusivas</th><th class='num'>% exclusivo</th>"
             "<th class='num'>Custo</th><th class='num'>Por exclusiva</th>"
+            "<th class='num'>Precisão</th><th class='num'>Índice</th>"
             f"{cab_extra}</tr></thead><tbody>" + "".join(linhas_m) + "</tbody></table></div>"
             '<p class="legenda">Fonte <strong>exclusiva</strong> é a URL que só aquele motor '
             "alcançou. Mede alcance, não utilidade: uma página que ninguém mais viu pode não ter "
             f"acrescentado nenhuma informação nova.{legenda_contrib}</p>"
+            '<p class="legenda"><strong>Precisão</strong> é a fração das URLs citadas que passou '
+            "na verificação — o equivalente ao Citation Accuracy usado na literatura de avaliação "
+            "de agentes de pesquisa. O <strong>índice</strong> combina precisão (peso 3), taxa de "
+            "confirmação (peso 2) e confiabilidade operacional (peso 1), de 0 a 100. Volume de "
+            "fontes de propósito não entra na nota: está medido que quem cita mais tende a citar "
+            "pior, por diluição de atenção na síntese.</p>"
         )
 
     # Só vale desenhar barras quando há repetição suficiente para revelar padrão.
