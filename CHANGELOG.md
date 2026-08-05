@@ -1085,6 +1085,71 @@ critério, os dados guardam o veredito.
 
 ---
 
+## [2026-08-05 11:05] — Nota com data, log de erros e o que a pesquisa de hoje revelou
+
+### CONFERÊNCIA PEDIDA PELO DANILO
+
+Três exigências: a nota de qualidade tem de ficar gravada, com data, e o log de erros tem de
+ser acompanhado. A conferência achou as três incompletas.
+
+A nota tinha data só no cabeçalho do arquivo, e a foto era sobrescrita a cada execução: não
+havia como saber se um motor melhorou ou piorou. O histórico registrava a contagem de
+incidentes, não quais foram. E não havia registro do motivo de cada URL reprovada.
+
+### CORRIGIDO
+
+`serie_notas`: uma medição por motor por dia, nunca sobrescrita. Rodar duas vezes no mesmo dia
+atualiza a linha em vez de duplicar. É o que permite acompanhar evolução, e o script passa a
+mostrar a variação do índice desde a última data medida.
+
+`erros` por linha do histórico, com rodada, tipo e detalhe: falha, truncado, sem fontes,
+reprovadas sem rastro. E `reprovadas_por_motivo`, com a contagem por estado — inventada,
+fora do tema, inexistente, suspeita, inconclusiva.
+
+O quadro por motivo, na primeira medição:
+
+| Motor | Motivos das reprovações |
+|---|---|
+| GPT-5.6 Terra | fora do tema 4 · inconclusiva 3 · inexistente 5 |
+| Gemini 3.1 Pro | fora do tema 1 · inconclusiva 5 · **inventada 7** |
+| Grok 4.20 | fora do tema 2 · inconclusiva 1 · suspeita 2 |
+| Perplexity | fora do tema 2 · inconclusiva 3 · inexistente 4 · suspeita 1 |
+
+O Gemini é o único com URLs classificadas como inventadas — sem registro no arquivo da
+internet, ou seja, provavelmente nunca existiram. Nos outros, o que aparece é página que saiu
+do ar ou fonte fora do assunto.
+
+Bug corrigido no teste: ordenação dos erros comparava dicionários quando data e motor
+empatavam.
+
+### O QUE A PESQUISA DE HOJE MOSTROU
+
+Três verificações sobre correções recentes, na pesquisa de minigeração acima de 75 kW.
+
+**Log em arquivo: funcionou.** `r1.log` e `r2.log` gravados na pasta, com comando e etapas.
+
+**Migração para ids: sobreviveu a acontecer no meio.** A rodada 1, das 09:13, rodou com os
+slots antigos A, B, C e D; a rodada 2, das 09:33, já rodou com `gpt`, `grok` e `perplexity`. A
+refatoração entrou entre as duas e nada quebrou.
+
+**Correção do prompt inline: não chegou.** O `prompt_mestre.md` daquela pesquisa não tem a
+exigência de citar a URL junto da afirmação, e o resultado apareceu no dado: `sem_rastro` em
+três dos quatro motores na rodada 1 e em dois dos três na rodada 2. A revalidação continuou
+sem alcançar quase nada.
+
+Causa: a correção foi gravada em 04/08 às 18:50, e a sessão que conduziu a pesquisa já estava
+aberta com a versão anterior dos arquivos em contexto. Edição em arquivo de skill não alcança
+sessão em andamento.
+
+### LIÇÃO OPERACIONAL
+
+Correção de skill vale a partir da próxima sessão, não da próxima pesquisa. Sessão longa
+carrega a versão do momento em que abriu e segue com ela até fechar. Quando uma correção
+importa para o resultado — e a de citação inline importava —, vale abrir sessão nova em vez de
+continuar na que está.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

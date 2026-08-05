@@ -68,7 +68,8 @@ def coletar(raiz):
                 modelo = r.get("modelo") or r.get("slot")
                 a = por_modelo.setdefault(modelo, {
                     "rotulo": r.get("rotulo", modelo), "urls": 0, "reprovadas": 0,
-                    "custo": 0.0, "execucoes": 0, "incidentes": 0, "slots": set()})
+                    "custo": 0.0, "execucoes": 0, "incidentes": 0, "slots": set(),
+                    "erros": [], "reprovadas_detalhe": {}})
                 a["slots"].add(r.get("slot"))
                 a["urls"] += len(r.get("urls") or [])
                 a["reprovadas"] += len(r.get("urls_problematicas") or {})
@@ -78,8 +79,24 @@ def coletar(raiz):
                 # a outra perde o fim. Pesar igual condena quem só foi verboso demais.
                 if r.get("erro") or r.get("finish_reason") == "error":
                     a["incidentes"] += 1.0
+                    a["erros"].append({
+                        "rodada": arq.name, "tipo": "falha",
+                        "detalhe": (r.get("erro") or "finish_reason=error")[:220]})
                 elif r.get("finish_reason") == "length":
                     a["incidentes"] += 0.5
+                    a["erros"].append({
+                        "rodada": arq.name, "tipo": "truncado",
+                        "detalhe": f"resposta cortada no limite de tokens ({r.get('tokens_out')} de saída)"})
+                if r.get("sem_fontes"):
+                    a["erros"].append({"rodada": arq.name, "tipo": "sem fontes",
+                                       "detalhe": "respondeu sem nenhuma URL"})
+                if r.get("reprovadas_sem_rastro"):
+                    a["erros"].append({"rodada": arq.name, "tipo": "reprovadas sem rastro",
+                                       "detalhe": "fontes reprovadas só na lista final, sem trecho associado"})
+                # Por que cada URL caiu: é o que permite ver se o motor melhora ou piora.
+                for _, reg in (r.get("urls_problematicas") or {}).items():
+                    est = reg.get("estado", "?")
+                    a["reprovadas_detalhe"][est] = a["reprovadas_detalhe"].get(est, 0) + 1
 
         for modelo, a in por_modelo.items():
             # A contribuição vem chaveada pelo slot usado naquela pesquisa.
@@ -100,6 +117,8 @@ def coletar(raiz):
                 "incidentes": round(a["incidentes"], 1),
                 "afirmacoes": c.get("afirmacoes"),
                 "confirmadas": c.get("confirmadas"),
+                "reprovadas_por_motivo": a["reprovadas_detalhe"],
+                "erros": a["erros"],
             })
     return linhas
 
@@ -185,10 +204,37 @@ def main():
     linhas = coletar(raiz)
     motores = agregar(linhas, lim)
 
+    # A foto atual é sobrescrita a cada execução; a série de notas nunca. Sem ela não há
+    # como saber se um motor melhorou ou piorou, que é o ponto de acompanhar.
+    anterior = ler(DESTINO) or {}
+    serie = anterior.get("serie_notas") or []
+    hoje = str(date.today())
+
+    for modelo, m in motores.items():
+        registro = {
+            "data": hoje, "modelo": modelo, "rotulo": m["rotulo"],
+            "pesquisas": m["pesquisas"], "urls": m["urls"], "reprovadas": m["reprovadas"],
+            "precisao_fonte": round(m["precisao_fonte"], 4) if m["precisao_fonte"] is not None else None,
+            "taxa_confirmacao": round(m["taxa_confirmacao"], 4) if m["taxa_confirmacao"] is not None else None,
+            "confiabilidade": round(m["confiabilidade"], 4) if m["confiabilidade"] is not None else None,
+            "indice": m["indice"], "faixa_geral": m["faixa_geral"], "papel": m["papel"],
+        }
+        # Uma medição por motor por dia, sempre a mais recente. Rodar duas vezes no mesmo
+        # dia atualiza a linha em vez de duplicar.
+        serie = [x for x in serie if not (x["data"] == hoje and x["modelo"] == modelo)]
+        serie.append(registro)
+
+    serie.sort(key=lambda x: (x["data"], x["modelo"]))
+
     saida = {
-        "atualizado_em": str(date.today()),
+        "atualizado_em": hoje,
+        "_leia": ("motores = foto atual. serie_notas = uma medição por motor por dia, "
+                  "nunca sobrescrita, para acompanhar evolução. historico = uma linha por "
+                  "motor por pesquisa, com os erros e o motivo de cada URL reprovada. "
+                  "Limiares em config.json; nada aqui é escrito à mão."),
         "limiares_usados": lim,
         "motores": {k: {x: y for x, y in v.items()} for k, v in motores.items()},
+        "serie_notas": serie,
         "historico": linhas,
     }
     DESTINO.write_text(json.dumps(saida, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -213,6 +259,39 @@ def main():
         log(f"  índice geral: confiável >= {g['confiavel']} · atenção >= {g['atencao']}")
         log(f"  só classifica com {lim['minimo_urls_para_avaliar']}+ URLs e "
             f"{lim['minimo_pesquisas_para_avaliar']}+ pesquisas")
+
+    if not args.resumo:
+        # Variação desde a última data medida antes de hoje.
+        datas = sorted({x["data"] for x in serie if x["data"] < hoje})
+        if datas:
+            ant = {x["modelo"]: x for x in serie if x["data"] == datas[-1]}
+            log(f"\nVARIAÇÃO DO ÍNDICE desde {datas[-1]}")
+            for modelo, m in ordem:
+                a = ant.get(modelo)
+                if a and a.get("indice") is not None and m["indice"] is not None:
+                    d = m["indice"] - a["indice"]
+                    seta = "subiu" if d > 0.05 else "caiu" if d < -0.05 else "estável"
+                    log(f"  {m['rotulo'][:30]:30} {a['indice']:>5} -> {m['indice']:>5}  ({seta})")
+                else:
+                    log(f"  {m['rotulo'][:30]:30} sem medição anterior")
+        else:
+            log("\n  Primeira medição registrada. A variação aparece a partir da próxima data.")
+
+        recentes = [(l["data"], l["rotulo"], e) for l in linhas for e in l["erros"]]
+        if recentes:
+            log(f"\nERROS REGISTRADOS ({len(recentes)}), do mais recente")
+            for data, rot, e in sorted(recentes, key=lambda x: (x[0], x[1]), reverse=True)[:10]:
+                log(f"  {data}  {rot[:26]:26} {e['tipo']:22} {e['detalhe'][:60]}")
+
+        motivos = {}
+        for l in linhas:
+            for mot, n in (l.get("reprovadas_por_motivo") or {}).items():
+                motivos.setdefault(l["rotulo"], {})[mot] = motivos.setdefault(l["rotulo"], {}).get(mot, 0) + n
+        if motivos:
+            log("\nURLs REPROVADAS, POR MOTIVO")
+            for rot, m in sorted(motivos.items()):
+                if m:
+                    log(f"  {rot[:26]:26} " + " · ".join(f"{k}: {v}" for k, v in sorted(m.items())))
 
     log("\nCOMO TRATAR CADA MOTOR NESTA PESQUISA\n")
     for modelo, m in ordem:
