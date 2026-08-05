@@ -27,7 +27,7 @@ Repositório público: github.com/daniloblima/pesquisa-orquestrada
     ├── SKILL.md                  fluxo e regras duras
     ├── config.json               motores, modos, preços, limiares
     ├── catalogo-motores.json     catálogo do OpenRouter classificado
-    ├── qualidade-motores.json    notas medidas, série por data, log de erros
+    ├── qualidade-motores.json    notas medidas, série por data, log de erros — LOCAL, fora do repositório
     ├── references/               prompt-mestre.md, formato-relatorio.md
     └── scripts/                  buscar.py, dashboard.py, motores.py, qualidade.py
 ```
@@ -89,6 +89,8 @@ Notas medidas em 05/08/2026, calculadas pelos limiares do `config.json`:
 O Gemini é o único com URLs classificadas como inventadas, sete até agora. Isso bate com a literatura: o DeepResearch Bench mede que ele lidera em citações efetivas e fica atrás em citation accuracy. O padrão é geral — quem cita mais, cita pior, por diluição de atenção na síntese.
 
 **Não decida sobre motor a partir desta tabela.** Rode `python3 skill/scripts/qualidade.py` e use o número do dia.
+
+O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o histórico dele cita os temas das pesquisas feitas. Quem instala a skill começa a própria série do zero. O README publica só a ordem de grandeza, sem identificar pesquisa.
 
 ## Pendências reais
 

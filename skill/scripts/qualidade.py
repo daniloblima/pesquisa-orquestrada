@@ -293,6 +293,16 @@ def main():
                 if m:
                     log(f"  {rot[:26]:26} " + " · ".join(f"{k}: {v}" for k, v in sorted(m.items())))
 
+    if not ordem:
+        log("\nNENHUMA PESQUISA MEDIDA AINDA\n")
+        log("  A série começa vazia de propósito: a nota de um motor tem de sair das suas")
+        log("  pesquisas, não das de outra pessoa. Até haver "
+            f"{lim['minimo_pesquisas_para_avaliar']} pesquisas e "
+            f"{lim['minimo_urls_para_avaliar']} URLs por motor,")
+        log("  trate todos como 'confirmação com ressalva'.")
+        log(f"\n  arquivo: {DESTINO}")
+        return
+
     log("\nCOMO TRATAR CADA MOTOR NESTA PESQUISA\n")
     for modelo, m in ordem:
         log(f"  {m['rotulo']} — {m['papel']}")

@@ -100,6 +100,33 @@ Hoje cada URL passa por quatro camadas: se existe, se a forma é de fonte real, 
 
 **Estimativa de custo com parâmetro único.** Motores cobram de formas incompatíveis: um recebe os resultados de busca no prompt e chega a 80 mil tokens de entrada, outro pesquisa do lado do provedor e cobra por consulta. Nenhuma média serve para os dois, e a estimativa errava por fator de 2 a 3 nas duas direções.
 
+## Qualidade dos motores
+
+A skill mede sozinha o desempenho de cada motor a partir das pesquisas que você fizer, e usa isso para decidir o peso de cada um na análise:
+
+```bash
+python3 skill/scripts/qualidade.py
+```
+
+Três medidas por motor — precisão de fonte (URLs que passaram na verificação, equivalente ao Citation Accuracy da literatura), taxa de confirmação e confiabilidade operacional — comparadas com os limiares do `config.json`. Daí sai o papel do motor: confirmação, confirmação com ressalva ou descoberta.
+
+**A série começa vazia e é sua.** As medições ficam em `skill/qualidade-motores.json`, fora do repositório: nota de motor calculada sobre as pesquisas de outra pessoa não diz nada sobre o seu uso, e o histórico carregaria os temas que essa pessoa pesquisou. Até acumular duas pesquisas e vinte URLs por motor, todos são tratados como confirmação com ressalva.
+
+Nenhum julgamento sobre modelo específico está escrito no código ou na configuração. O que é fixo são os limiares; a nota sai dos dados e muda sozinha quando o modelo muda.
+
+### O que a experiência de um usuário sugeriu
+
+Três pesquisas, agosto de 2026, sem valor estatístico — serve para dar ordem de grandeza a quem for calibrar os limiares:
+
+| Precisão de fonte | Observado |
+|---|---|
+| Melhor motor | cerca de 90% |
+| Pior motor | cerca de 77% |
+
+O motor com a pior precisão foi também o que mais produziu URLs sem qualquer registro no arquivo da internet, isto é, que provavelmente nunca existiram. Nos demais, as reprovações foram sobretudo páginas fora do ar ou fora do assunto, que são falhas de outra natureza.
+
+Isso é coerente com a literatura de avaliação de agentes de pesquisa, que mede um trade-off consistente: **quem cita mais tende a citar pior**, atribuído a diluição de atenção durante a síntese ([DeepResearch Bench](https://arxiv.org/pdf/2506.11763), [Cited but Not Verified](https://arxiv.org/html/2605.06635v1)). Por isso o índice desta skill não premia volume de fontes — premiar quantidade seria premiar o comportamento associado a menor precisão.
+
 ## Limitações
 
 Roda dentro do Claude Code, não é aplicação independente.
