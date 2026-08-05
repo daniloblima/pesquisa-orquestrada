@@ -1004,6 +1004,87 @@ Orquestrar provedores diferentes, com índices de busca independentes, continua 
 
 ---
 
+## [2026-08-05 10:50] — A avaliação dos motores sai dos dados, não do texto
+
+### O QUE O DANILO APONTOU
+
+Concordou com a leitura sobre o Gemini, mas não com a forma. Hoje o modelo está ruim; amanhã
+pode melhorar e outro piorar. Nada sobre desempenho pode estar escrito no código — fixo devem
+ser apenas os limiares contra os quais o desempenho medido é comparado.
+
+Ele tinha razão sobre algo que eu mesmo havia feito: o `config.json` trazia frases como
+"Atenção: 7 de 23 URLs inventadas em 04/08" e "Zero URLs reprovadas" dentro do campo
+`quando_usar`. Julgamento de desempenho congelado em arquivo de configuração, que vira mentira
+na semana seguinte e ninguém lembra de corrigir.
+
+### O QUE MUDOU
+
+Todo julgamento saiu do `config.json`. O campo `quando_usar` voltou a descrever só
+característica estável: qual índice o motor usa, como cobra, que parâmetro exige.
+
+Entrou `limiares_qualidade`, que é a régua e nada além dela: precisão de fonte confiável a
+partir de 90% e em atenção a partir de 80%; índice geral confiável a partir de 80 e em atenção
+a partir de 65; mínimo de 20 URLs e 2 pesquisas para classificar qualquer motor. Mexer nesses
+números muda a régua, nunca o resultado de um motor específico.
+
+### NOVO — scripts/qualidade.py
+
+Varre todas as pesquisas feitas e calcula, por motor:
+
+- **precisão de fonte** — URLs aprovadas sobre citadas, equivalente ao Citation Accuracy
+- **taxa de confirmação** — afirmações que outro motor sustentou, sobre as que ele trouxe
+- **confiabilidade** — execuções sem incidente, com falha total pesando 1 e truncamento 0,5
+
+O índice combina as três com os pesos do config e a faixa sai da comparação com os limiares.
+Daí deriva o **papel** do motor na próxima pesquisa: confirmação, confirmação com ressalva,
+descoberta ou em avaliação. Nenhum desses rótulos é escrito à mão em lugar nenhum.
+
+Grava `qualidade-motores.json` com a foto atual e o histórico, uma linha por motor por
+pesquisa. O motor é identificado pelo modelo, não pelo id nem pela letra, para que a série
+sobreviva a renomeações e trocas de slot.
+
+Primeira medição, com três pesquisas:
+
+| Motor | Pesq. | URLs | Precisão | Confirm. | Confiab. | Índice | Faixa |
+|---|---|---|---|---|---|---|---|
+| Grok 4.20 multi-agent | 2 | 52 | 90% | 73% | 100% | 86,2 | confiável |
+| GPT-5.6 Terra | 3 | 120 | 90% | 48% | 92% | 76,1 | atenção |
+| Perplexity Deep Research | 2 | 74 | 86% | 67% | 40% | 72,1 | atenção |
+| Gemini 3.1 Pro | 3 | 57 | 77% | 56% | 80% | 70,4 | atenção |
+
+Correção feita durante o teste: falha total e truncamento pesavam igual, e isso zerava a
+confiabilidade do Perplexity, que tinha falhado uma vez e truncado outra. Perder tudo e perder
+o fim não são a mesma coisa.
+
+### CICLO FECHADO
+
+Passo 3b novo no `SKILL.md`: antes de analisar, consultar o papel de cada motor. Passo 7
+passa a rodar o `qualidade.py` junto com o painel, de modo que cada pesquisa concluída
+realimente a régua e a seguinte já use a nota atualizada.
+
+O uso da skill virou o benchmark. Não há avaliação separada a manter.
+
+### VIÉS DE DOMÍNIO — verificação para o próximo teste
+
+O Danilo vai usar a skill em tema de estilo pessoal e vestuário. Varredura nos arquivos de
+instrução encontrou uma única menção de domínio, e como exemplo de regra geral.
+
+Um caso descoberto na verificação: o passo 5b pressupõe fonte primária, que não existe em tema
+de gosto ou comportamento. O risco muda de lugar — em vez de norma inventada, preferência
+apresentada como regra e convenção de nicho apresentada como consenso. Instrução acrescentada:
+separar fato verificável de recomendação, recomendação leva o nome de quem recomenda, e três
+motores concordando sobre o que "se deve fazer" costuma indicar que leram o mesmo tipo de
+conteúdo, não consenso no mundo.
+
+### LIÇÃO
+
+Dado sobre desempenho envelhece; régua não. Escrever "este modelo é ruim" num arquivo de
+configuração parece documentar, mas é congelar uma medição de um dia e transformá-la em regra
+permanente que ninguém revisa. A separação certa é a que o Danilo apontou: o sistema guarda o
+critério, os dados guardam o veredito.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

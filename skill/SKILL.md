@@ -110,6 +110,25 @@ O script grava `r1.json` e um markdown por motor, nomeado pelo id: `r1_grok.md`,
 
 Confira no log quais agentes falharam e quais vieram sem fontes. Se dois ou mais falharem, pare e relate: não há validação cruzada possível com um motor só.
 
+### Passo 3b — Como tratar cada motor nesta pesquisa
+
+```bash
+python3 ~/.claude/skills/pesquisa/scripts/qualidade.py --resumo
+```
+
+Devolve o papel de cada motor, calculado a partir das pesquisas já feitas: **confirmação**, **confirmação com ressalva**, **descoberta** ou **em avaliação**.
+
+Isso não é opinião escrita em lugar nenhum. A nota sai de três medidas — precisão de fonte, taxa de confirmação e confiabilidade — comparadas com os limiares do `config.json`. Motor que melhora sobe de faixa sozinho; motor que piora desce. Nunca escreva no `config.json`, no `SKILL.md` ou no relatório que um modelo específico é bom ou ruim: isso vira mentira na semana seguinte, e a régua existe justamente para dispensar esse julgamento.
+
+Use o papel no passo 4:
+
+- **confirmação** — vale como uma das duas fontes de um consenso, sem ressalva.
+- **confirmação com ressalva** — vale como confirmação, mas quando uma afirmação depende só dele e do mínimo, confira a fonte antes de aceitar.
+- **descoberta** — não sustenta consenso sozinho. O que vier só dele vai para a rodada 2 mesmo que pareça sólido, e o que sobreviver entra marcado.
+- **em avaliação** — amostra pequena; trate como confirmação com ressalva.
+
+Se um motor está em "descoberta", diga isso ao Danilo no resumo do passo 4, com o número medido, não com adjetivo.
+
 ### Passo 4 — Consenso e divergência
 
 Com os três textos lidos, produza um levantamento explícito. Trabalhe por afirmação, não por parágrafo.
@@ -163,6 +182,10 @@ Registre no relatório qual dispositivo foi conferido e onde. Se não deu para a
 
 Este passo não custa API. Custa alguns minutos de leitura e é o que separa um relatório utilizável de um que parece pronto.
 
+**Quando não existe fonte primária.** Em tema de gosto, estética, comportamento ou recomendação prática, não há texto oficial contra o que conferir, e o passo acima não se aplica. O risco muda de lugar: em vez de norma inventada, o perigo é preferência apresentada como regra, e convenção de um nicho apresentada como consenso.
+
+O que fazer nesses casos, no lugar da conferência: separe no relatório o que é fato verificável — o que uma marca declara, o que um estudo mediu, o que uma norma de etiqueta escrita diz — do que é recomendação de alguém. Recomendação leva o nome de quem recomenda, sempre. Três motores concordando que "deve-se fazer assim" costuma significar que os três leram o mesmo tipo de conteúdo, não que exista consenso no mundo — e aí vale dizer de onde vem a convergência.
+
 ### Passo 6 — Relatório final
 
 Escreva seguindo `references/formato-relatorio.md`. Salve em:
@@ -204,11 +227,14 @@ Conte por afirmação, não por parágrafo. Se não der para separar com honesti
 
 `nota_manual` é opcional, de 1 a 5, só quando o Danilo quiser dar. Não pergunte a cada pesquisa.
 
-Regenere o painel:
+Regenere o painel e a medição de qualidade:
 
 ```bash
 python3 ~/.claude/skills/pesquisa/scripts/dashboard.py
+python3 ~/.claude/skills/pesquisa/scripts/qualidade.py
 ```
+
+A segunda linha é o que fecha o ciclo: cada pesquisa concluída realimenta a nota dos motores, então a próxima já é conduzida com a régua atualizada. Sem esse passo, o passo 3b da pesquisa seguinte trabalha com dados velhos.
 
 Feche informando ao Danilo: caminho do relatório, custo real somado de todas as rodadas (campo `custo_real_usd` em cada JSON), quantas afirmações ficaram como fonte única e o que permaneceu sem resolução.
 

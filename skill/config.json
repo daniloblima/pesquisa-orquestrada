@@ -1,14 +1,8 @@
 {
   "_comentario": "Configuração dos motores. Trocar de modelo é trocar a string 'modelo'. Catálogo em https://openrouter.ai/models",
-
   "_licao_busca": "O plugin web SEM 'engine' explícito é ignorado em silêncio pelos modelos Google: eles respondem de memória, sem fonte nenhuma. Sempre declarar o engine. Verificado em 03/08/2026.",
-
   "_licao_diversidade": "Cada agente usa o índice de busca da sua própria família (engine 'native'). Se todos usassem o mesmo motor (ex: exa), leriam as mesmas páginas e o consenso viraria artefato do método, não validação independente.",
-
-  "_troca_04_08_2026": "Slot A passou de perplexity/sonar-deep-research para x-ai/grok-4.20-multi-agent. Motivo: US$ 1,12 contra US$ 0,32 por chamada, com busca real nos dois. O Perplexity segue disponível em motores_disponiveis e volta trocando uma linha.",
-
   "_motores": "Lista aberta, sem teto e sem letra de slot. Cada motor é identificado pelo 'id', que é o mesmo nome usado em --motores e nas chaves do prompts_r2.json. Acrescentar motor é acrescentar item aqui. Só os marcados com padrao:true rodam quando --motores é omitido — é o que impede um motor caro de entrar por esquecimento.",
-
   "motores": [
     {
       "id": "grok",
@@ -18,8 +12,8 @@
       "padrao": true,
       "busca_nativa": false,
       "engine_busca": "native",
-      "custo_tipico_usd": 0.50,
-      "quando_usar": "Lê muito material por chamada, entrada medida entre 420 e 490 mil tokens. O mais próximo de busca profunda fora da Perplexity, por um terço do preço. Zero URLs reprovadas na pesquisa de 04/08."
+      "custo_tipico_usd": 0.5,
+      "quando_usar": "Lê muito material por chamada, entrada medida entre 420 e 490 mil tokens. O mais próximo de busca profunda fora da Perplexity."
     },
     {
       "id": "gpt",
@@ -31,7 +25,7 @@
       "engine_busca": "native",
       "reasoning_effort": "low",
       "custo_tipico_usd": 0.18,
-      "quando_usar": "O que mais traz fontes. Índice da OpenAI."
+      "quando_usar": "Índice da OpenAI. Alto volume de fontes por chamada."
     },
     {
       "id": "gemini",
@@ -43,7 +37,7 @@
       "engine_busca": "native",
       "reasoning_effort": "low",
       "custo_tipico_usd": 0.18,
-      "quando_usar": "Índice do Google, que alcança material que os outros não veem. reasoning low é obrigatório: sem ele gasta o orçamento inteiro em raciocínio e devolve texto curto. Atenção: 7 de 23 URLs inventadas em 04/08, a maior taxa medida."
+      "quando_usar": "Índice do Google, que alcança material que os outros não veem. reasoning low é obrigatório: sem ele gasta o orçamento inteiro em raciocínio e devolve texto curto."
     },
     {
       "id": "perplexity",
@@ -53,33 +47,89 @@
       "padrao": false,
       "busca_nativa": true,
       "custo_tipico_usd": 1.12,
-      "quando_usar": "Busca própria e profunda, melhor em admitir o que não conseguiu verificar. Caro e lento: 3 a 10 minutos, cobra por consulta interna. Vale quando o ponto é a existência ou não de um precedente."
+      "quando_usar": "Busca própria e profunda, boa em admitir o que não conseguiu verificar. Cara e lenta: 3 a 10 minutos, cobra por consulta interna."
     }
   ],
-
   "_licao_truncamento": "No primeiro uso real, 8000 tokens no modo normal truncaram o relatório do agente B no meio (finish=length). Relatório cortado é pior que relatório curto, porque as fontes ficam de fora. Tetos subidos em 03/08/2026.",
-
   "modos": {
-    "rapida": { "max_tokens_r1": 6000, "max_tokens_r2": 3000, "max_results_busca": 5 },
-    "normal": { "max_tokens_r1": 12000, "max_tokens_r2": 5000, "max_results_busca": 8 },
-    "profunda": { "max_tokens_r1": 20000, "max_tokens_r2": 8000, "max_results_busca": 12 }
+    "rapida": {
+      "max_tokens_r1": 6000,
+      "max_tokens_r2": 3000,
+      "max_results_busca": 5
+    },
+    "normal": {
+      "max_tokens_r1": 12000,
+      "max_tokens_r2": 5000,
+      "max_results_busca": 8
+    },
+    "profunda": {
+      "max_tokens_r1": 20000,
+      "max_tokens_r2": 8000,
+      "max_results_busca": 12
+    }
   },
-
   "modo_padrao": "normal",
   "timeout_segundos": 900,
-
   "_licao_estimativa": "Um único valor de input para todos os agentes erra por fator de 2 a 3 nas duas direções. Os perfis são opostos: o GPT recebe os resultados de busca no prompt e chega a 80 mil tokens de input; o Perplexity pesquisa do lado dele e recebe menos de 2 mil, cobrando por busca em vez de por token. Valores abaixo medidos em execuções reais de 03/08/2026.",
-
   "precos_por_milhao_usd": {
-    "perplexity/sonar-deep-research": { "in": 2.0, "out": 8.0, "taxa_fixa": 1.05, "tokens_input_busca": 2000 },
-    "openai/gpt-5.6-terra": { "in": 1.0, "out": 6.0, "taxa_fixa": 0.0, "tokens_input_busca": 60000 },
-    "google/gemini-3.1-pro-preview": { "in": 2.0, "out": 12.0, "taxa_fixa": 0.0, "tokens_input_busca": 2000 },
-    "x-ai/grok-4.20-multi-agent": { "in": 1.25, "out": 2.5, "taxa_fixa": 0.0, "tokens_input_busca": 450000 },
-    "x-ai/grok-4.20": { "in": 1.25, "out": 2.5, "taxa_fixa": 0.0, "tokens_input_busca": 50000 }
+    "perplexity/sonar-deep-research": {
+      "in": 2.0,
+      "out": 8.0,
+      "taxa_fixa": 1.05,
+      "tokens_input_busca": 2000
+    },
+    "openai/gpt-5.6-terra": {
+      "in": 1.0,
+      "out": 6.0,
+      "taxa_fixa": 0.0,
+      "tokens_input_busca": 60000
+    },
+    "google/gemini-3.1-pro-preview": {
+      "in": 2.0,
+      "out": 12.0,
+      "taxa_fixa": 0.0,
+      "tokens_input_busca": 2000
+    },
+    "x-ai/grok-4.20-multi-agent": {
+      "in": 1.25,
+      "out": 2.5,
+      "taxa_fixa": 0.0,
+      "tokens_input_busca": 450000
+    },
+    "x-ai/grok-4.20": {
+      "in": 1.25,
+      "out": 2.5,
+      "taxa_fixa": 0.0,
+      "tokens_input_busca": 50000
+    }
   },
-
   "fracao_saida_tipica": 0.55,
-
   "_saida": "Vazio resolve para a pasta outputs/ ao lado da skill. Preencha com um caminho absoluto para gravar em outro lugar.",
-  "saida_padrao": ""
+  "saida_padrao": "",
+  "_qualidade": "Limiares fixos contra os quais o desempenho medido de cada motor é comparado. Nenhum modelo é julgado aqui: a nota sai de qualidade-motores.json, calculado a partir das pesquisas já feitas, e muda sozinha quando o motor muda. Mexer nestes números muda a régua, não o resultado de um motor específico.",
+  "limiares_qualidade": {
+    "precisao_fonte": {
+      "confiavel": 0.9,
+      "atencao": 0.8
+    },
+    "taxa_confirmacao": {
+      "confiavel": 0.6,
+      "atencao": 0.4
+    },
+    "confiabilidade": {
+      "confiavel": 0.9,
+      "atencao": 0.7
+    },
+    "indice_geral": {
+      "confiavel": 80,
+      "atencao": 65
+    },
+    "minimo_urls_para_avaliar": 20,
+    "minimo_pesquisas_para_avaliar": 2,
+    "pesos_indice": {
+      "precisao_fonte": 3,
+      "taxa_confirmacao": 2,
+      "confiabilidade": 1
+    }
+  }
 }
