@@ -4,6 +4,12 @@ Problemas e melhorias observados em uso real, com a evidência que os originou. 
 
 Aberto em 12/08/2026, a partir das duas pesquisas para a apresentação de Medellín (`outputs/2026-08-12_energia-e-desenvolvimento/` e `outputs/2026-08-12_historia-uso-produtivo/`).
 
+> Revisado às 16:35 do mesmo dia, contra o código e contra as sete pesquisas do histórico. O
+> veredito item a item está na seção "Revisão de 12/08" no fim deste arquivo, e a apuração
+> completa com números está no `CHANGELOG.md`, entrada de 12/08 16:35. Os itens 1, 2 e 4 tiveram
+> o diagnóstico corrigido, e três itens novos entraram. Ler a revisão antes de mexer em qualquer
+> item acima.
+
 ---
 
 ## 1. Citação numerada é tratada como ausência de citação
@@ -120,3 +126,154 @@ Foi o que aconteceu em 12/08: escolhidos Grok, GPT e Perplexity, e o Perplexity 
 | 12/08/2026 | história do uso produtivo | grok, gpt, perplexity | US$ 1,88 | US$ 1,6696 |
 
 Por motor, somando as duas: Grok US$ 1,1191 · GPT US$ 0,3041 · Perplexity US$ 1,7199.
+
+---
+
+# Revisão de 12/08, 16:35
+
+Conferência dos sete itens contra o código em `skill/scripts/` e contra os sete `r1.json` e
+`r2.json` do histórico, de 03/08 a 12/08. As quatro URLs acusadas de "fora do tema" foram baixadas
+com `curl` para medir tipo de conteúdo, texto legível e posição dos termos. Apuração completa, com
+tabelas e números, no `CHANGELOG.md`, entrada de 12/08 16:35.
+
+## Veredito item a item
+
+| Item | Veredito | O que muda |
+|---|---|---|
+| 1. Citação numerada | Confirmado, com causa trocada | O mapeamento posicional é real (7 de 7 testados) e estrutural: as URLs vêm das `annotations` na ordem de citação, e o corpo do Perplexity não tem URL nenhuma. Mas este item não é o gatilho do alerta, e sim o que impede o resgate do trecho depois que o item 2 reprova. Risco novo: `extrair_urls` deduplica, e URL citada duas vezes desloca todos os índices seguintes — a salvaguarda proposta não pega esse caso |
+| 2. Falso positivo de tema | Confirmado, e é a raiz | São três causas, com conserto diferente para cada uma. Ver abaixo |
+| 3. Perplexity truncado | Confirmado, e é sistemático | Corta sempre entre 75% e 80% do teto, nos dois modos. Compatível com tokens de raciocínio contando contra o limite sem aparecer em `completion_tokens`. Teste de graça: salvar o `usage` bruto |
+| 4. Grok sem `reasoning_effort` | Cai | O custo do Grok é 89% entrada. `reasoning_effort` mexe na saída e economizaria cerca de cinco centavos, com risco de qualidade. Absorvido pelo item 5 |
+| 5. Estimativa do Grok | Confirmado, e sobe de prioridade | É a alavanca real. O estouro de 05/08 foi entrada de 563.513 tokens contra a faixa de 420 a 490 mil do config |
+| 6. Alerta binário | Confirmado | Mesmo conserto do item 1, e deve ser feito junto |
+| 7. Perda de árbitro | Confirmado | Sem alteração |
+
+## Item 2, detalhado: três causas e não duas
+
+| URL reprovada | Tipo devolvido | Texto legível | Causa real |
+|---|---|---|---|
+| `domesdaybook.net/.../mills` | text/html | 16.950 chars, com "mill" no começo | o termo passado foi `watermill` e `milling`, nunca a raiz `mill` |
+| `hdr.undp.org/content/energising-human-development` | text/html | 8.467 chars | os termos aparecem depois dos 4.000 chars que o script lê |
+| `elibrary.imf.org/.../article-A005-en.xml` | text/html | 28.502 chars | mesma causa, agravada por 622 KB de HTML bruto |
+| `econstor.eu/.../1694107760.pdf` | text/html, 4.732 bytes | 1.655 chars | parede de cookie no lugar do PDF |
+
+Duas precisões sobre o que já existe no código. O casamento em `buscar.py:529` já é por prefixo,
+então `mill` pegaria "mills" e "milling": o que faltou foi passar a raiz em `--termos`, e isso se
+corrige na instrução de uso, sem tocar em código. E o estado "inconclusiva" para página vazia já
+existe em `buscar.py:525`, com limiar de 250 caracteres — o intersticial do econstor tem 1.655 e
+passa por página real.
+
+## 8. Estado inconclusivo é tratado como fonte reprovada
+
+Gravidade: alta, e é bug puro.
+
+Uma URL que não deu para verificar por falha do próprio verificador (SSL, timeout, conexão
+resetada) entra em `urls_problematicas` como qualquer outra. Dois efeitos:
+
+- Conta no denominador do ALERTA GRAVE. Em 05/08, na pesquisa dos 75 kW, um motor foi invalidado
+  inteiro tendo como únicas reprovações duas URLs inconclusivas.
+- `qualidade.py:75` soma `len(urls_problematicas)` no contador de reprovadas, sem separar estado.
+
+Correção: excluir "inconclusiva" dos dois lugares. Falha do verificador não é evidência contra o
+motor.
+
+## 9. A régua de qualidade está viciada, e sustentou decisão tomada hoje
+
+Gravidade: alta, e o efeito vaza para fora do projeto.
+
+Das 145 reprovações do histórico, 71 são "fora do tema" (49%) e 17 são "inconclusiva" (12%). O
+índice de precisão trata as 145 como equivalentes.
+
+| Motor | URLs | Reprovadas | Precisão registrada | Só falhas duras |
+|---|---|---|---|---|
+| Grok 4.20 Multi-Agent | 479 | 40 | 0,916 | 0,975 |
+| GPT-5.6 Terra | 343 | 39 | 0,886 | 0,959 |
+| Perplexity Deep Research | 114 | 19 | 0,833 | 0,947 |
+| Gemini 3.1 Pro | 110 | 47 | 0,573 | 0,773 |
+
+A decisão de hoje de tirar o Gemini do padrão continua de pé: ele é o pior em qualquer régua e é o
+único com URL inventada (7, contra zero dos outros dois motores padrão). O número que a justificou
+é que está errado. Quem merece reexame é o Grok, que tem a melhor precisão da série e saiu do
+padrão por custo.
+
+Correção: recalcular `qualidade-motores.json` depois dos itens 2 e 8, e só então rediscutir
+composição de motores.
+
+## 10. O alerta grave alcança qualquer motor, e disparou em seis das sete pesquisas
+
+Gravidade: média, e serve para dimensionar o prejuízo.
+
+Não é fenômeno do Perplexity. Disparou para dois motores em 05/08 e para o Grok na pesquisa de
+contingência de LLM de hoje, que fundamentou a decisão sobre OpenRouter. O custo real do bug é
+maior que os US$ 1,72 contabilizados acima.
+
+## Ordem de correção
+
+1. Item 2, que é o gatilho da cascata. Três consertos em `verificar_tema` e `_texto_do_html`, mais
+   uma linha no `SKILL.md` sobre passar raiz em `--termos`.
+2. Item 8, excluindo "inconclusiva" do gatilho e do contador. Duas linhas.
+3. Itens 1 e 6 juntos: resolver `[N]` pelo índice de annotation e graduar a quarentena para as
+   afirmações afetadas em vez do motor inteiro.
+4. Recalcular `qualidade-motores.json` com a régua corrigida.
+5. Item 3, salvando o `usage` bruto.
+6. Item 5, estimativa do Grok por faixa de entrada. O item 4 morre aqui.
+7. Item 7, aviso de perda de árbitro.
+
+Lembrete de operação: edição em arquivo de skill não alcança sessão já aberta. Qualquer correção
+aplicada aqui vale a partir da próxima sessão do Claude Code, não da próxima pesquisa desta.
+
+---
+
+## 8. A estimativa não desconta o tamanho do trabalho da rodada 2
+
+**Gravidade: baixa.**
+
+A rodada 2 de 12/08 foi estimada em US$ 1,73 a 1,76 por pesquisa, praticamente o mesmo da rodada 1 (US$ 1,79 a 1,88), apesar de os prompts serem cinco vezes menores e o teto de saída ser 5.000 tokens contra 12.000. O estimador projeta pelo custo típico do motor, não pelo trabalho pedido.
+
+Real medido: US$ 1,0516 e US$ 1,4126, ou seja 40% e 20% abaixo do teto. A estimativa serve como teto pessimista e não como previsão.
+
+## 9. O estouro do Grok, medido
+
+**Fecha o item 4 com dado em vez de suspeita.**
+
+Na rodada 2 da pesquisa de história, o Grok consumiu **561.761 tokens de entrada**, acima da faixa de 420 a 490 mil declarada no `config.json`, e custou **US$ 0,7349 contra teto estimado de US$ 0,5761 — 27,6% acima**.
+
+Nas outras três chamadas do dia ficou dentro: 402.914 tokens e US$ 0,5668; 380.114 e US$ 0,5523; 389.322 e US$ 0,5046.
+
+O padrão que aparece: a chamada que estourou foi a de **prompt de verificação com oito itens distintos**, cada um exigindo busca própria. Hipótese a testar — o consumo do Grok escala com o número de perguntas independentes no prompt, não com o tamanho do texto do prompt. Se confirmar, a correção não é `reasoning_effort`, é limitar itens por prompt de rodada 2.
+
+## 10. Pedir o formato ao Perplexity não resolve
+
+**Confirma que o item 1 tem de ser resolvido no parser.**
+
+Nos prompts da rodada 2 foi incluída instrução explícita: "coloque a URL completa entre parênteses no próprio parágrafo de cada item, junto da afirmação que ela sustenta. Não use apenas marcadores numerados remetendo a uma lista no fim."
+
+O Perplexity ignorou nas duas pesquisas e manteve os marcadores `[N]`. O ALERTA GRAVE disparou de novo nas duas.
+
+**Conclusão: o estilo de citação do Perplexity não é ajustável por prompt.** Ou o parser aprende a ler numeração posicional, ou o motor continua sendo pago e descartado.
+
+## 11. Perplexity truncado com saída mínima na rodada 2
+
+**Gravidade: alta, é desperdício direto.**
+
+Saída de **1.373 tokens** na pesquisa de energia e desenvolvimento e de **622 tokens** na de história, ambas com `finish=length`. Na de história ele não entregou veredito utilizável para nenhum dos seis itens, e ainda assim custou **US$ 0,5965**.
+
+Quatro dos itens que ficaram sem segunda fonte por causa disso eram justamente os latino-americanos — Potosí, Capoche, molinos de Río Arriba — que foram para ele por ser o mais forte em fonte acadêmica.
+
+Somado ao item 3, são quatro truncamentos em quatro chamadas. **O Perplexity nunca completou uma resposta em 12/08.**
+
+---
+
+## Balanço de custo do dia 12/08
+
+| Rodada | Pesquisa | Estimado (teto) | Real |
+|---|---|---|---|
+| 1 | energia e desenvolvimento | US$ 1,88 | US$ 1,4737 |
+| 1 | história do uso produtivo | US$ 1,88 | US$ 1,6696 |
+| 2 | energia e desenvolvimento | US$ 1,76 | US$ 1,0516 |
+| 2 | história do uso produtivo | US$ 1,76 | US$ 1,4126 |
+| | **Total** | **US$ 7,28** | **US$ 5,61** |
+
+Por motor, somando as quatro chamadas: **Perplexity US$ 2,6988** (48% do gasto, quatro truncamentos, zero confirmações aceitas pelo script) · **Grok US$ 2,3586** (42%, um estouro de teto) · **GPT US$ 0,5698** (10%, nenhuma falha).
+
+O GPT custou um décimo do total e foi o único que completou todas as respostas.
