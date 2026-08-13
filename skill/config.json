@@ -10,6 +10,7 @@
       "rotulo": "Grok 4.20 Multi-Agent",
       "indice": "xAI",
       "padrao": true,
+      "_padrao": "Voltou ao padrão em 12/08/2026, no mesmo dia em que saiu. Saiu por custo, medido contra uma régua que contava falso positivo de tema como erro de citação. Com a régua corrigida ele tem a melhor precisão da série (0,976 em 501 URLs) e é o único índice além de OpenAI e Perplexity. O que o disciplina é a estimativa por faixa de entrada, não a exclusão.",
       "busca_nativa": false,
       "engine_busca": "native",
       "custo_tipico_usd": 0.5,
@@ -32,7 +33,7 @@
       "modelo": "google/gemini-3.1-pro-preview",
       "rotulo": "Gemini 3.1 Pro",
       "indice": "Google",
-      "padrao": true,
+      "padrao": false,
       "busca_nativa": false,
       "engine_busca": "native",
       "reasoning_effort": "low",
@@ -44,10 +45,15 @@
       "modelo": "perplexity/sonar-deep-research",
       "rotulo": "Perplexity Deep Research",
       "indice": "Perplexity",
-      "padrao": false,
+      "padrao": true,
       "busca_nativa": true,
       "custo_tipico_usd": 1.12,
-      "quando_usar": "Busca própria e profunda, boa em admitir o que não conseguiu verificar. Cara e lenta: 3 a 10 minutos, cobra por consulta interna."
+      "max_tokens": {
+        "r1": 20000,
+        "r2": 12000
+      },
+      "_max_tokens": "Teto próprio, acima do teto do modo. Ele raciocina antes de escrever e o raciocínio consome o mesmo orçamento sem aparecer em completion_tokens: em 12/08/2026 truncou nas quatro chamadas do dia, uma delas entregando 622 tokens visíveis contra teto de 5.000, ao custo de US$ 0,60. Cita por marcador numerado, e o parser resolve [N] pela ordem das annotations.",
+      "quando_usar": "Busca própria e profunda, boa em admitir o que não conseguiu verificar. Cara e lenta: 3 a 10 minutos, cobra por consulta interna. Escreve o veredito de cada item no sumário, antes do desenvolvimento, então truncamento perde argumentação e preserva conclusão."
     }
   ],
   "_licao_truncamento": "No primeiro uso real, 8000 tokens no modo normal truncaram o relatório do agente B no meio (finish=length). Relatório cortado é pior que relatório curto, porque as fontes ficam de fora. Tetos subidos em 03/08/2026.",
@@ -94,7 +100,11 @@
       "in": 1.25,
       "out": 2.5,
       "taxa_fixa": 0.0,
-      "tokens_input_busca": 450000
+      "tokens_input_busca": {
+        "tipico": 420000,
+        "max": 730000,
+        "_medido": "Sete pesquisas, doze chamadas, entre 179.296 e 720.171 tokens de entrada, custando de US$ 0,3460 a US$ 0,6803. A variação é fator 4,0 e não acompanha número de perguntas, modo nem tamanho do prompt: ele lê o material que decide ler. Estimar por valor único fazia o teto estourar (27,6% em 12/08) e inflar nas demais."
+      }
     },
     "x-ai/grok-4.20": {
       "in": 1.25,

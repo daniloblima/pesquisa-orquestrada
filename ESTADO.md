@@ -75,7 +75,12 @@ Detalhe completo no CHANGELOG, com data e teste.
 
 ## Números atuais
 
-Três pesquisas feitas. Custo por pesquisa entre US$ 1,59 e US$ 3,48, conforme o número de motores.
+Sete pesquisas feitas até 12/08/2026, contando as duas rodadas de cada uma. Custo por pesquisa
+entre US$ 1,52 e US$ 3,48 até 05/08; as três de 12/08 custaram entre US$ 1,86 e US$ 3,08.
+
+Atenção ao custo da composição padrão, que mudou duas vezes em 12/08. Saiu o Gemini, entrou o
+Perplexity, e o Grok ficou: o típico por rodada foi de US$ 0,86 para US$ 1,80, ou seja, perto de
+US$ 3,60 por pesquisa de duas rodadas. Confirme a estimativa antes de disparar, sempre.
 
 Notas medidas em 05/08/2026, calculadas pelos limiares do `config.json`:
 
@@ -86,14 +91,34 @@ Notas medidas em 05/08/2026, calculadas pelos limiares do `config.json`:
 | Perplexity Deep Research | 2 | 74 | 86% | 72,1 | confirmação com ressalva |
 | Gemini 3.1 Pro | 3 | 57 | 77% | 70,4 | confirmação com ressalva |
 
-O Gemini é o único com URLs classificadas como inventadas, sete até agora. Isso bate com a literatura: o DeepResearch Bench mede que ele lidera em citações efetivas e fica atrás em citation accuracy. O padrão é geral — quem cita mais, cita pior, por diluição de atenção na síntese.
+O Gemini concentra as URLs classificadas como inventadas, sete das oito da série — a oitava é do Perplexity. Isso bate com a literatura: o DeepResearch Bench mede que ele lidera em citações efetivas e fica atrás em citation accuracy. O padrão é geral — quem cita mais, cita pior, por diluição de atenção na síntese.
 
 **Não decida sobre motor a partir desta tabela.** Rode `python3 skill/scripts/qualidade.py` e use o número do dia.
+
+> **A tabela acima está superada.** Ela foi medida com a régua antiga, que somava falso positivo
+> de tema e falha de rede do verificador na conta de erro de citação. Régua corrigida em
+> 12/08/2026 às 19:05, e a série anterior a essa data não se compara com a posterior. Números
+> atuais, sete pesquisas e 22 medições:
+>
+> | Motor | URLs | Falha dura | Sinal fraco | Precisão | Índice | Papel |
+> |---|---|---|---|---|---|---|
+> | Grok 4.20 Multi-Agent | 501 | 12 | 31 | 98% | 89,3 | confirmação |
+> | GPT-5.6 Terra | 360 | 14 | 29 | 96% | 80,4 | confirmação |
+> | Perplexity Deep Research | 151 | 7 | 21 | 95% | 77,3 | confirmação com ressalva |
+> | Gemini 3.1 Pro | 110 | 25 | 22 | 77% | 72,5 | confirmação com ressalva |
+>
+> O Perplexity fica em atenção pela confiabilidade de 44%, que é truncamento e não citação. O
+> Gemini continua o pior e concentra a invenção de URL, sete das oito da série, e por isso segue
+> fora do padrão. O Grok voltou ao padrão em 12/08. Ver `CHANGELOG.md`, entrada de 19:05.
 
 O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o histórico dele cita os temas das pesquisas feitas. Quem instala a skill começa a própria série do zero. O README publica só a ordem de grandeza, sem identificar pesquisa.
 
 ## Pendências reais
 
+- **`BACKLOG.md` é o documento operacional dos problemas conhecidos**, aberto em 12/08/2026 e
+  revisado no mesmo dia às 16:35 contra o código e as sete pesquisas. Dez itens com evidência,
+  ordem de correção sugerida e o veredito de cada um. Ler antes de mexer no código de verificação.
+  A apuração completa está no `CHANGELOG.md`, entrada de 12/08 16:35.
 - **Verificar se a exigência de citação inline funciona.** A correção foi gravada em 04/08 e ainda não foi exercitada: a pesquisa de 05/08 rodou em sessão aberta antes da mudança e não a recebeu. É a hipótese mais importante em aberto.
 - **Teste em domínio sem fonte primária.** A skill só viu temas com resposta certa e fonte oficial, de regulação e mercado. Em tema de gosto ou comportamento o risco muda: preferência apresentada como regra, convenção de nicho apresentada como consenso. Há instrução no passo 5b, ainda não exercitada.
 - **Verificação de que a fonte sustenta a afirmação**, e não apenas que existe e trata do tema. Desenhada, não implementada, esperando um caso concreto.
@@ -103,7 +128,7 @@ O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o his
 
 ## Como retomar
 
-1. Ler este arquivo.
+1. Ler este arquivo, e o `BACKLOG.md` se o trabalho for de correção.
 2. `python3 skill/scripts/qualidade.py` — estado atual dos motores, variação desde a última medição e erros recentes.
 3. Abrir `outputs/dashboard.html` se quiser o quadro visual.
 4. `git log --oneline` para o que mudou por último.

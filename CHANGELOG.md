@@ -1216,6 +1216,684 @@ uso e não entra.
 
 ---
 
+## [2026-08-12 16:35] — Auditoria do BACKLOG: a cascata que invalida motor bom
+
+### OBJETIVO
+
+Avaliar os sete itens do `BACKLOG.md`, aberto às 16:17 a partir das duas pesquisas de Medellín,
+antes de consertar qualquer coisa. O pedido foi documentar a avaliação primeiro, porque quem
+retomar isto daqui a meses precisa saber o que já foi medido, o que caiu e por quê — sem repetir
+a investigação.
+
+Nada de código foi alterado nesta entrada. O plano de correção está no fim, ainda por aplicar.
+
+### MÉTODO
+
+Cada item foi conferido contra o código em `skill/scripts/` e contra os sete `r1.json` e `r2.json`
+do histórico (03/08 a 12/08), e não apenas contra as duas pesquisas que originaram o backlog. As
+quatro URLs acusadas de "fora do tema" foram baixadas manualmente com `curl` para medir tipo de
+conteúdo, tamanho do texto legível e posição dos termos dentro da página.
+
+### O QUE SE CONFIRMA
+
+O mapeamento posicional das citações do Perplexity é real. Os sete pares da tabela do backlog
+foram testados na pesquisa de primeira pesquisa de 12/08: sete de sete. E a razão é estrutural, o
+que torna a correção segura: o corpo do relatório do Perplexity não contém URL nenhuma, todas vêm
+das `annotations` da API em `buscar.py:176-181`, na ordem de citação, e a seção "URLs capturadas"
+é escrita pelo próprio script. O marcador `[N]` casa com a N-ésima annotation por construção.
+
+Risco de implementação que o backlog não previu: `extrair_urls` deduplica. Se o motor citar a
+mesma página em duas annotations, todos os índices seguintes deslocam, e a salvaguarda proposta
+(maior `N` menor ou igual ao número de URLs) não pega esse caso. O conserto correto guarda a
+lista de annotations com o índice original, separada da lista deduplicada.
+
+### O QUE MUDA NO DIAGNÓSTICO
+
+**A ordem da cascata está invertida no backlog.** O ALERTA GRAVE em `buscar.py:691` dispara
+quando todas as fontes reprovadas ficam sem trecho associado. Sem reprovação nenhuma, não há
+alerta. Quem reprovou as fontes do Perplexity nas duas pesquisas foi a conferência de tema, que é
+o item 2. A cadeia real: o item 2 reprova página boa, o item 1 impede o resgate do trecho, o item
+6 invalida o motor inteiro. Consertar o item 2 desarma os três casos observados; consertar o item
+1 sozinho deixa o gatilho de pé.
+
+**O item 2 tem três causas, com conserto diferente para cada uma.** Medido URL a URL:
+
+| URL reprovada | Tipo devolvido | Texto legível | Causa real |
+|---|---|---|---|
+| `domesdaybook.net/.../mills` | text/html | 16.950 chars, com "mill" no começo | termo passado foi `watermill`/`milling`, nunca a raiz `mill` |
+| `hdr.undp.org/content/energising-human-development` | text/html | 8.467 chars | os termos aparecem depois dos 4.000 chars lidos |
+| `elibrary.imf.org/.../article-A005-en.xml` | text/html | 28.502 chars | mesma causa, agravada por 622 KB de HTML bruto |
+| `econstor.eu/.../1694107760.pdf` | text/html, 4.732 bytes | 1.655 chars | parede de cookie no lugar do PDF |
+
+O casamento em `buscar.py:529` já é por prefixo, então `mill` pegaria "mills" e "milling" — a raiz
+é que nunca foi passada. Metade desse item se resolve na instrução de uso do `--termos`, sem tocar
+em código. E o estado "inconclusiva" para página vazia já existe em `buscar.py:525`, com limiar de
+250 caracteres; o intersticial do econstor tem 1.655 e passa por página real.
+
+**O item 4 cai.** O custo do Grok é 89% entrada. Na pesquisa de energia: 402.914 tokens de entrada
+a US$ 0,50 contra 25.512 de saída a US$ 0,064. `reasoning_effort` atua sobre a saída, economizaria
+cerca de cinco centavos e arriscaria qualidade. O único estouro real da série foi 05/08, com
+563.513 tokens de entrada contra a faixa de 420 a 490 mil declarada no config, ou seja, variação
+de material lido. O item 4 é absorvido pelo item 5, que já aponta a alavanca certa.
+
+### O QUE FALTAVA NO BACKLOG
+
+**Item 8 — estado inconclusivo conta como reprovação em dois lugares onde não devia.** Em 05/08,
+na pesquisa de regulação de 05/08, um motor foi invalidado por ALERTA GRAVE tendo como únicas reprovações duas
+URLs inconclusivas, que são falha de SSL e timeout do próprio verificador. E `qualidade.py:75`
+soma `len(urls_problematicas)` inteiro no contador de reprovadas, sem separar estado.
+
+**Item 9 — a régua de qualidade está viciada, e ela sustentou decisão tomada hoje.** Das 145
+reprovações do histórico, 71 são "fora do tema" (49%) e 17 são "inconclusiva" (12%): 61% do total
+vem de estados que não indicam invenção.
+
+| Motor | URLs | Reprovadas | Precisão registrada | Só falhas duras |
+|---|---|---|---|---|
+| Grok 4.20 Multi-Agent | 479 | 40 | 0,916 | 0,975 |
+| GPT-5.6 Terra | 343 | 39 | 0,886 | 0,959 |
+| Perplexity Deep Research | 114 | 19 | 0,833 | 0,947 |
+| Gemini 3.1 Pro | 110 | 47 | 0,573 | 0,773 |
+
+A decisão de 12/08 de tirar o Gemini do padrão continua de pé: ele segue o pior em qualquer régua
+e é o único com URL inventada (7, contra zero dos outros dois motores padrão). O número que a
+justificou é que está errado. Quem merece reexame é o Grok, que tem a melhor precisão da série e
+saiu do padrão por custo.
+
+**Item 10 — o ALERTA GRAVE disparou em seis das sete pesquisas**, e alcança qualquer motor. Pegou
+dois motores em 05/08 e pegou o Grok na pesquisa de pesquisa de infraestrutura de hoje, a mesma que
+fundamentou a decisão sobre OpenRouter. O prejuízo é maior que os US$ 1,72 contabilizados no
+backlog para o Perplexity.
+
+### DADOS DE APOIO
+
+Custo e falha por motor, série completa, extraídos dos `r*.json`:
+
+| Pesquisa | Motor | Entrada | Saída | US$ | Estados de reprovação |
+|---|---|---|---|---|---|
+| 05/08 regulação (profunda) | A | 563.513 | 27.062 | 0,6014 | fora do tema 1 · sem rastro |
+| 05/08 regulação | C | 2.267 | 6.224 | 0,1352 | inconclusiva 2 · sem rastro |
+| 05/08 regulação | D | 2.448 | 15.931 | 0,8731 | truncado (length) · sem rastro |
+| 12/08 infraestrutura | grok | 278.643 | 20.047 | 0,4849 | fora do tema 4 · sem rastro |
+| 12/08 primeira | perplexity | 1.465 | 8.938 | 0,7609 | truncado · sem rastro |
+| 12/08 segunda | perplexity | 1.614 | 9.894 | 0,9590 | fora do tema 5 · truncado · sem rastro |
+
+Sobre o truncamento do item 3: o corte acontece sempre entre 75% e 80% do teto declarado, nos dois
+modos (15.931 de 20.000 em profunda; 8.938 e 9.894 de 12.000 em normal). O padrão é compatível com
+tokens de raciocínio contando contra o limite sem aparecer em `completion_tokens`. O script já pede
+`usage: {include: true}` em `buscar.py:560` e lê apenas `completion_tokens` em `buscar.py:647`:
+salvar o `usage` bruto responde a pergunta sem gastar pesquisa nova.
+
+### PLANO DE CORREÇÃO — ordem e razão
+
+1. Item 2, a conferência de tema, que é o gatilho de toda a cascata. Três consertos localizados em
+   `verificar_tema` e `_texto_do_html`: casar por raiz curta, ler todo o texto legível em vez dos
+   primeiros 4.000 caracteres, e reconhecer intersticial como inconclusiva. Mais uma linha no
+   `SKILL.md` sobre passar raiz em `--termos`.
+2. Item 8, excluindo "inconclusiva" do gatilho do alerta e do contador de qualidade. Duas linhas.
+3. Itens 1 e 6 juntos, que são o mesmo conserto: resolver `[N]` pelo índice de annotation e graduar
+   a quarentena para alcançar as afirmações afetadas em vez do motor inteiro.
+4. Recalcular `qualidade-motores.json` com a régua corrigida, antes de qualquer decisão nova sobre
+   composição de motores.
+5. Item 3, salvando o `usage` bruto para confirmar a hipótese do raciocínio.
+6. Item 5, estimativa do Grok por faixa de entrada observada. O item 4 morre aqui.
+7. Item 7, aviso de perda de árbitro em tempo de execução.
+
+### LIÇÕES
+
+Verificação que reprova fonte boa custa mais caro que verificação ausente. Quando a régua erra, o
+motor perde a contribuição inteira, a nota dele cai e a decisão seguinte sobre qual motor usar sai
+enviesada — o erro se propaga para fora do arquivo onde nasceu.
+
+Antes de acusar o motor, olhar a régua. O sinal está no dado: quando o mesmo domínio é reprovado
+para dois motores diferentes na mesma pesquisa, a hipótese de falha de verificação é mais provável
+que a de coincidência de alucinação. O `hdr.undp.org` reprovado para GPT e Perplexity na pesquisa
+de energia é o caso exemplar.
+
+Backlog escrito no calor da pesquisa acerta os sintomas e erra a causa. Os sete itens estavam bem
+observados, com dois deles apontando causa trocada, porque foram escritos a partir do que apareceu
+no log e não do código nem da série histórica. Vale como método: antes de consertar item de
+backlog, reconferir contra o código e contra todas as execuções, não só a que doeu.
+
+Separar estado de verificação por gravidade é decisão de projeto, não detalhe. Existir, tratar do
+tema e não ter dado para concluir são três coisas distintas, e hoje as três caem no mesmo balde de
+`urls_problematicas`. Todo consumidor desse balde (alerta, revalidação, índice de qualidade) herda
+a confusão.
+
+---
+
+## [2026-08-12 19:05] — Conserto da cascata: gravidade de estado, citação numerada e teto por motor
+
+### OBJETIVO
+
+Aplicar as correções apuradas na auditoria das 16:35 e na revalidação das 18:30, que incluiu
+as duas rodadas 2 inexistentes na primeira apuração. Sete itens do backlog tocados, com teste
+para cada um antes de seguir ao próximo. Nenhuma chamada de API foi gasta: tudo verificado
+contra páginas reais e contra as respostas já salvas em `outputs/`.
+
+### O QUE MUDOU
+
+**1. Gravidade de estado, em `buscar.py`.** `FALHAS_DURAS` (inexistente, inventada, suspeita,
+removida) e `SINAIS_FRACOS` (fora do tema, inconclusiva) passam a ser explícitos, com a função
+`duras()` para filtrar. Os três consumidores que liam o mesmo balde — quarentena, alerta e
+índice de qualidade — passam a ler o que lhes cabe.
+
+**2. Alerta deixa de ser binário.** `reprovadas_sem_rastro` agora se calcula só sobre falha
+dura e significa que uma afirmação específica ficou sem rastro, não que o agente inteiro está
+descartado. Campos novos no JSON: `falhas_duras`, `falhas_duras_sem_rastro`, `urls_fora_do_tema`.
+O markdown por agente separa "ALERTA DE FONTE" de "SINAL FRACO", com texto dizendo o que cada
+um autoriza concluir.
+
+**3. Citação numerada resolvida no parser.** `urls_das_citacoes()` guarda as annotations na
+ordem original, com repetições, e `contexto_da_url()` ganhou `_contexto_por_marcador()`, que
+resolve `[N]` para a N-ésima citação. Duas travas: a numeração só vale se o maior marcador do
+texto couber na lista, e só se resolve marcador que exista no corpo. A lista com repetições é
+o ponto delicado — a lista deduplicada de `extrair_urls` deslocaria todos os índices seguintes
+a uma página citada duas vezes, trocando a fonte de cada afirmação em silêncio.
+
+**4. Conferência de tema, três consertos.** `_raizes()` deriva raiz por sufixo e quebra termo
+composto, então `milling` alcança "mill" e "mills". `_texto_do_html()` deixou de cortar o corpo
+em 4.000 caracteres, e `BYTES_POR_PAGINA` subiu de 120 KB para 1,5 MB. `_muro_ou_casca()`
+reconhece muro de acesso, desafio de robô e casca de JavaScript, e devolve `inconclusiva` em
+vez de `fora do tema`. Documento sem HTML continua não gerando registro nenhum, porque PDF em
+fonte acadêmica é o esperado.
+
+**5. Teto de saída por motor.** `teto_de_saida()` lê `max_tokens` do config por rodada, com o
+teto do modo como padrão. O Perplexity declara 20.000 na rodada 1 e 12.000 na rodada 2.
+
+**6. Estimativa por faixa.** `tokens_input_busca` aceita `{tipico, max}`, e o Grok passa a ser
+estimado entre 420 e 730 mil tokens de entrada, medidos.
+
+**7. Composição efetiva ao fim da rodada.** O script recontava os motores só na largada. Agora
+avisa quando o número de motores elegíveis cai durante a execução, e repete o aviso de falta de
+árbitro com o número que sobrou.
+
+**8. Índice de qualidade, em `qualidade.py`.** `reprovadas` conta só falha dura, `sinais_fracos`
+conta o resto, e `QUEBRA_DE_SERIE` marca 12/08/2026 para que a mudança de régua não apareça no
+painel como se os motores tivessem melhorado sozinhos.
+
+**9. Config.** Grok volta a `padrao: true`, com a razão registrada no próprio arquivo.
+
+### RESULTADOS
+
+Teste 1, raízes. `watermill,windmill,moinho,molino,engenho,sailing,steam,milling` passa a gerar
+também `mill` e `sail`.
+
+Teste 2, as quatro URLs que eram falso positivo, conferidas contra as páginas reais:
+
+| URL | Antes | Agora |
+|---|---|---|
+| `domesdaybook.net/.../mills` | fora do tema | passa |
+| `hdr.undp.org/content/energising-human-development` | fora do tema | passa |
+| `elibrary.imf.org/.../article-A005-en.xml` | fora do tema | passa |
+| `econstor.eu/.../1694107760.pdf` | fora do tema | inconclusiva, com o motivo certo (Anubis) |
+
+O caso do FMI só passou depois de subir o limite de bytes: o artigo tem 622 KB de HTML e a
+primeira ocorrência de "consumption" está no caractere 14.956 do texto limpo, fora do alcance
+antigo. A palavra "electricity" não aparece uma vez sequer nele, e "energy" aparece 76 — daí a
+instrução nova no SKILL.md de passar o termo genérico do domínio junto dos específicos.
+
+Teste 3, recuperação de trecho, reprocessando as respostas salvas das três pesquisas de 12/08:
+
+| Pesquisa | Rodada | Motor | Trecho antes | Trecho agora |
+|---|---|---|---|---|
+| primeira pesquisa de 12/08 | 1 | perplexity | 0 de 4 | 2 |
+| primeira pesquisa de 12/08 | 2 | perplexity | 0 de 2 | 2 |
+| segunda pesquisa de 12/08 | 1 | perplexity | 0 de 5 | 5 |
+| segunda pesquisa de 12/08 | 2 | perplexity | 0 de 7 | 3 |
+
+Nenhum outro motor mudou de comportamento, o que é o esperado: os que escrevem a URL ao lado da
+afirmação já eram lidos pela busca literal.
+
+Notas recalculadas, sete pesquisas e 22 medições:
+
+| Motor | URLs | Falha dura | Sinal fraco | Precisão | Índice | Papel |
+|---|---|---|---|---|---|---|
+| Grok 4.20 Multi-Agent | 501 | 12 | 31 | 0,976 | 89,3 | confirmação |
+| GPT-5.6 Terra | 360 | 14 | 29 | 0,961 | 80,4 | confirmação |
+| Perplexity Deep Research | 151 | 7 | 21 | 0,954 | 77,3 | confirmação com ressalva |
+| Gemini 3.1 Pro | 110 | 25 | 22 | 0,773 | 72,5 | confirmação com ressalva |
+
+O Perplexity fica em "atenção" pela confiabilidade de 44%, que é o truncamento das quatro
+chamadas, e não pela citação. É o número que o teto próprio de saída deve mover na próxima
+pesquisa, e é o teste que decide se ele continua no padrão.
+
+O Gemini sai de crítico e continua o pior, com as 7 URLs inventadas de toda a série. A decisão
+de deixá-lo fora do padrão se mantém, agora apoiada na invenção e não na nota.
+
+### O QUE NÃO FOI FEITO
+
+A verificação de que a fonte sustenta a afirmação continua pendente, e é o buraco de fundo: a
+skill confere endereço, não confere conteúdo. Todos os dez itens do backlog são manifestações
+disso.
+
+### LIÇÕES
+
+Régua de verificação é código de produção e merece o mesmo cuidado que o resto. Ela decide o
+que entra no relatório, quanto vale cada motor e o que se compra na próxima pesquisa. Errada,
+ela não avisa: produz descarte silencioso com aparência de rigor.
+
+Estado de verificação precisa carregar gravidade desde o desenho. Existir, tratar do tema e não
+ter dado para concluir são três coisas distintas, e um balde único faz cada consumidor herdar a
+confusão dos outros.
+
+Correção de régua quebra série histórica, e a quebra precisa ser declarada dentro da ferramenta.
+Sem a marca, o painel mostraria quatro motores melhorando no mesmo dia, o que é leitura errada
+de um conserto nosso.
+
+Teste retroativo em resposta já salva vale mais que teste sintético e não custa nada. As quatro
+recuperações de trecho e as quatro URLs conferidas usaram material que já estava em disco: o
+conserto foi medido contra o caso real que o originou, sem gastar um centavo de API.
+
+---
+
+## [2026-08-13 14:15] — Auditoria adversarial derruba parte do conserto, e o conserto do conserto
+
+### OBJETIVO
+
+O Danilo pediu que um agente independente auditasse o trabalho da véspera, com instrução
+explícita de derrubá-lo: "a minha impressão é que nós mesmos estamos criando problemas por nós
+mesmos". A auditoria rodou sem acesso ao raciocínio de quem escreveu o código, com proibição de
+editar arquivo e de gastar chamada paga.
+
+Valeu a pena. Ela achou uma regressão grave, uma perda de segurança e um consumidor esquecido.
+
+### O QUE A AUDITORIA PEGOU
+
+**1. A conferência de tema virou peneira aberta. Regressão introduzida no conserto anterior.**
+O casamento por prefixo com raiz curta fazia `mill` casar "million", "millennium" e
+"milliondollar". A página da Wikipédia sobre o Instagram passava numa pesquisa sobre moinhos
+medievais, e o mesmo valia para Bitcoin e insulina. Das 84 reprovações históricas por tema,
+o veredito novo aprovava a maioria — a camada que existe para pegar "acertou o domínio e
+inventou o caminho" tinha deixado de pegar qualquer coisa.
+
+**2. URL fabricada que responde 200 saiu da revalidação.** Ao excluir `inconclusiva` de
+`afirmacoes_a_revalidar`, as três URLs inventadas pelo Gemini na pesquisa de contingência
+(`youtube.com/watch?v=vibecoding-tutorial-2026` e irmãs, todas HTTP 200 com página curta)
+deixariam de ir para a rodada 2. É o modo de falha que a regra dura 2 do SKILL.md chama de
+mais perigoso do produto, reintroduzido por descuido meu.
+
+**3. Havia um quarto consumidor da régua.** `dashboard.py` calcula precisão e índice próprios e
+ficou na régua velha. O painel gerado às 19:05 publicava 43 URLs reprovadas do Grok e precisão
+de 91% enquanto o `qualidade.py`, no mesmo minuto, publicava 12 e 98%. O painel é o artefato que
+se abre com duplo clique.
+
+**4. O resolvedor de marcador lia uma fração do texto.** Copiei do `_contexto_literal` o corte
+por cabeçalho de fontes, e "referências", "sources" e "fontes:" são palavras comuns no meio da
+análise. Em uma das respostas o corte reduziu o corpo a 4,8% do relatório, no meio de uma frase
+sobre engenhos de açúcar.
+
+**5. Sinal fraco rebaixava falha dura.** `verificar_tema` sobrescrevia `suspeita` com
+`fora do tema` sem guarda, e com a régua nova isso lavava a acusação: `scorasacademy.com.br`,
+marcada por ser domínio raiz, deixou de pesar contra o motor.
+
+Mais quatro erros de número e de documentação: a faixa de entrada do Grok gravada no config
+(mínimo real 179.296 e não 278.643, fator 4,0 e não 2,6), a atribuição dos 44% de confiabilidade
+do Perplexity só às quatro chamadas de 12/08 quando são nove execuções com oito truncamentos e
+uma falha, a linha "três pesquisas feitas" que sobrou no ESTADO.md, e o README público
+descrevendo uma composição padrão que não existe mais.
+
+### O QUE MUDOU AGORA
+
+`SUFIXOS_ACEITOS` fecha o casamento em fronteira de palavra, aceitando só flexão: `mill` alcança
+"mills", "milling" e "milled", e não alcança "million". O sufixo agentivo `-er` ficou de fora
+numa segunda passagem, porque `mill` mais `er` casa o sobrenome Miller, que aparece em qualquer
+bibliografia. E `TEXTO_LONGO` resolve o caso residual: menção única num documento acima de 30 mil
+caracteres não sustenta que a página trate do assunto — a página sobre insulina traz "Mills GB"
+numa referência e passaria.
+
+`afirmacoes_a_revalidar` volta a incluir todo estado com trecho, inclusive `inconclusiva`.
+`verificar_tema` só marca `fora do tema` quando o estado ainda é `ok`. `_contexto_por_marcador`
+lê o corpo inteiro e descarta marcador que esteja em linha de lista de fontes, identificada por
+conter URL. `dashboard.py` importa a régua de `buscar.py`, como o `qualidade.py`.
+
+### RESULTADOS
+
+Peneira, com os termos reais da pesquisa de história:
+
+| Página | Antes do conserto de ontem | Depois de ontem | Agora |
+|---|---|---|---|
+| Wikipédia, Instagram | fora do tema | passava | fora do tema |
+| Wikipédia, Bitcoin | fora do tema | passava | fora do tema |
+| Wikipédia, insulina | fora do tema | passava | fora do tema |
+
+As quatro URLs que motivaram tudo continuam corretas: domesdaybook, PNUD e FMI passam, e o
+econstor fica inconclusiva pelo desafio anti-robô.
+
+Recuperação de trecho por marcador, com o corte consertado:
+
+| Pesquisa | Rodada | Motor | Ontem | Agora |
+|---|---|---|---|---|
+| primeira pesquisa de 12/08 | 1 | perplexity | 2 | 4 de 4 |
+| primeira pesquisa de 12/08 | 2 | perplexity | 2 | 2 de 2 |
+| segunda pesquisa de 12/08 | 1 | perplexity | 5 | 5 de 5 |
+| segunda pesquisa de 12/08 | 2 | perplexity | 3 | 6 de 7 |
+| pesquisa de infraestrutura | 1 | grok | 0 | 2 de 4 |
+
+As três URLs fabricadas do Gemini voltam para a rodada 2, com trecho.
+
+Efeito líquido sobre o histórico: das 46 URLs marcadas `fora do tema` em pesquisas cujos termos
+estão registrados no log, 24 passam, 16 viram inconclusiva e 6 continuam fora do tema. As seis
+são páginas de varejo, um post do Instagram e uma resolução do BIPM, em pesquisas onde não
+tinham o que fazer.
+
+Painel e medidor voltam a concordar: 12 reprovadas e 98% para o Grok nos dois.
+
+### O QUE FICA COMO LIMITAÇÃO CONHECIDA
+
+Página de comércio renderizada por JavaScript com muito texto de navegação continua caindo em
+`fora do tema` em vez de `inconclusiva`: `cea.com.br/jeans/masculino/bermudas` é reprovada numa
+pesquisa que tinha "bermuda" entre os termos. O detector de casca só alcança página curta.
+
+`kuprienko.info`, com o texto de Luis Capoche sobre Potosí, continua reprovada numa pesquisa
+sobre Potosí, e a causa é vocabulário: a fonte é em espanhol e usa "ingenios", enquanto os termos
+foram passados em inglês e português. É o caso que a instrução nova do SKILL.md cobre.
+
+E a armadilha de deduplicação que o código trata continua sem exercício real: nenhuma resposta
+salva do Perplexity repete URL entre citações, então a trava foi verificada só em teste
+sintético.
+
+### LIÇÕES
+
+Auditor adversarial paga por si. Foram cinco defeitos reais em código que eu tinha declarado
+testado, sendo dois deles piores que o problema original: a peneira aberta e a URL inventada
+saindo da revalidação. Testar o caso que motivou o conserto não é testar o conserto.
+
+Todo aperto de régua precisa de um caso negativo no teste. Meu teste da véspera só perguntava
+"a página boa passa?". Faltava a outra metade, "a página ruim continua sendo pega?", e é onde a
+regressão morava.
+
+Quando se muda uma definição compartilhada, o passo obrigatório é procurar todos os leitores dela
+antes de declarar pronto. Eu contei três consumidores porque foram os três que lembrei, e o
+quarto era justamente o que o Danilo abre com duplo clique.
+
+Conserto sob pressão reintroduz o erro que o produto já tinha aprendido a evitar. A exclusão de
+`inconclusiva` da revalidação desfez, sem querer, a regra dura que estava escrita no SKILL.md
+desde 04/08. Regra dura merece teste que a defenda, e não só um parágrafo em documento.
+
+---
+
+## [2026-08-13 14:47] — Segunda auditoria adversarial: nove correções, e um achado do auditor que não procede
+
+### OBJETIVO
+
+Segunda rodada do ciclo pedido pelo Danilo. Um agente independente atacou especificamente as
+correções da véspera, com as mesmas proibições: não editar arquivo, não gastar chamada paga,
+reproduzir cada afirmação antes de aceitá-la.
+
+Veredito dele: não se sustenta. Estava certo em quase tudo.
+
+### O QUE ELE PEGOU, E O QUE FOI FEITO
+
+**1. O corte cego sobrevivia no caminho principal.** Consertei `_contexto_por_marcador` e deixei
+`_contexto_literal` intacto, que é justamente por onde passam GPT, Grok e Gemini, os três motores
+que escrevem a URL ao lado da afirmação. Agora nenhum dos dois corta por cabeçalho: a ocorrência
+em item de lista se reconhece pela linha, via `_e_linha_de_lista`, que olha marcador de lista e
+proporção de texto fora da URL.
+
+**2. Cabeçalho `Range` provocando HTTP 416.** Servidor cujo arquivo é menor que o fim da faixa
+recusa o pedido. Um PDF do MPRA responde 416 para `bytes=0-1500000` e 200 sem o cabeçalho.
+Removido: lê-se N bytes do fluxo, o que tem o mesmo efeito e não depende do servidor.
+
+**3. Painel e medidor discordavam em tudo menos nas duas colunas que eu conferi.** `dashboard.py`
+agrupava por slot, então uma pesquisa em que a rodada 1 usou letra e a rodada 2 usou id contava
+pesquisa e execução em dobro; truncamento era interruptor em vez de contagem, e o incidente
+pesava 1,0 onde o `qualidade.py` pesa 0,5. O índice do Perplexity saía 70 no painel e 77,3 no
+script. Agora os dois batem: 89, 80, 77 e 72 contra 89,3, 80,4, 77,3 e 72,5.
+
+**4. "O Gemini é o único com URL inventada" é falso.** São oito na série, sete dele e uma do
+Perplexity (`core.ac.uk/download/213902926.pdf`, HTTP 404, na rodada 2 da história). A frase
+estava no README público, no ESTADO.md e no CHANGELOG. Corrigida nos três para "concentra as
+URLs inventadas, sete das oito".
+
+**5. A densidade dependia da digitação do termo.** `_raizes` emite a forma e a raiz, e ambas
+casavam a mesma ocorrência, dobrando a contagem: a mesma página passava com `--termos mills` e
+reprovava com `--termos mill`. Agora conta-se posição única no texto, e não ocorrência por raiz.
+
+**6. O motivo gravado mentia.** Quando o corte era por densidade, a mensagem dizia que a página
+não menciona nenhum termo, e ela menciona uma vez. Texto próprio agora, porque esse motivo viaja
+para o relatório e para o prompt da rodada 2.
+
+**7. Falha de rede virava item de revalidação.** Com `inconclusiva` de volta na lista, um 403 de
+editora acadêmica entraria na rodada 2 como se fosse fonte duvidosa: 157 itens contra 13 reais
+nas cinco pesquisas com termos registrados. Agora o registro carrega `origem: rede` e fica fora
+da revalidação, sem deixar de aparecer no relatório. O verificador de tema também ganhou o motivo
+com código HTTP, que antes era só o nome da exceção.
+
+**8. Muro de acesso em português não era reconhecido.** A comparação era acentuada e a lista não
+tinha os avisos do portal do governo. A FAQ da ANEEL sobre minigeração distribuída, que responde
+"Conteúdo Restrito" com 3.206 caracteres, era acusada de não tratar do tema numa pesquisa sobre
+minigeração distribuída. Agora a comparação é sem acento, o limiar subiu para 3.500 e a lista
+inclui os avisos em português.
+
+**9. Trecho recuperado por marcador vinha de citação em lote.** Em 22 de 24 resoluções a primeira
+ocorrência estava num lote como `[1][2][4][8][9][10]`, e a janela fixa de 700 caracteres num
+parágrafo de uma linha só produzia a mesma frase deslocada de um caractere. Agora se prefere o
+marcador isolado, o recorte é por frase, e quando só existe lote o trecho vai marcado:
+`[atenção: citação em lote de 12 fontes neste trecho]`.
+
+Mais dois menores: termo com menos de quatro letras era descartado em silêncio e agora é logado,
+e a docstring de `_faixa_entrada` mantinha os números falsificados de 278 mil e fator 2,6.
+
+### O ACHADO QUE NÃO PROCEDE
+
+O auditor afirma que o corte por cabeçalho deixava sem trecho 26 URLs escritas no corpo, e cita
+como caso as sete URLs inventadas do slot C em `uma pesquisa de regulação`, "19 caracteres depois do
+corte". Fui conferir uma a uma: as sete estão em linhas que contêm apenas o endereço, dentro da
+lista de fontes. Sem o corte elas continuam sem trecho, e devem continuar — nunca foram usadas ao
+lado de afirmação nenhuma. O conserto do corte está certo pelos outros motivos; o ganho alegado
+para esse caso não existe. Depois do conserto, o número de falhas duras com trecho localizado
+segue idêntico nessas linhas.
+
+### O NÚMERO 46 CONTRA 84
+
+Os dois estão certos e medem coisas diferentes. São 84 ocorrências de `fora do tema` no histórico
+e 79 URLs distintas. Meu recorte de 46 era o subconjunto cujas pesquisas têm `--termos` gravado em
+`r1.log`, que são três pastas — sem os termos originais não dá para reprocessar honestamente. O
+auditor recuperou termos de outras pastas por outro caminho e chegou a 80. A frase da entrada
+anterior está correta no que declara, e agora fica registrado o universo completo.
+
+### RESULTADOS
+
+| Caso | Antes | Agora |
+|---|---|---|
+| Wikipédia Instagram, Bitcoin e insulina, termos de moinho | passavam | fora do tema |
+| PNUD, FMI e Domesday | passam | passam |
+| econstor com desafio Anubis | fora do tema | inconclusiva |
+| FAQ da ANEEL com Conteúdo Restrito | fora do tema | inconclusiva |
+| PDF do MPRA | HTTP 416 | 200, 558 KB lidos |
+| Painel contra medidor, índice do Perplexity | 70 contra 77,3 | 77 contra 77,3 |
+
+### LIÇÕES
+
+Consertar a cópia e esquecer o original é o erro que mais se repete aqui. Foi assim com o corte
+por cabeçalho, que arrumei no caminho novo e deixei no antigo, e tinha sido assim na véspera com
+o quarto consumidor da régua. A pergunta que faltava nas duas vezes é a mesma: quem mais faz isto?
+
+Auditor adversarial também erra, e o jeito de saber é conferir o caso concreto que ele cita. As
+sete URLs do regulação de 04/08 estavam onde ele disse e não eram o que ele disse. Aceitar o relatório
+inteiro por vir bem argumentado teria produzido uma correção sem efeito e uma lição falsa no
+changelog.
+
+Número que sustenta decisão precisa vir com o recorte declarado. "46 URLs" e "84 URLs" descrevem
+o mesmo acervo com critérios diferentes, e sem o critério ao lado o número vira munição para
+qualquer lado.
+
+---
+
+## [2026-08-13 15:15] — Terceira auditoria: o gate de lista era regressão líquida
+
+### OBJETIVO
+
+Terceira rodada do ciclo adversarial. O auditor atacou as nove correções das 14:47 e deu veredito
+negativo: segundo ele, o conserto reintroduziu por outra porta a mesma regressão que a auditoria
+anterior tinha derrubado. Estava certo no essencial.
+
+### O QUE ELE PEGOU
+
+**1. `_e_linha_de_lista` derrubava trecho legítimo.** Duas causas. A regra do marcador de lista
+tratava qualquer bullet abaixo de 400 caracteres como item de índice, e bullet com 290 caracteres
+de análise é afirmação — uma das três URLs fabricadas do Gemini que a entrada anterior comemorou
+ter recuperado voltou a ficar sem trecho. E o padrão `URL: <endereço>` na linha seguinte ao
+veredito, comum na rodada 2, tinha a linha descartada sem que ninguém olhasse a prosa logo acima.
+
+Medido sobre as 161 URLs problemáticas dos sete JSONs: o corte antigo dava 78 trechos e 40 das 58
+falhas duras; o gate novo tinha caído para 64 e 32.
+
+**2. As duas instruções de `--termos` no SKILL.md se anulavam.** Uma manda evitar palavra
+genérica, a outra, acrescentada por mim na véspera, manda incluir o termo genérico do domínio.
+Com `water` e `power` na lista, a Wikipédia do Instagram, do Bitcoin e da insulina voltam a passar
+numa pesquisa sobre moinhos. A peneira reabria pela instrução de operação, e não pelo código.
+
+**3. A densidade ainda dependia da digitação.** Contar posição inicial não bastava: `water mill`
+gera as raízes `water`, `mill` e `water mill`, que casam a mesma passagem em posições diferentes,
+então uma menção única virava duas.
+
+**4. `origem: rede` alcançava falha dura.** A marca era gravada sem guarda de estado, então uma
+URL já `suspeita` que tomasse 403 na conferência de tema saía da revalidação. É o caso que mais
+precisa da rodada 2, porque ninguém conseguiu ler a página.
+
+**5. Falso positivo de muro em página real.** `quantica.scorasacademy.com.br` lista "Cloudflare"
+entre competências de nuvem, tem 2.399 caracteres e virava inconclusiva. Palavra de tela de
+bloqueio é também vocabulário de página de tecnologia.
+
+**6. O conserto da janela deslizante só mudou de ponta.** Consertei o início pelo recorte de
+frase e deixei `fim = pos + 300`, então três trechos saíram byte a byte idênticos.
+
+Mais: o piso de custo no ESTADO.md era US$ 1,59 e o real é US$ 1,52; o SKILL.md ainda descrevia
+casamento "por prefixo", que deixou de existir; a marca de citação em lote entrava colada no
+trecho que vai para o motor na rodada 2; a lista de citações não passava pelo mapa de resolução
+de redirecionamento, o que matava o caminho por marcador justamente no Gemini; e o painel usava
+o rótulo "Fontes" para dois números diferentes na mesma página.
+
+### O QUE FOI FEITO
+
+`_e_linha_de_lista` passou a decidir só por quanto texto sobra fora da URL, sem olhar marcador de
+lista. `_prosa_acima` recupera a afirmação escrita antes de uma linha que só exibe endereço, e
+para de subir quando encontra cabeçalho de lista de fontes — é o que mantém as sete URLs
+inventadas do slot C de 04/08 sem trecho, como devem ficar.
+
+A densidade conta intervalos mesclados, então sobreposição de raízes vale uma passagem. A marca
+de origem só entra em registro ainda `ok`. Os sinais de muro foram separados em inequívocos, que
+concluem sozinhos, e ambíguos como "cloudflare" e "consent", que precisam de dois. O fim do
+trecho passou a ser o fim da frase, com teto de 400 caracteres, e a janela do caminho por
+marcador caiu para 350.
+
+A contagem de citações em lote virou campo próprio, `citacoes_no_trecho`, e o aviso aparece no
+markdown ao lado do item, fora do texto que o motor recebe como afirmação a verificar. As
+citações passam pelo mapa de `resolver_redirects`. Documento sem HTML não é mais baixado para ser
+descartado: o tipo é lido no cabeçalho antes do corpo. E o SKILL.md ganhou a regra que faltava
+sobre `--termos`, agora com o critério explícito — o termo que a fonte esperada usaria e que uma
+página de outro assunto não usaria, com `energy` servindo e `power` e `water` não.
+
+### RESULTADOS
+
+| Medida | Corte antigo | Gate de 14:47 | Agora |
+|---|---|---|---|
+| URLs problemáticas com trecho | 78 | 64 | 105 |
+| Falhas duras com trecho (de 58) | 40 | 32 | 45 |
+| Sete URLs inventadas do slot C | sem trecho | sem trecho | sem trecho |
+
+Peneira e URLs boas seguem corretas nos seis casos de teste. A FAQ da ANEEL continua reconhecida
+como muro; a página da Scoras, com "Cloudflare" no texto, deixou de ser. O PDF do MPRA responde
+200. Painel e medidor continuam batendo.
+
+### LIÇÕES
+
+Gate novo precisa ser medido contra o que ele substitui, e não contra zero. O corte por cabeçalho
+era ruim e eu troquei por algo pior sem comparar: bastava rodar os dois sobre o mesmo corpus, que
+é o que o auditor fez em cinco minutos.
+
+Instrução de operação é parte do sistema. A peneira reabriu porque o SKILL.md mandava incluir
+termo genérico, e nenhum teste de código pegaria isso — o teste teria que usar os termos que a
+instrução manda usar.
+
+Aviso em português dentro de campo de dado vira entrada de modelo. A marca de lote colada no
+trecho ia junto para a rodada 2, onde o motor a leria como parte da afirmação a verificar.
+
+---
+
+## [2026-08-13 15:36] — Quarta auditoria: o número que publiquei estava inflado pelo meu próprio teste
+
+### CORREÇÃO DA ENTRADA ANTERIOR
+
+A tabela da entrada das 15:15 diz que a recuperação de trecho passou de 78 para 105, e as falhas
+duras com trecho de 40 para 45. **Os dois números estão errados**, e o erro é de método, não de
+código.
+
+Meu script de medição lia `r.get("citacoes") or r.get("urls")`. O campo `citacoes` só passou a
+ser gravado ontem, então nenhuma das sete pesquisas do acervo tem esse campo, e toda a medição
+caiu no segundo termo — que é a lista deduplicada de `extrair_urls`, exatamente a que a docstring
+de `urls_das_citacoes` descreve como imprestável para resolver marcador, porque a repetição
+removida desloca todos os índices seguintes. Os 22 trechos que faziam 83 virar 105 vinham todos
+daí.
+
+Números honestos, medidos com o que os arquivos de fato contêm:
+
+| Medida | Corte antigo (antes de tudo) | Hoje |
+|---|---|---|
+| URLs problemáticas com trecho | 78 | 77 |
+| Falhas duras com trecho (de 58) | 40 | 35 |
+| Trechos vindos de casamento por prefixo de URL | 12 | 0 |
+
+A comparação direta não vale, e é por isso que a terceira coluna existe. O método antigo achava
+a URL com `texto.find`, que casa por prefixo: `https://loja.exemplo/` encontrava a ocorrência de
+`https://loja.exemplo/categoria/subcategoria` e herdava o trecho dela. Doze casos no
+acervo, seis deles com atribuição francamente errada — a home citada como se fosse fonte ficava
+coberta pela prova da página específica, e a rodada 2 recebia uma afirmação que outra URL já
+sustentava. O número menor de hoje é o número sem essas doze heranças.
+
+O ganho real do fallback novo, isolado: a busca literal sozinha recupera 58 trechos e 27 falhas
+duras; com `_prosa_acima`, 77 e 35.
+
+### O QUE MAIS A AUDITORIA PEGOU
+
+**A janela deslizante não tinha sido consertada.** O recorte de frase procurava `". "`, e no
+estilo acadêmico o marcador cola no ponto — `...second century CE.[1][2][4]` não tem espaço
+depois do ponto, então o recuo ia para a frase anterior. Seis URLs distintas recebiam o mesmo
+parágrafo de resumo, três delas byte a byte idênticas. Agora existe `FIM_DE_FRASE`, que reconhece
+pontuação seguida de espaço ou de colchete, e os trechos do mesmo caso caíram de 1.232 para 160 e
+304 caracteres, com dois textos distintos em vez de fatias deslizantes do mesmo.
+
+**`_e_linha_de_lista` testava o comprimento antes de remover a URL**, então endereço nu de 477
+caracteres — os da ANEEL e os links de redirecionamento do Gemini — passava por afirmação.
+Invertida a ordem.
+
+**A guarda de cabeçalho de `_prosa_acima` dependia de literais estreitos.** Com "## Fontes" ou
+"Bibliografia" no lugar de "FONTES CONSULTADAS", as sete URLs inventadas do slot C ganhariam um
+parágrafo sobre condomínios em São Paulo. A lista de cabeçalhos foi ampliada.
+
+**`qualidade.py` imprimia `? fonte(s) com falha dura sem trecho`** em nove dos 22 erros, porque o
+campo não existe nos JSONs anteriores a ontem. Agora diz que o número não foi registrado.
+
+### O QUE FICA COMO LIMITAÇÃO ESTRUTURAL
+
+O detector de muro só olha página abaixo de 3.500 caracteres. Quando o corpo era cortado em 4.000,
+isso cobria quase tudo que se lia; hoje se lê até 1,5 MB, e tela de bloqueio acima de 3.500
+caracteres passa direto para a conferência de termos. O auditor não achou contraexemplo vivo, e o
+argumento é estrutural — fica registrado como risco conhecido, sem conserto especulativo.
+
+E o mapeamento `[N] → N-ésima citação` continua sem exercício com dado real, agora com a razão
+escrita: as respostas antigas não guardam `annotations`. A primeira pesquisa nova é que vai dizer
+se ele funciona.
+
+### LIÇÕES
+
+O fallback silencioso no script de medição foi o erro mais caro do dia. `campo_novo or
+campo_antigo` parece defensivo e é o contrário: mede o antigo e reporta como se fosse o novo, sem
+nada no resultado denunciando a troca. Em código de medição, campo ausente deve interromper, não
+substituir.
+
+Publiquei número de melhoria que não existia, e o publiquei no mesmo documento em que critico
+número sem recorte declarado. A regra que fica: benchmark de conserto se roda contra o dado que
+existe, e quando o dado não existe, o resultado é "não medido" — nunca um número obtido por
+aproximação conveniente.
+
+Correção que reduz o número pode ser a correção certa. Sair de 78 para 77, e de 40 para 35, é
+melhora: doze atribuições herdadas saíram, e nenhuma delas dizia a verdade sobre o que a fonte
+sustentava.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

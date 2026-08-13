@@ -14,9 +14,15 @@ Você é o orquestrador. O script `scripts/buscar.py` é o único ponto que gast
 Estas não se negociam. Violar qualquer uma invalida o relatório.
 
 1. **Agente sem URL não confirma nada.** Se o script marcar `sem_fontes: true`, aquele agente respondeu de memória. Não conta como fonte, não sustenta consenso, não vira "confirmado por dois". Registre a falha na seção de limitações do relatório.
-2. **Fonte reprovada manda a afirmação para revalidação, nunca para o lixo.** O script confere cada URL em quatro camadas — se existe, se a forma é de fonte real, se o modelo confessou tê-la construído e se a página ao menos trata do tema. Os estados são `inventada` (não existe e nunca esteve no arquivo da internet), `removida` (existiu e saiu do ar, então a informação pode ser real), `fora do tema` (existe mas fala de outra coisa) e `suspeita` (forma ou contexto ruins).
+2. **Fonte reprovada manda a afirmação para revalidação, nunca para o lixo.** O script confere cada URL em quatro camadas — se existe, se a forma é de fonte real, se o modelo confessou tê-la construído e se a página ao menos trata do tema.
+
+   **Os estados têm gravidades diferentes, e essa diferença manda.** Falha dura é `inventada` (não existe e nunca esteve no arquivo da internet), `removida` (existiu e saiu do ar, então a informação pode ser real), `inexistente` (404) e `suspeita` (forma ou contexto ruins). Sinal fraco é `fora do tema` (a conferência de assunto não achou os termos) e `inconclusiva` (não deu para ler a página, por muro de acesso, documento sem HTML ou falha de rede).
+
+   Só falha dura pesa contra o motor. Sinal fraco entra no relatório como aviso de leitura e nunca desqualifica agente nem afirmação sozinho: em 12/08/2026, 103 das 161 reprovações acumuladas eram sinal fraco, com falso positivo comprovado em quatro páginas que estavam exatamente no tema.
 
    **Descartar em silêncio é proibido.** A afirmação pode ser verdadeira com a citação errada, e apagá-la tira do relatório informação boa sem deixar rastro — o leitor nunca fica sabendo que faltou. O script devolve `afirmacoes_a_revalidar`, com o trecho exato que cada fonte reprovada sustentava, e todas entram obrigatoriamente na rodada 2. Só depois se decide: confirmada por fonte que existe, entra normalmente; não confirmada, vai para limitações, nomeada, dizendo o que se tentou verificar e não se conseguiu.
+
+   **Quando o trecho não se localiza, a quarentena é da afirmação e não do agente.** O campo `reprovadas_sem_rastro` diz que alguma fonte com falha dura não pôde ser ligada a nenhum trecho, nem por URL escrita no corpo nem por marcador numerado. Isso põe em dúvida o que se apoiava naquela fonte, e nada além disso. A regra antiga invalidava a contribuição inteira do motor e, em 12/08/2026, jogou fora seis respostas boas do Perplexity, que cita em estilo acadêmico — inclusive vereditos corretos sobre Potosí, Barbegal e a série de tonelagem a vapor, que estavam escritos no sumário.
 
    Este é o modo de falha mais perigoso do produto. Zero URL é visível. URL presente que aponta para uma página inventada parece verificada e ninguém confere. Já aconteceu: um motor construiu link plausível para um estudo que os outros dois depois declararam inexistente.
 3. **Nenhuma URL verificada é descartada.** Toda URL que passou entra nas referências, mesmo sustentando informação fraca. As reprovadas não entram como referência: vão para a seção de limitações, nomeadas, com o motivo.
@@ -102,9 +108,15 @@ python3 ~/.claude/skills/pesquisa/scripts/buscar.py \
 
 `--motores` recebe os ids escolhidos na clarificação. Omitir roda os marcados como padrão no `config.json`, nunca os demais — é o que impede um motor caro de entrar por esquecimento.
 
-`--termos` liga a conferência de assunto: o script baixa o início de cada página e verifica se ela ao menos fala do tema. Página que existe e responde, mas não menciona nenhum termo, é marcada como fora do tema — é o que acontece quando o modelo acerta o domínio e inventa o caminho, ou cita a home de um site em vez do artigo. Não custa API e leva segundos.
+`--termos` liga a conferência de assunto: o script baixa cada página e verifica se ela ao menos fala do tema. Página que existe e responde, mas não menciona nenhum termo, recebe o sinal fraco `fora do tema` — é o que acontece quando o modelo acerta o domínio e inventa o caminho, ou cita a home de um site em vez do artigo. Não custa API e leva segundos.
 
 Escolha de cinco a oito substantivos centrais do tema, com quatro letras ou mais. Nomes próprios, termos técnicos e siglas por extenso funcionam bem. Evite palavras genéricas como "análise" ou "mercado", que aparecem em qualquer página e não separam nada. Acentuação não importa.
+
+**Passe a raiz curta, nunca a forma derivada.** O casamento aceita a raiz mais flexão (`s`, `es`, `ing`, `ings`, `ed`) e termina em fronteira de palavra, então `mill` alcança "mill", "mills", "milling" e "milled", e não alcança "million". O caminho inverso não existe: `milling` não alcança "mill". Em 12/08/2026 uma página do Domesday Book sobre moinhos foi reprovada numa pesquisa sobre moinhos no Domesday Book, por causa disso.
+
+**Forma composta se passa separada.** `watermill` não alcança "water mill", que é como a maior parte das páginas históricas escreve, e o contrário também vale. Quando as duas grafias importam, passe as duas: `watermill,water mill`.
+
+**Cubra o vocabulário da fonte, sem cair na palavra que serve para tudo.** O artigo do FMI sobre 167 anos de dados de energia usa "energy" 76 vezes e "electricity" nenhuma: numa pesquisa de eletrificação rural, `energy` precisa estar na lista. Mas termo largo demais abre a peneira — com `water` e `power` na lista, a página da Wikipédia sobre o Instagram passa numa pesquisa sobre moinhos medievais, medido em 13/08/2026. O critério é o termo que a fonte esperada usaria e que uma página de outro assunto não usaria: `energy` numa pesquisa de energia serve; `power` e `water` não.
 
 O script grava `r1.json` e um markdown por motor, nomeado pelo id: `r1_grok.md`, `r1_gpt.md`, `r1_gemini.md`. **Leia os três markdown, um por vez** — não carregue o JSON inteiro, que é grande e repete o conteúdo.
 

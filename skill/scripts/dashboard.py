@@ -16,12 +16,18 @@ Uso:
 import argparse
 import json
 import re
+import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
 RAIZ_SKILL = Path(__file__).resolve().parent.parent
+
+# A gravidade de cada estado é definida num lugar só, em buscar.py. Painel e medidor
+# precisam usar a mesma régua, senão publicam números diferentes sobre o mesmo dado.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from buscar import FALHAS_DURAS, SINAIS_FRACOS  # noqa: E402
 
 
 def log(etapa, mensagem):
@@ -90,17 +96,35 @@ def coletar(pasta):
                 slot,
                 {"rotulo": res.get("rotulo", slot), "modelo": res.get("modelo", ""),
                  "urls": 0, "custo": 0.0, "falhas": 0, "sem_fontes": False,
-                 "truncou": False, "url_set": set()},
+                 "truncou": False, "url_set": set(), "execucoes": 0, "truncadas": 0},
             )
+            # Chamadas de verdade, e não presença do slot na pasta: r1 e r2 do mesmo motor
+            # são duas execuções, e truncamento é contagem, não interruptor.
+            info["execucoes"] += 1
+            # Exclusivo, como no qualidade.py: chamada que falhou não conta também como
+            # truncada, senão o mesmo incidente pesa 1,5 num script e 1,0 no outro.
+            if res.get("erro") or res.get("finish_reason") == "error":
+                pass
+            elif res.get("finish_reason") == "length":
+                info["truncadas"] += 1
             info["custo"] += res.get("custo_usd", 0.0) or 0.0
             info["urls"] += len(res.get("urls") or [])
-            if res.get("erro"):
+            if res.get("erro") or res.get("finish_reason") == "error":
                 info["falhas"] += 1
             if res.get("sem_fontes"):
                 info["sem_fontes"] = True
             if res.get("finish_reason") == "length":
                 info["truncou"] = True
-            info["reprovadas"] = info.get("reprovadas", 0) + len(res.get("urls_problematicas") or {})
+            # A mesma régua do qualidade.py, e pelo mesmo motivo: só falha dura conta como
+            # erro de citação. O painel é o artefato que se abre com duplo clique, então
+            # ele publicando um número e o qualidade.py publicando outro é pior que os
+            # dois errados juntos — em 12/08/2026 o painel mostrou 43 reprovadas do Grok
+            # contra 12 medidas pelo script, no mesmo minuto.
+            probs = res.get("urls_problematicas") or {}
+            info["reprovadas"] = info.get("reprovadas", 0) + sum(
+                1 for r in probs.values() if r.get("estado") in FALHAS_DURAS)
+            info["sinais_fracos"] = info.get("sinais_fracos", 0) + sum(
+                1 for r in probs.values() if r.get("estado") in SINAIS_FRACOS)
             for u in res.get("urls") or []:
                 urls.add(u)
                 info["url_set"].add(u)
@@ -272,7 +296,7 @@ def montar_html(pesquisas, raiz):
     kpis = [
         ("Pesquisas", f"{len(pesquisas)}", "concluídas"),
         ("Custo acumulado", f"US$ {total_custo:.2f}", f"média de US$ {media:.2f} por pesquisa"),
-        ("Fontes coletadas", f"{total_urls}", f"{len(dominios)} domínios distintos"),
+        ("Fontes distintas", f"{total_urls}", f"{len(dominios)} domínios distintos"),
         ("Tempo total", f"{sum(p['duracao_min'] for p in pesquisas):.0f} min", "só as chamadas de busca"),
     ]
     html_kpis = "".join(
@@ -321,21 +345,24 @@ def montar_html(pesquisas, raiz):
         for slot, a in p["agentes"].items():
             m = motores.setdefault(
                 a["modelo"] or slot,
-                {"rotulo": a["rotulo"], "pesquisas": 0, "urls": 0, "exclusivas": 0,
+                {"rotulo": a["rotulo"], "pesquisas": set(), "urls": 0, "exclusivas": 0,
                  "falhas": 0, "custo": 0.0, "truncou": 0, "reprovadas": 0,
                  "afirmacoes": 0, "confirmadas": 0, "tem_contrib": False, "notas": [],
-                 "execucoes": 0, "incidentes": 0},
+                 "execucoes": 0, "incidentes": 0.0},
             )
-            m["pesquisas"] += 1
+            # Por pasta, e não por slot. Uma pesquisa em que r1 usou letra de slot e r2
+            # usou id criava duas entradas do mesmo modelo, dobrando pesquisa e execução:
+            # o painel mostrava 7 pesquisas do Grok contra as 6 medidas pelo qualidade.py.
+            m["pesquisas"].add(p["pasta"])
             m["urls"] += a["urls"]
             m["exclusivas"] += a.get("exclusivas", 0)
             m["falhas"] += a["falhas"]
             m["custo"] += a["custo"]
-            m["truncou"] += 1 if a["truncou"] else 0
+            m["truncou"] += a.get("truncadas", 0)
             m["reprovadas"] += a.get("reprovadas", 0)
-            m["execucoes"] = m.get("execucoes", 0) + 1
-            if a["falhas"] or a["truncou"]:
-                m["incidentes"] = m.get("incidentes", 0) + 1
+            m["execucoes"] += a.get("execucoes", 0)
+            # Mesmo peso do qualidade.py: falha total perde tudo, truncamento perde o fim.
+            m["incidentes"] += a["falhas"] * 1.0 + a.get("truncadas", 0) * 0.5
             c = a.get("contrib") or {}
             if c.get("afirmacoes") is not None and c.get("afirmacoes") != 0:
                 m["tem_contrib"] = True
@@ -403,7 +430,7 @@ def montar_html(pesquisas, raiz):
             linhas_m.append(
                 f"<tr><td><div class='tema'>{esc(nome_curto(m['rotulo']))}</div>"
                 f"<div class='obj'>{esc(modelo)}</div>{nota_txt}</td>"
-                f"<td class='num'>{m['pesquisas']}</td>"
+                f"<td class='num'>{len(m['pesquisas'])}</td>"
                 f"<td class='num'>{m['urls']}</td>"
                 f"<td><div class='linha'><div class='trilho'>"
                 f"<div class='barra' style='width:{m['exclusivas'] / max_exc * 100:.1f}%'></div>"
@@ -433,7 +460,7 @@ def montar_html(pesquisas, raiz):
         bloco_motores = (
             "<h2>Desempenho por motor</h2>"
             '<div class="tabela-wrap"><table class="motores"><thead><tr>'
-            "<th>Motor</th><th class='num'>Pesquisas</th><th class='num'>Fontes</th>"
+            "<th>Motor</th><th class='num'>Pesquisas</th><th class='num'>Fontes citadas</th>"
             "<th>Exclusivas</th><th class='num'>% exclusivo</th>"
             "<th class='num'>Custo</th><th class='num'>Por exclusiva</th>"
             "<th class='num'>Precisão</th><th class='num'>Índice</th>"

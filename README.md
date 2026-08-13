@@ -58,13 +58,16 @@ O painel fica em `outputs/dashboard.html` e abre com duplo clique. Mostra custo 
 
 Configuração em [skill/config.json](skill/config.json). Trocar de motor é trocar uma string.
 
-| Slot | Padrão | Índice | Custo típico |
-|---|---|---|---|
-| A | `x-ai/grok-4.20-multi-agent` | xAI | US$ 0,50 |
-| B | `openai/gpt-5.6-terra` | OpenAI | US$ 0,18 |
-| C | `google/gemini-3.1-pro-preview` | Google | US$ 0,12 |
+Composição padrão desde 12/08/2026:
 
-`perplexity/sonar-deep-research` fica disponível como opção. Saiu do padrão por custar US$ 1,12 por chamada contra US$ 0,32 do Grok, com busca real confirmada nos dois. A escolha dos motores é oferecida a cada pesquisa.
+| Motor | Índice | Padrão | Custo típico |
+|---|---|---|---|
+| `x-ai/grok-4.20-multi-agent` | xAI | sim | US$ 0,35 a 0,68, conforme o material que ele decide ler |
+| `openai/gpt-5.6-terra` | OpenAI | sim | US$ 0,18 |
+| `perplexity/sonar-deep-research` | Perplexity | sim | US$ 1,12 |
+| `google/gemini-3.1-pro-preview` | Google | não | US$ 0,12 |
+
+O Gemini saiu do padrão por concentrar as URLs inventadas da série, sete das oito, e continua disponível por escolha explícita. O Perplexity entrou por ser índice independente dos outros dois. A escolha dos motores é oferecida a cada pesquisa, e a composição padrão é o que roda quando `--motores` é omitido.
 
 Para ver o que existe hoje no OpenRouter e conferir se o que está configurado ainda vale:
 

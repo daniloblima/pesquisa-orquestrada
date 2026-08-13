@@ -16,11 +16,23 @@ Uso:
 
 import argparse
 import json
+import sys
 from datetime import date
 from pathlib import Path
 
 RAIZ_SKILL = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ_SKILL / "qualidade-motores.json"
+
+# A gravidade de cada estado é definida num lugar só, em buscar.py, porque a régua e o
+# medidor precisam concordar. Duplicar a lista aqui seria criar duas verdades.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from buscar import FALHAS_DURAS, SINAIS_FRACOS  # noqa: E402
+
+# Data em que a régua mudou. Nota medida antes disto somava falso positivo de tema e
+# falha de rede do verificador na conta de erro de citação, então número anterior e
+# número posterior medem coisas diferentes e não se comparam. Sem esta marca, a correção
+# apareceria no painel como se todos os motores tivessem melhorado sozinhos no mesmo dia.
+QUEBRA_DE_SERIE = "2026-08-12"
 
 
 def log(msg):
@@ -68,11 +80,21 @@ def coletar(raiz):
                 modelo = r.get("modelo") or r.get("slot")
                 a = por_modelo.setdefault(modelo, {
                     "rotulo": r.get("rotulo", modelo), "urls": 0, "reprovadas": 0,
+                    "sinais_fracos": 0,
                     "custo": 0.0, "execucoes": 0, "incidentes": 0, "slots": set(),
                     "erros": [], "reprovadas_detalhe": {}})
                 a["slots"].add(r.get("slot"))
                 a["urls"] += len(r.get("urls") or [])
-                a["reprovadas"] += len(r.get("urls_problematicas") or {})
+                # Só falha dura pesa contra o motor. "Fora do tema" e "inconclusiva"
+                # medem a conferência, e não a citação: das 161 reprovações acumuladas até
+                # 12/08/2026, 103 eram desses dois estados, com falso positivo comprovado
+                # num e falha de rede do próprio verificador no outro. Contá-las derrubava
+                # a precisão de todos os motores e virou base de decisão sobre composição.
+                probs = r.get("urls_problematicas") or {}
+                a["reprovadas"] += sum(1 for reg in probs.values()
+                                       if reg.get("estado") in FALHAS_DURAS)
+                a["sinais_fracos"] += sum(1 for reg in probs.values()
+                                          if reg.get("estado") in SINAIS_FRACOS)
                 a["custo"] += r.get("custo_usd", 0.0) or 0.0
                 a["execucoes"] += 1
                 # Falha total e resposta truncada não são a mesma coisa: uma perde tudo,
@@ -91,8 +113,11 @@ def coletar(raiz):
                     a["erros"].append({"rodada": arq.name, "tipo": "sem fontes",
                                        "detalhe": "respondeu sem nenhuma URL"})
                 if r.get("reprovadas_sem_rastro"):
-                    a["erros"].append({"rodada": arq.name, "tipo": "reprovadas sem rastro",
-                                       "detalhe": "fontes reprovadas só na lista final, sem trecho associado"})
+                    n = r.get("falhas_duras_sem_rastro")
+                    n = n if n is not None else "número não registrado nesta rodada:"
+                    a["erros"].append({"rodada": arq.name, "tipo": "falha dura sem rastro",
+                                       "detalhe": f"{n} fonte(s) com falha dura sem trecho localizável — "
+                                                  "quarentena da afirmação, não do agente"})
                 # Por que cada URL caiu: é o que permite ver se o motor melhora ou piora.
                 for _, reg in (r.get("urls_problematicas") or {}).items():
                     est = reg.get("estado", "?")
@@ -112,6 +137,7 @@ def coletar(raiz):
                 "rotulo": a["rotulo"],
                 "urls": a["urls"],
                 "reprovadas": a["reprovadas"],
+                "sinais_fracos": a["sinais_fracos"],
                 "custo": round(a["custo"], 4),
                 "execucoes": a["execucoes"],
                 "incidentes": round(a["incidentes"], 1),
@@ -139,11 +165,12 @@ def agregar(linhas, lim):
     for l in linhas:
         m = motores.setdefault(l["modelo"], {
             "rotulo": l["rotulo"], "pesquisas": set(), "urls": 0, "reprovadas": 0,
+            "sinais_fracos": 0,
             "custo": 0.0, "execucoes": 0, "incidentes": 0, "afirmacoes": 0,
             "confirmadas": 0, "tem_contrib": False})
         m["pesquisas"].add(l["pesquisa"])
-        for k in ("urls", "reprovadas", "execucoes", "incidentes"):
-            m[k] += l[k]
+        for k in ("urls", "reprovadas", "sinais_fracos", "execucoes", "incidentes"):
+            m[k] += l.get(k, 0) or 0
         m["custo"] += l["custo"]
         if l["afirmacoes"]:
             m["tem_contrib"] = True
@@ -214,6 +241,7 @@ def main():
         registro = {
             "data": hoje, "modelo": modelo, "rotulo": m["rotulo"],
             "pesquisas": m["pesquisas"], "urls": m["urls"], "reprovadas": m["reprovadas"],
+            "sinais_fracos": m["sinais_fracos"],
             "precisao_fonte": round(m["precisao_fonte"], 4) if m["precisao_fonte"] is not None else None,
             "taxa_confirmacao": round(m["taxa_confirmacao"], 4) if m["taxa_confirmacao"] is not None else None,
             "confiabilidade": round(m["confiabilidade"], 4) if m["confiabilidade"] is not None else None,
@@ -232,6 +260,11 @@ def main():
                   "nunca sobrescrita, para acompanhar evolução. historico = uma linha por "
                   "motor por pesquisa, com os erros e o motivo de cada URL reprovada. "
                   "Limiares em config.json; nada aqui é escrito à mão."),
+        "_reprovadas": ("'reprovadas' conta só falha dura: URL inexistente, inventada, "
+                        "suspeita ou removida. 'sinais_fracos' conta fora do tema e "
+                        "inconclusiva, que medem a conferência e não a citação, e por isso "
+                        "não entram na precisão. Separação feita em 12/08/2026; séries "
+                        "anteriores a essa data somavam os dois e subestimam a precisão."),
         "limiares_usados": lim,
         "motores": {k: {x: y for x, y in v.items()} for k, v in motores.items()},
         "serie_notas": serie,
@@ -266,11 +299,17 @@ def main():
         if datas:
             ant = {x["modelo"]: x for x in serie if x["data"] == datas[-1]}
             log(f"\nVARIAÇÃO DO ÍNDICE desde {datas[-1]}")
+            if datas[-1] < QUEBRA_DE_SERIE:
+                log(f"  A régua mudou em {QUEBRA_DE_SERIE}: 'fora do tema' e 'inconclusiva' deixaram")
+                log("  de contar como erro de citação. A diferença abaixo mede a régua, e não o")
+                log("  motor. Comparação de desempenho só a partir da próxima medição.")
             for modelo, m in ordem:
                 a = ant.get(modelo)
                 if a and a.get("indice") is not None and m["indice"] is not None:
                     d = m["indice"] - a["indice"]
                     seta = "subiu" if d > 0.05 else "caiu" if d < -0.05 else "estável"
+                    if datas[-1] < QUEBRA_DE_SERIE:
+                        seta = "régua mudou"
                     log(f"  {m['rotulo'][:30]:30} {a['indice']:>5} -> {m['indice']:>5}  ({seta})")
                 else:
                     log(f"  {m['rotulo'][:30]:30} sem medição anterior")

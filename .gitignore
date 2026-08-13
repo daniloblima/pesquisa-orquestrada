@@ -25,3 +25,6 @@ design_guidelines.md
 # Medições de qualidade: dado de uso, não do produto. O histórico cita os temas
 # das pesquisas feitas, e quem instala deve começar a própria série do zero.
 skill/qualidade-motores.json
+
+# Backlog de problemas: cita temas e URLs das pesquisas reais, que é dado de uso.
+BACKLOG.md
