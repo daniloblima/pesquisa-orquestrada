@@ -26,7 +26,7 @@ DESTINO = RAIZ_SKILL / "qualidade-motores.json"
 # A gravidade de cada estado é definida num lugar só, em buscar.py, porque a régua e o
 # medidor precisam concordar. Duplicar a lista aqui seria criar duas verdades.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from buscar import FALHAS_DURAS, SINAIS_FRACOS  # noqa: E402
+from verificacao import FALHAS_DURAS, SINAIS_FRACOS, problemas_gravados  # noqa: E402
 
 # Data em que a régua mudou. Nota medida antes disto somava falso positivo de tema e
 # falha de rede do verificador na conta de erro de citação, então número anterior e
@@ -90,7 +90,7 @@ def coletar(raiz):
                 # 12/08/2026, 103 eram desses dois estados, com falso positivo comprovado
                 # num e falha de rede do próprio verificador no outro. Contá-las derrubava
                 # a precisão de todos os motores e virou base de decisão sobre composição.
-                probs = r.get("urls_problematicas") or {}
+                probs = problemas_gravados(pasta, arq.name, r.get("slot"), r)
                 a["reprovadas"] += sum(1 for reg in probs.values()
                                        if reg.get("estado") in FALHAS_DURAS)
                 a["sinais_fracos"] += sum(1 for reg in probs.values()
@@ -119,7 +119,7 @@ def coletar(raiz):
                                        "detalhe": f"{n} fonte(s) com falha dura sem trecho localizável — "
                                                   "quarentena da afirmação, não do agente"})
                 # Por que cada URL caiu: é o que permite ver se o motor melhora ou piora.
-                for _, reg in (r.get("urls_problematicas") or {}).items():
+                for _, reg in probs.items():
                     est = reg.get("estado", "?")
                     a["reprovadas_detalhe"][est] = a["reprovadas_detalhe"].get(est, 0) + 1
 
@@ -133,6 +133,10 @@ def coletar(raiz):
             linhas.append({
                 "pesquisa": pasta.name,
                 "data": meta.get("data") or pasta.name[:10],
+                # Tema vem do meta.json escrito pela skill. Sem ele, o nome da pasta serve
+                # de aproximação: um motor pode ser bom em regulação e ruim em literatura
+                # acadêmica, e a régua global mistura os dois.
+                "tema": (meta.get("tema_curto") or meta.get("area") or "").strip().lower(),
                 "modelo": modelo,
                 "rotulo": a["rotulo"],
                 "urls": a["urls"],
@@ -274,6 +278,20 @@ def main():
 
     ordem = sorted(motores.items(), key=lambda kv: -(kv[1]["indice"] or 0))
 
+    # Por tema, e só com massa. Reportar tema com uma pesquisa só trocaria uma régua
+    # imprecisa por várias.
+    por_tema = {}
+    for l in linhas:
+        if not l.get("tema"):
+            continue
+        d = por_tema.setdefault(l["tema"], {})
+        m = d.setdefault(l["modelo"], {"rotulo": l["rotulo"], "urls": 0, "reprovadas": 0,
+                                       "pesquisas": set()})
+        m["urls"] += l["urls"]
+        m["reprovadas"] += l["reprovadas"]
+        m["pesquisas"].add(l["pesquisa"])
+    MASSA_MINIMA = 3
+
     if not args.resumo:
         log(f"\n{len(linhas)} medições em {len({l['pesquisa'] for l in linhas})} pesquisas\n")
         log(f"{'MOTOR':30} {'PESQ':>4} {'URLs':>5} {'PRECISÃO':>9} {'CONFIRM':>8} {'CONFIAB':>8} {'ÍNDICE':>7}  FAIXA")
@@ -284,6 +302,22 @@ def main():
             log(f"{m['rotulo'][:30]:30} {m['pesquisas']:>4} {m['urls']:>5} "
                 f"{pct(m['precisao_fonte']):>9} {pct(m['taxa_confirmacao']):>8} "
                 f"{pct(m['confiabilidade']):>8} {str(m['indice'] or '—'):>7}  {m['faixa_geral']}")
+
+        maduros = {tema: d for tema, d in por_tema.items()
+                   if max((len(m["pesquisas"]) for m in d.values()), default=0) >= MASSA_MINIMA}
+        if maduros:
+            log("\nPOR TEMA (só temas com 3+ pesquisas)")
+            for tema, d in sorted(maduros.items()):
+                log(f"  {tema}")
+                for modelo, m in sorted(d.items(), key=lambda kv: -kv[1]["urls"]):
+                    prec = (m["urls"] - m["reprovadas"]) / m["urls"] if m["urls"] else None
+                    log(f"    {m['rotulo'][:28]:28} {len(m['pesquisas'])} pesq · "
+                        f"{m['urls']:>4} URLs · precisão {prec:.0%}" if prec is not None else
+                        f"    {m['rotulo'][:28]:28} sem URLs")
+        elif por_tema:
+            faltam = sorted(por_tema)
+            log(f"\nPOR TEMA: ainda sem massa. Temas registrados: {', '.join(faltam)} "
+                f"(mínimo {MASSA_MINIMA} pesquisas por tema)")
 
         c = lim["precisao_fonte"]
         log(f"\nRéguas atuais (config.json, não mexem em motor nenhum):")

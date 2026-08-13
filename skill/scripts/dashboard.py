@@ -27,7 +27,7 @@ RAIZ_SKILL = Path(__file__).resolve().parent.parent
 # A gravidade de cada estado é definida num lugar só, em buscar.py. Painel e medidor
 # precisam usar a mesma régua, senão publicam números diferentes sobre o mesmo dado.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from buscar import FALHAS_DURAS, SINAIS_FRACOS  # noqa: E402
+from verificacao import FALHAS_DURAS, SINAIS_FRACOS, problemas_gravados  # noqa: E402
 
 
 def log(etapa, mensagem):
@@ -68,15 +68,16 @@ def coletar(pasta):
     for nome in ("r1.json", "r2.json"):
         d = ler_json(pasta / nome)
         if d:
-            rodadas.append(d)
+            rodadas.append((nome, d))
 
-    # Rodadas avulsas, como a recuperação de um agente que falhou.
+    # Rodadas avulsas, como a recuperação de um agente que falhou. Arquivo de verificação
+    # não é rodada: ele é o veredito sobre uma.
     for extra in sorted(pasta.glob("*.json")):
-        if extra.name in ("r1.json", "r2.json", "meta.json"):
+        if extra.name in ("r1.json", "r2.json", "meta.json") or extra.name.endswith("_verificacao.json"):
             continue
         d = ler_json(extra)
         if d and "resultados" in d:
-            rodadas.append(d)
+            rodadas.append((extra.name, d))
 
     if not rodadas:
         return None
@@ -87,7 +88,7 @@ def coletar(pasta):
     custo = 0.0
     duracao = 0.0
 
-    for r in rodadas:
+    for arq_nome, r in rodadas:
         custo += r.get("custo_real_usd", 0.0) or 0.0
         duracao += r.get("duracao_s", 0.0) or 0.0
         for res in r.get("resultados", []):
@@ -120,7 +121,7 @@ def coletar(pasta):
             # ele publicando um número e o qualidade.py publicando outro é pior que os
             # dois errados juntos — em 12/08/2026 o painel mostrou 43 reprovadas do Grok
             # contra 12 medidas pelo script, no mesmo minuto.
-            probs = res.get("urls_problematicas") or {}
+            probs = problemas_gravados(pasta, arq_nome, res.get("slot"), res)
             info["reprovadas"] = info.get("reprovadas", 0) + sum(
                 1 for r in probs.values() if r.get("estado") in FALHAS_DURAS)
             info["sinais_fracos"] = info.get("sinais_fracos", 0) + sum(
@@ -154,7 +155,7 @@ def coletar(pasta):
         "data": data,
         "tema": meta.get("tema") or titulo_do_relatorio(pasta) or tema_pelo_nome(pasta),
         "objetivo": meta.get("objetivo", ""),
-        "modo": meta.get("modo") or (rodadas[0].get("modo", "")),
+        "modo": meta.get("modo") or (rodadas[0][1].get("modo", "")),
         "rodadas": len(rodadas),
         "custo": round(custo, 4),
         "duracao_min": round(duracao / 60, 1),

@@ -1894,6 +1894,95 @@ sustentava.
 
 ---
 
+## [2026-08-13 17:31] — v2: três skills, verificação separada da coleta, e o que a coleta não media
+
+### OBJETIVO
+
+Executar o `DESENHO_v2.md`, aprovado depois da conversa que redefiniu o produto. A frase que
+organiza tudo: coletar é commodity, e o valor está em dizer se o que veio presta. O sistema
+verificava procedência e não verificava verdade.
+
+### CAMADA ESTRUTURAL — três partes com fronteira em disco
+
+`buscar.py` deixou de verificar. Ele coleta, grava e sai. `verificacao.py` recebeu as 680 linhas
+de régua que viviam dentro dele, e `verificar.py` é o comando que roda sobre uma pasta já
+coletada — sem custo, quantas vezes se quiser, inclusive em pesquisa antiga.
+
+Esse é o ponto da separação e não é estético. Nos dois dias anteriores, cada ajuste de régua
+exigia scripts avulsos para medir efeito sobre o acervo, porque a única forma de rodar a
+verificação era comprando uma pesquisa nova.
+
+Três skills, com os scripts num lugar só: `/pesquisa` (clarificação, coleta, rodada 2, redação),
+`/verificar` (o miolo) e `/qualidade` (medição, fora do fluxo). Symlinks em `~/.claude/skills/`.
+
+Compatibilidade: `problemas_gravados()` lê o veredito do arquivo separado quando ele existe e do
+campo embutido quando não existe. As sete pesquisas do acervo continuam medindo igual — conferido,
+os quatro índices não mudaram um dígito.
+
+### CAPACIDADES NOVAS
+
+**Coerência interna.** `divergencias_numericas()` extrai medidas com unidade de cada resposta,
+ancora cada uma no vocabulário raro ao redor e compara entre motores. Detectou, no acervo: 35%
+contra 8,8% sobre o mesmo efeito, e 46% contra 100% de tonelagem a vapor. É o sinal de erro que
+não exige ser especialista, e é o que teria pego os três números derrubados em 12/08.
+`unidades_trocadas()` cobre o caso irmão, percentual contra valor absoluto.
+
+Dois filtros que nasceram do próprio teste: âncora precisa ser rara no conjunto, senão "pessoa" e
+"probabilidade" casam medidas sem relação; e série histórica com anos diferentes não é
+divergência. Com eles, uma pesquisa de regulação saiu de 43 pares para 8.
+
+**Independência por origem.** `origens()` conta domínios distintos, compartilhados e exclusivos
+por motor. Consenso deixa de ser quantos motores disseram e passa a ser quantas origens
+sustentam. Medido no acervo: sobreposição entre 0,11 e 0,27, ou seja, a maior parte do material
+vem de origens que só um motor alcançou.
+
+**Cinco gatilhos de decisão.** Afirmação negativa, consenso de origem única, incoerência,
+divergência de escola e fonte atrás de muro. Saem em `r1_decisoes.md`, no máximo dez itens, cada
+um com uma pergunta fechada.
+
+**Criticidade como eixo separado de profundidade.** Correção do Danilo: os modos nasceram por
+custo, não por confiabilidade. Agora são duas perguntas na clarificação. Profundidade governa
+custo; criticidade governa quantas origens o consenso exige, se os gatilhos param o fluxo e se a
+fonte primária é obrigatória. Corroborar um dado é rápido e crítico; levantar exemplos é profundo
+e pouco crítico.
+
+**Parecer independente.** `references/prompt-parecer.md`, para subagente com contexto isolado que
+lê o material bruto sem ver a análise de quem coletou. Roda sempre, nas duas rodadas, salvo
+pedido de pular. É a formalização do que quatro auditorias adversariais provaram em dois dias.
+
+**Memória de afirmações.** `memoria.py`, JSONL de uma linha por fato, consultado por busca antes
+de disparar pesquisa nova, nunca lido inteiro — o erro do arquivo de conexões do brain v2, que
+chegou a duas mil linhas e consumia o contexto numa consulta. Porta estreita: só entra o que teve
+duas origens independentes ou validação humana. Campos de validade: `vale_ate` e `invalida_se`.
+
+Primeiro registro gravado: o art. 23, § 6º da REN ANEEL 1.000/2021, que custou uma pesquisa
+inteira em 04/08 e não custará outra.
+
+**Régua por tema.** `qualidade.py` registra a área de cada pesquisa e reporta por tema a partir de
+três pesquisas naquele tema. Antes disso, seria trocar uma régua imprecisa por várias.
+
+### O QUE NÃO ENTROU
+
+Agente chefe de equipe, agente redator separado e agente pesquisador em Claude. O ganho de dividir
+em agentes é isolar contexto para quebrar viés, e isso se resolve com um papel novo — o
+verificador independente. Os outros acrescentariam passo sem acrescentar independência.
+
+### LIÇÕES
+
+A fronteira certa entre partes de um sistema é o artefato em disco, não a etapa mental. Enquanto
+coleta e verificação compartilhavam execução, melhorar a régua custava dinheiro; agora custa um
+comando.
+
+Capacidade que mede verdade é diferente de capacidade que mede procedência, e a segunda estava
+madura enquanto a primeira não existia. Um relatório com 100% das URLs válidas pode estar errado
+do começo ao fim, e nada no sistema anterior notaria.
+
+Filtro de ruído se calibra contra o acervo, não contra a intuição. Os dois cortes que salvaram a
+detecção de coerência — âncora rara e ano incompatível — só apareceram rodando sobre as sete
+pesquisas reais.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

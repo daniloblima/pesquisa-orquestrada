@@ -38,9 +38,16 @@ Chave do OpenRouter em `~/.claude/.env`, permissão 600, fora de qualquer reposi
 
 ## Os quatro scripts
 
+> Reorganizado em 13/08/2026: são três skills, e os scripts moram todos em `skill/scripts/`.
+> `/pesquisa` coleta e redige, `/verificar` confere o material coletado e `/qualidade` mede os
+> motores. Ver `DESENHO_v2.md` e a entrada de 13/08 17:31 no CHANGELOG.
+
 | Script | O que faz | Gasta crédito |
 |---|---|---|
-| `buscar.py` | Chama os motores, verifica as URLs, extrai afirmações a revalidar | **sim, é o único** |
+| `buscar.py` | Chama os motores e grava a resposta. Só isso | **sim, é o único** |
+| `verificar.py` | Confere fontes, coerência e independência sobre uma pasta já coletada | não |
+| `verificacao.py` | A régua em si, importada por quem precisa dela | não |
+| `memoria.py` | Afirmações já estabelecidas, uma linha por fato | não |
 | `qualidade.py` | Mede precisão, confirmação e confiabilidade por motor; deriva o papel de cada um | não |
 | `dashboard.py` | Gera o painel HTML de todas as pesquisas | não |
 | `motores.py` | Catálogo do OpenRouter, classifica só o diferencial a cada consulta | não |

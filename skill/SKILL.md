@@ -57,7 +57,28 @@ Use `AskUserQuestion` para conduzir, com opções concretas em vez de perguntas 
 - Perspectiva contrária que ele queira entender mesmo se enfraquecer a hipótese
 - Recorte temporal e geográfico, quando fizer diferença
 
-Pergunte também o modo, se ele não disse: `rapida`, `normal` ou `profunda`. O padrão é `normal`.
+**Dois eixos, e são independentes.** Pergunte os dois, em abas separadas.
+
+*Profundidade* — `rapida`, `normal` ou `profunda`, padrão `normal`. Governa custo: quantos
+motores, teto de tokens, resultados por busca.
+
+*Criticidade* — `baixa`, `media` ou `alta`, padrão `media`. Governa rigor: quantas origens
+independentes o consenso exige, se os gatilhos param o fluxo e se a conferência em fonte primária
+é obrigatória.
+
+Os dois se combinam livremente, e confundi-los estraga a pesquisa nas duas pontas. Corroborar um
+dado específico é rápido com criticidade alta. Levantar exemplos de marketing B2B em empresas
+centenárias é profundo com criticidade baixa.
+
+**Antes de qualquer coisa, consulte a memória.** O que já foi estabelecido não se compra de novo:
+
+```bash
+python3 ~/.claude/skills/pesquisa/scripts/memoria.py buscar <termos do tema>
+```
+
+Se houver afirmação registrada sobre o tema, mostre ao Danilo antes de montar o prompt — com a
+data e o aviso de vencimento, quando houver. Pesquisa que redescobre o que já se sabia é dinheiro
+gasto duas vezes, e pior, pode contradizer o próprio acervo sem ninguém notar.
 
 **A última aba é sempre a escolha dos motores.** Monte-a a partir da lista `motores` do `config.json`, com `multiSelect: true`, mostrando rótulo, índice e custo típico. Os marcados com `padrao: true` são a sugestão.
 
@@ -102,13 +123,12 @@ Apresente o valor ao Danilo e espere o aval. Se o modo for `profunda`, avise que
 python3 ~/.claude/skills/pesquisa/scripts/buscar.py \
   --prompt-file <pasta>/prompt_mestre.md \
   --saida <pasta>/r1.json --rodada 1 --modo <modo> \
-  --motores grok,gpt,gemini \
-  --termos "termo1,termo2,termo3,termo4,termo5"
+  --motores grok,gpt,perplexity
 ```
 
 `--motores` recebe os ids escolhidos na clarificação. Omitir roda os marcados como padrão no `config.json`, nunca os demais — é o que impede um motor caro de entrar por esquecimento.
 
-`--termos` liga a conferência de assunto: o script baixa cada página e verifica se ela ao menos fala do tema. Página que existe e responde, mas não menciona nenhum termo, recebe o sinal fraco `fora do tema` — é o que acontece quando o modelo acerta o domínio e inventa o caminho, ou cita a home de um site em vez do artigo. Não custa API e leva segundos.
+O `buscar.py` só coleta. A conferência das fontes acontece no passo seguinte, pela `/verificar`, e é ali que se escolhem os termos do tema.
 
 Escolha de cinco a oito substantivos centrais do tema, com quatro letras ou mais. Nomes próprios, termos técnicos e siglas por extenso funcionam bem. Evite palavras genéricas como "análise" ou "mercado", que aparecem em qualquer página e não separam nada. Acentuação não importa.
 
@@ -121,6 +141,24 @@ Escolha de cinco a oito substantivos centrais do tema, com quatro letras ou mais
 O script grava `r1.json` e um markdown por motor, nomeado pelo id: `r1_grok.md`, `r1_gpt.md`, `r1_gemini.md`. **Leia os três markdown, um por vez** — não carregue o JSON inteiro, que é grande e repete o conteúdo.
 
 Confira no log quais agentes falharam e quais vieram sem fontes. Se dois ou mais falharem, pare e relate: não há validação cruzada possível com um motor só.
+
+### Passo 3a — Verificação, obrigatória antes de qualquer leitura de conteúdo
+
+Invoque a skill `/verificar` sobre a pasta. Ela roda a conferência mecânica e o parecer
+independente, e devolve `r1_verificacao.json` e `r1_decisoes.md`.
+
+```bash
+python3 ~/.claude/skills/pesquisa/scripts/verificar.py <pasta> \
+  --rodada 1 --termos "termo1,termo2,termo3" --criticidade <criticidade>
+```
+
+**Leia `r1_decisoes.md` antes de ler qualquer resposta de motor.** Se houver itens ali, leve-os
+ao Danilo agora, no formato em que estão: no máximo dez, cada um com uma pergunta fechada. Em
+criticidade alta, nada segue sem as respostas.
+
+O parecer independente vem de subagente com contexto isolado, seguindo
+`references/prompt-parecer.md`. Ele lê o material bruto sem ver a sua análise. Onde a leitura
+dele divergir da sua, a divergência vira item de decisão — não resolva sozinho.
 
 ### Passo 3b — Como tratar cada motor nesta pesquisa
 
@@ -184,6 +222,11 @@ python3 ~/.claude/skills/pesquisa/scripts/buscar.py \
 
 Leia os markdown da rodada 2 do mesmo jeito.
 
+### Passo 5a — Verificar a rodada 2
+
+Mesmo comando do passo 3a, com `--rodada 2`. A rodada 2 é onde entram as fontes que vão
+sustentar o que sobrou em dúvida: verificá-la importa mais, não menos.
+
 ### Passo 5b — Conferência em fonte primária
 
 Obrigatório quando a pesquisa é sobre norma, regulamento, lei ou contrato, e sempre que uma conclusão se apoiar em ausência — não existe vedação, não há precedente, nada impede.
@@ -205,6 +248,24 @@ Escreva seguindo `references/formato-relatorio.md`. Salve em:
 ```
 ~/Experimentos/pesquisa-orquestrada/outputs/AAAA-MM-DD_slug-do-tema/relatorio.md
 ```
+
+### Passo 6b — O que fica na memória
+
+Depois do relatório aprovado, grave as afirmações que valem além desta pesquisa:
+
+```bash
+python3 ~/.claude/skills/pesquisa/scripts/memoria.py inserir \
+  --fato "..." --valor "..." --tema "energia/regulação" \
+  --fonte <URL da fonte primária> --pesquisa <pasta> --origens 2 \
+  --vale-ate AAAA-MM-DD --invalida-se "o que precisa mudar no mundo"
+```
+
+A porta é estreita de propósito: só entra o que teve duas origens independentes ou o que o Danilo
+validou (`--validado`). Uma pesquisa boa rende de cinco a quinze linhas. O resto continua no
+relatório, que não se apaga.
+
+Nada vai para o brain-v3 automaticamente. Se um fato sustentar decisão de projeto, ele entra lá
+pelo `/salve`, com a curadoria do Danilo.
 
 ### Passo 7 — Metadados e painel
 
