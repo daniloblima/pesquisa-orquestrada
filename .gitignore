@@ -12,14 +12,8 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Documentos de planejamento interno — ficam locais, fora do repositório público
-PRD.md
-tasks.md
-rules.md
-implementation_plan.md
-design_guidelines.md
-
-# Notas de trabalho entre sessões — internas
+# Planejamento interno e notas de trabalho — ficam locais, fora do repositório público
+_planejamento/
 *NOTA*.md
 
 # Medições de qualidade: dado de uso, não do produto. O histórico cita os temas
@@ -31,3 +25,6 @@ BACKLOG.md
 
 # Desenho de arquitetura em discussão — planejamento interno
 DESENHO_v2.md
+
+# Handoff de sessão: cita temas e achados de pesquisas reais
+HANDOFF_*.md

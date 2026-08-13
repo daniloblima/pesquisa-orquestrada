@@ -1,6 +1,6 @@
 ---
 name: pesquisa
-description: Pesquisa profunda com validação cruzada entre três motores de busca independentes (xAI, OpenAI, Google, com Perplexity opcional) via OpenRouter. O Claude Code orquestra, extrai o que foi confirmado por mais de uma fonte, dispara uma segunda rodada para resolver divergências e entrega relatório em markdown com todas as referências. Usar quando o pedido for de pesquisa que precisa ser confiável, com fontes, sobre tema factual ou de mercado. Triggers "pesquisa", "/pesquisa", "pesquisa profunda", "pesquisa orquestrada", "levanta as fontes sobre".
+description: Pesquisa profunda com validação cruzada entre motores de busca independentes via OpenRouter. Conduz a clarificação, dispara os motores, chama a skill verificar antes de usar o material, resolve divergências numa segunda rodada e entrega relatório com todas as referências e o grau de confirmação de cada afirmação. Usar quando o pedido for de pesquisa que precisa ser confiável, com fontes, sobre tema factual ou de mercado. Triggers "pesquisa", "/pesquisa", "pesquisa profunda", "pesquisa orquestrada", "levanta as fontes sobre".
 ---
 
 # /pesquisa — pesquisa com validação cruzada

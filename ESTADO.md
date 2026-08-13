@@ -135,7 +135,8 @@ O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o his
 
 ## Como retomar
 
-1. Ler este arquivo, e o `BACKLOG.md` se o trabalho for de correção.
+1. Ler `HANDOFF_2026-08-13.md` primeiro, que conta os dois dias em que a skill foi
+   reorganizada em três, depois este arquivo, e o `BACKLOG.md` se o trabalho for de correção.
 2. `python3 skill/scripts/qualidade.py` — estado atual dos motores, variação desde a última medição e erros recentes.
 3. Abrir `outputs/dashboard.html` se quiser o quadro visual.
 4. `git log --oneline` para o que mudou por último.
