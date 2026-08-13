@@ -269,15 +269,22 @@ pelo `/salve`, com a curadoria do Danilo.
 
 ### Passo 7 — Metadados e painel
 
-Grave `meta.json` na mesma pasta. É o que alimenta o painel:
+Grave `meta.json` na mesma pasta. É o que alimenta o painel e a régua por tema.
+
+O campo `area` é o que permite medir motor por domínio de conhecimento — um motor pode ser bom em
+regulação brasileira e ruim em literatura acadêmica. Use rótulo curto e reutilizável, para que
+pesquisas do mesmo domínio caiam no mesmo balde: `energia/regulação`, `varejo`, `infraestrutura`,
+`história econômica`, `macroeconomia`. Sem ele, a régua por tema nunca liga.
 
 ```json
 {
   "data": "AAAA-MM-DD",
   "tema": "título curto da pesquisa",
+  "area": "energia/regulação",
   "objetivo": "uma linha, saída da clarificação",
   "hipotese": "a hipótese testada",
   "modo": "normal",
+  "criticidade": "media",
   "afirmacoes_fonte_unica": 0,
   "divergencias_nao_resolvidas": 0,
   "contribuicao_por_motor": {
