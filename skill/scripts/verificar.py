@@ -240,7 +240,7 @@ def origens(resultados, verif):
     }
 
 
-def concentracao(resultados, verif):
+def concentracao(resultados, verif, sem_rede=False):
     """Os domínios que sustentam a pesquisa, e não apenas aparecem nela.
 
     `origens` conta domínios distintos e responde "há variedade de fontes?". Não responde
@@ -285,6 +285,13 @@ def concentracao(resultados, verif):
                           "fatia_por_motor": fatias, "maior_fatia": maior,
                           "compartilhado": len(motores) > 1})
     eixos.sort(key=lambda e: (-e["maior_fatia"], e["dominio"]))
+
+    # Só os eixos são sondados, e são um a três por rodada. A pergunta "quem publica isto?"
+    # só interessa onde a pesquisa se apoia.
+    if not sem_rede:
+        for e in eixos:
+            e["cartao"] = V.cartao_do_dominio(e["dominio"])
+
     return {"mencoes_por_motor": mencoes_por_motor, "eixos": eixos}
 
 
@@ -342,7 +349,7 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
     # medidas do conjunto
     coerencia = divergencias_numericas(resultados) + unidades_trocadas(resultados)
     ind = origens(resultados, saida_agentes)
-    conc = concentracao(resultados, saida_agentes)
+    conc = concentracao(resultados, saida_agentes, sem_rede)
 
     for c in coerencia[:5]:
         decisoes.append({
@@ -356,14 +363,19 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
         if not e["compartilhado"]:
             continue
         quem = ", ".join(f"{s} {e['fatia_por_motor'][s]:.0%}" for s in e["motores"])
-        decisoes.append({
+        item = {
             "gatilho": "eixo compartilhado",
             "assunto": e["dominio"],
             "pergunta": f"O domínio {e['dominio']} é invocado {e['mencoes']} vezes como "
                         f"prova nesta rodada, por mais de um motor ({quem}). A "
                         "concordância entre eles não valida essa parte, porque leram a "
-                        "mesma origem. Quem publica esse domínio, e ele ganha algo com a "
-                        "afirmação? Mando o ponto para a rodada 2 com outra origem?"})
+                        "mesma origem. Esse domínio é parte interessada na afirmação? "
+                        "Mando o ponto para a rodada 2 com outra origem?"}
+        # Como o site se apresenta, sem julgamento: quem lê decide em dois segundos.
+        if e.get("cartao"):
+            c = e["cartao"]
+            item["publica"] = " — ".join(x for x in (c.get("titulo"), c.get("descricao")) if x)
+        decisoes.append(item)
 
     exigidas = ORIGENS_EXIGIDAS.get(criticidade, 2)
     if ind["dominios_distintos"] and ind["sobreposicao"] is not None:
@@ -414,6 +426,8 @@ def escrever_decisoes(pasta, rodada, pacote):
             linhas.append(f"Motor: {d['motor']}")
         if d.get("url"):
             linhas.append(f"Fonte: {d['url']}")
+        if d.get("publica"):
+            linhas.append(f"Como o site se apresenta: {d['publica']}")
         if d.get("assunto"):
             linhas.append(f"Assunto: {d['assunto']}")
         if d.get("valores"):
@@ -444,6 +458,10 @@ def escrever_decisoes(pasta, rodada, pacote):
             quem = ", ".join(f"{s} {e['fatia_por_motor'][s]:.0%}" for s in e["motores"])
             marca = " — **citado por mais de um motor**" if e["compartilhado"] else ""
             linhas.append(f"- `{e['dominio']}`: {e['mencoes']} menções ({quem}){marca}")
+            c = e.get("cartao") or {}
+            apresenta = " — ".join(x for x in (c.get("titulo"), c.get("descricao")) if x)
+            if apresenta:
+                linhas.append(f"  - {apresenta}")
     (pasta / f"r{rodada}_decisoes.md").write_text("\n".join(linhas) + "\n", encoding="utf-8")
 
 

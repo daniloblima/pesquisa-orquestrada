@@ -198,7 +198,11 @@ Cuidado com falso consenso: dois agentes citando a mesma matéria não são duas
 
 **A `/verificar` mede isso desde 21/08/2026, e o item se chama `eixo compartilhado`.** Ela conta quantas vezes cada domínio é invocado como prova — endereço escrito ao lado da afirmação ou marcador numerado — e acusa o domínio que passa de 20% das provas de algum motor e é citado por mais de um. Leia a seção "De quem a pesquisa depende" no fim do `r_decisoes.md` mesmo quando nenhum item disparar.
 
-**Contar motores não é contar fontes, e a sobreposição agregada não protege.** Na pesquisa de valor residual de ASIC, a sobreposição era 0,176 e até tranquilizava, enquanto a espinha numérica inteira da depreciação vinha de um domínio só, `noxhash.com`, citado pelos dois motores. Ele passou nas quatro camadas de verificação — existe, tem forma de fonte, não foi confessado como construído e trata do tema. O que ele é: uma plataforma que aluga máquina ASIC por assinatura, ou seja, quem ganha ao mostrar que comprar hardware deprecia rápido. Nenhuma camada pergunta quem publica, e por isso o item de decisão pergunta.
+**Contar motores não é contar fontes, e a sobreposição agregada não protege.** Na pesquisa de valor residual de ASIC, a sobreposição era 0,176 e até tranquilizava, enquanto a espinha numérica inteira da depreciação vinha de um domínio só, `noxhash.com`, citado pelos dois motores. Ele passou nas quatro camadas de verificação — existe, tem forma de fonte, não foi confessado como construído e trata do tema. O que ele é: uma plataforma que aluga máquina ASIC por assinatura, ou seja, quem ganha ao mostrar que comprar hardware deprecia rápido.
+
+**Cada eixo vem com a linha "Como o site se apresenta", que é o título e a descrição da própria home.** Ali o `noxhash.com` se anuncia como "Cloud Mining Platform | Rent Mining Machines... Start from $20/mo", e a pergunta sobre interesse se responde sozinha. A linha **mostra e não julga**, de propósito: classificar interesse comercial por palavra-chave foi testado em 21/08/2026 e reprovado, porque `aneel.gov.br` casa "assinatura" e "preço" e seria acusada de parte interessada. Fonte primária levando carimbo de vendedor seria o erro do domínio raiz outra vez, na pior fonte possível para errar.
+
+**A ausência da linha não diz nada.** Domínio que recusa leitura automatizada não devolve cartão, e `sec.gov` é um deles. Sem cartão, a pergunta continua de pé e quem responde é você.
 
 Mostre ao Danilo um resumo curto do que foi consenso e do que vai para validação. Não peça aprovação, só informe e siga.
 

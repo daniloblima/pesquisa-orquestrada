@@ -27,6 +27,7 @@ import time
 import unicodedata
 import urllib.error
 import urllib.parse
+import html
 import urllib.request
 from datetime import datetime
 from urllib.parse import urlparse
@@ -291,6 +292,66 @@ def mencoes_de_fonte(texto, urls, citacoes=None):
         if n:
             conta[u] = conta.get(u, 0) + n
     return conta
+
+
+# Como o site se apresenta: o que o dono escreveu para aparecer na aba do navegador e no
+# resultado de busca. Não é análise, é a vitrine — e é o suficiente.
+_TITULO = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
+_DESCRICAO = (
+    re.compile(r'<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']', re.I | re.S),
+    re.compile(r'<meta[^>]+content=["\'](.*?)["\'][^>]+name=["\']description["\']', re.I | re.S),
+    re.compile(r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\'](.*?)["\']', re.I | re.S),
+)
+
+
+def cartao_do_dominio(dominio, timeout=15):
+    """Como o domínio se apresenta, em uma linha. `None` quando não dá para saber.
+
+    Existe para responder a pergunta que nenhuma camada de verificação fazia: quem publica
+    isto, e o que ele ganha com a afirmação? Em 21/08/2026 a espinha numérica de uma
+    pesquisa inteira se apoiava em `noxhash.com`, que passou nas quatro camadas — existe,
+    tem forma de fonte, não foi confessado como construído, trata do tema. O que ele é só
+    aparece na própria home: "Cloud Mining Platform | Rent Mining Machines... Start from
+    $20/mo". Um vendedor de aluguel de máquina, cujo interesse aponta na mesma direção da
+    afirmação que sustentava.
+
+    **Mostra, não julga.** Procurar sinal comercial por palavra-chave foi testado e
+    reprovado no mesmo dia: mesmo com fronteira de palavra, `aneel.gov.br` casa "assinatura"
+    e "preço" e seria acusada de parte interessada — a agência reguladora, que é a fonte
+    primária por excelência. Seria o erro do domínio raiz outra vez, agora contra a melhor
+    fonte que existe. Quem lê o cartão decide em dois segundos; quem classifica erra em
+    silêncio.
+    """
+    for esquema in ("https", "http"):
+        try:
+            req = urllib.request.Request(
+                f"{esquema}://{dominio}/",
+                headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                if "html" not in (r.headers.get("Content-Type") or "").lower():
+                    return None
+                bruto = r.read(150_000).decode("utf-8", "ignore")
+            break
+        except Exception:
+            if esquema == "http":
+                # Domínio que não responde não vira acusação. A ausência de cartão é
+                # ausência de informação, e o item de decisão segue com a pergunta.
+                return None
+
+    def limpo(m):
+        if not m:
+            return ""
+        return re.sub(r"\s+", " ", html.unescape(m.group(1))).strip()
+
+    titulo = limpo(_TITULO.search(bruto))
+    descricao = ""
+    for padrao in _DESCRICAO:
+        descricao = limpo(padrao.search(bruto))
+        if descricao:
+            break
+    if not titulo and not descricao:
+        return None
+    return {"titulo": titulo[:120], "descricao": descricao[:220]}
 
 
 def _linha_em(texto, pos):

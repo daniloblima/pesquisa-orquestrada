@@ -2160,6 +2160,87 @@ raiz; agora viram sinal fraco. O certo é não entrarem na contagem. Registrado 
 
 ---
 
+## [2026-08-21 14:54] — Achado H: a camada de procedência mostra, e não julga
+
+### OBJETIVO
+
+Achado H do backlog, declarado ali como "o buraco mais caro descoberto em 21/08" e a maior
+gravidade restante: nenhuma camada da verificação pergunta quem publica a fonte.
+
+### PROBLEMA
+
+`noxhash.com` sustentava a espinha numérica de depreciação de uma pesquisa inteira e passou
+nas quatro camadas: existe, tem forma de fonte real, não foi confessado como construído e
+trata do tema. As quatro respondem "esta página existe e fala do assunto?". Nenhuma responde
+"quem publica isto e o que ele ganha com a afirmação?".
+
+O que ele é, descoberto pelo Danilo numa busca manual: uma plataforma que aluga máquina ASIC
+por assinatura a partir de US$ 20 mensais. Quem vende aluguel ganha ao mostrar que comprar
+hardware deprecia rápido.
+
+### ANÁLISE / ROOT CAUSE
+
+A correção proposta no backlog era "buscar o que o domínio vende e devolver isso como item
+de decisão". Testada antes de implementar, e **reprovada**: procurar sinal comercial por
+palavra-chave na home acusa `aneel.gov.br`.
+
+Medido, primeiro sem fronteira de palavra e depois com. Sem fronteira, `rent` casa dentro de
+"corrente" e "diferente" — o mesmo bug de raiz que o `SKILL.md` já documenta para `--termos`,
+onde `mill` não pode alcançar "million". Com fronteira corrigida, a ANEEL ainda casa
+"assinatura" e "preço", que são assinatura de newsletter e preço de energia.
+
+Ou seja: a agência reguladora, fonte primária por excelência no domínio de trabalho do
+Danilo, sairia carimbada de parte interessada. Seria o erro do domínio raiz outra vez, agora
+contra a melhor fonte que existe.
+
+A saída estava escrita no próprio backlog, e eu tinha lido sem ver: **"Não precisa julgar;
+precisa mostrar."** No caso real, quem pegou o `noxhash.com` foi o Danilo, numa busca de dez
+segundos. Não faltou classificação, faltou a informação chegar até ele.
+
+### SOLUÇÃO
+
+`verificacao.py`, nova `cartao_do_dominio(dominio)`: baixa a home e extrai `<title>` e a
+meta description — o que o dono do site escreveu para aparecer na aba do navegador e no
+resultado de busca. Tenta https e depois http; domínio que não responde devolve `None`, e
+ausência de cartão nunca vira acusação.
+
+`verificar.py`: `concentracao()` sonda apenas os eixos, que são um a três por rodada, e
+respeita `--sem-rede`. O item de decisão e o painel "De quem a pesquisa depende" ganham a
+linha "Como o site se apresenta".
+
+`SKILL.md`: o parágrafo do eixo compartilhado ganha a linha do cartão, o registro de que
+classificar por palavra-chave foi testado e reprovado, e o aviso de que ausência de cartão
+não significa nada.
+
+### RESULTADOS
+
+Na pesquisa de ASIC, o item 4 passou a trazer:
+
+> Como o site se apresenta: NoxHash — Cloud Mining Platform | Rent Mining Machines & Earn
+> BTC — Rent Bitcoin mining machines powered by Antminer S21 & WhatsMiner M66S in our
+> Kazakhstan data center. Start from $20/mo. Free trial available.
+
+A pergunta sobre interesse se responde na leitura. E `aneel.gov.br` devolve "ANEEL — Agência
+Nacional de Energia Elétrica", sem acusação nenhuma, porque não há julgamento.
+
+`sec.gov` recusa leitura automatizada e devolve `None`. O item continua com a pergunta.
+
+Regressão contra HEAD: nenhuma URL mudou de estado, que é o esperado — o cartão acrescenta
+informação ao item de decisão e não mexe em classificação.
+
+### LIÇÕES APRENDIDAS
+
+**Mostrar é mais barato e mais seguro que classificar.** A camada que julga precisa acertar
+sozinha e erra em silêncio; a que mostra devolve uma linha e deixa o julgamento com quem tem
+contexto. O produto todo já é assim — a verificação não descarta fonte, ela leva a decisão
+ao Danilo — e a camada de procedência estava sendo desenhada contra esse desenho.
+
+**Correção proposta no backlog é hipótese, não especificação.** Esta foi escrita por quem
+tinha o caso na mão e ainda assim não sobreviveu ao primeiro teste. Testar antes de codar
+poupou um falso positivo permanente contra fonte primária.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão
