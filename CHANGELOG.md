@@ -2544,6 +2544,74 @@ quatro meses.
 
 ---
 
+## [2026-08-21 16:02] — A régua chega na hora de escolher os motores
+
+### OBJETIVO
+
+Achado F, última alta pendente, junto com a queixa do Danilo de que a aba de motores vinha
+com combinações prontas em escolha única em vez da lista para ele marcar.
+
+### PROBLEMA, E O DIAGNÓSTICO QUE ESTAVA ERRADO
+
+O backlog dizia que "o `config.json` não tem campo de custo por motor: cada entrada traz
+apenas `id`, `rotulo`, `indice` e `padrao`". Conferido antes de implementar:
+`custo_tipico_usd` está nos quatro motores desde 13/08, quatro ocorrências em
+`git show d8a6709:skill/config.json`. O campo não faltava.
+
+O problema real é outro, e explica os dois sintomas de uma vez: **a aba estava sendo montada
+à mão**, e a montagem divergiu do documento em dois pontos ao mesmo tempo — sem custo, que o
+`SKILL.md` pedia, e sem `multiSelect`, que ele também pedia.
+
+E havia um terceiro problema, esse estrutural: a régua de qualidade roda no passo 3b, com
+`--resumo`, **depois** da rodada 1. A escolha acontece no passo 1. O diferencial do projeto
+existia, funcionava, e não chegava na hora em que a decisão é tomada.
+
+### SOLUÇÃO
+
+`qualidade.py --escolha`: uma linha por motor com id, rótulo, índice de busca, custo típico
+por rodada, nota da série inteira, nota recente, quantas rodadas o motor truncou e o papel
+medido. Marca `*` nos de partida e `[herdada]` no que ainda não foi medido localmente.
+Silencia os blocos verbosos, então a saída é só a tabela.
+
+`SKILL.md`: a instrução da aba passou a começar pelo comando, com "copie a tabela, uma opção
+por linha, e nada além dela", e nomeia as três coisas que não se negociam — `multiSelect`
+com um item por motor, custo à vista, nota à vista junto do custo. Cada uma com o caso real
+que a motivou. E a saída para quem quer recomendar: **escrever a recomendação no texto da
+pergunta, com a razão, em vez de reduzir as opções.**
+
+### RESULTADOS
+
+```
+  id         rótulo                     índice       US$/rod   nota  recente  trunca  papel
+* grok       Grok 4.20 Multi-Agent      xAI             0.50   89.3     89.4    0/12  confirmação
+* gpt        GPT-5.6 Terra              OpenAI          0.18   79.7     79.7    3/16  confirmação com ressalva
+  gemini     Gemini 3.1 Pro             Google          0.18   72.5     72.6     0/9  confirmação com ressalva
+* perplexity Perplexity Deep Research   Perplexity      1.12   75.0     74.6   10/11  confirmação com ressalva
+```
+
+A coluna `trunca` foi acrescentada por causa do que a apuração de custo revelou hoje: o
+Perplexity cortou 10 das 11 rodadas medidas. Custa 1,12 por rodada, seis vezes o GPT, e
+quase nunca chega ao fim.
+
+Testado em instalação simulada sem série local: a tabela sai com as notas herdadas e a marca
+`[herdada]` em cada linha.
+
+Regressão contra HEAD: nenhuma URL mudou de estado.
+
+### LIÇÕES APRENDIDAS
+
+**Documento que precisa ser seguido à mão é seguido às vezes.** O `SKILL.md` mandava
+`multiSelect` e mandava mostrar custo, e a tela real não tinha nem um nem outro. A correção
+que funciona não é escrever mais forte, é entregar o resultado pronto — e só então escrever
+mais forte, para o que sobrou.
+
+**Diagnóstico de backlog se confere contra o código antes de virar correção.** É a segunda
+vez hoje: o achado D trazia uma contagem que não existia nos dados, e o F afirmava a falta de
+um campo que estava lá. Os dois achados continuavam válidos; as correções é que seriam
+outras.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

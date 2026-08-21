@@ -82,7 +82,21 @@ Se houver afirmação registrada sobre o tema, mostre ao Danilo antes de montar 
 data e o aviso de vencimento, quando houver. Pesquisa que redescobre o que já se sabia é dinheiro
 gasto duas vezes, e pior, pode contradizer o próprio acervo sem ninguém notar.
 
-**A última aba é sempre a escolha dos motores.** Monte-a a partir da lista `motores` do `config.json`, com `multiSelect: true`, mostrando rótulo, índice e custo típico. Os marcados com `padrao: true` são a sugestão.
+**A última aba é sempre a escolha dos motores, e ela se monta a partir deste comando:**
+
+```bash
+python3 ~/.claude/skills/pesquisa/scripts/qualidade.py --escolha
+```
+
+Ele devolve uma linha por motor com id, rótulo, índice de busca, custo típico por rodada, a nota da série inteira, a nota recente, quantas rodadas o motor truncou e o papel medido. **Copie a tabela para a aba, uma opção por linha, e nada além dela.**
+
+Três coisas não se negociam nessa aba, e as três já foram violadas na prática:
+
+- **`multiSelect: true`, com um item por motor.** Nunca combinações prontas em escolha única. Quem decide a composição é o Danilo, e oferecer pacotes fechados tira dele a decisão que a aba existe para fazer.
+- **Custo à vista.** Já vem no comando. Em 21/08/2026 ele pediu "ChatGPT e outro motor baratinho" e escolheu o Perplexity, que custa catorze vezes mais que o GPT — a informação existia no `config.json` e não chegou à tela.
+- **Nota à vista, junto do custo.** A régua de qualidade é o diferencial do projeto e rodava tarde demais: o `--resumo` é chamado no passo 3b, depois da rodada 1, quando o dinheiro já foi gasto. Mostrar só custo empurraria a escolha para o barato, o que é tão ruim quanto o contrário.
+
+Os marcados com `*` são sugestão de partida, não recomendação sua. Se quiser recomendar, escreva a recomendação **no texto da pergunta**, com a razão, em vez de reduzir as opções.
 
 Não há teto nem mínimo. O número de motores é consequência da escolha, e a lista é aberta: motor novo é item novo no `config.json`, sem mexer em código. Nunca edite o `config.json` no meio de uma pesquisa para acomodar uma escolha — passe os ids em `--motores`. Só se acrescenta motor ao config quando ele passa a ser opção permanente, e aí com `padrao: false` até provar que vale.
 

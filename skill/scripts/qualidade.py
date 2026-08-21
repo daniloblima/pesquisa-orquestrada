@@ -271,7 +271,7 @@ PAPEL_EXPLICADO = {
 }
 
 
-def publicar_nota(motores, lim, hoje):
+def publicar_nota(motores, lim, hoje, silencioso=False):
     """Grava a nota que viaja com a skill: agregado por motor, sem rastro de pesquisa.
 
     **Só substitui o que a medição local sustenta.** Motor sem massa aqui mantém a nota que
@@ -323,9 +323,55 @@ def publicar_nota(motores, lim, hoje):
         "limiares_usados": lim,
         "motores": publico,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
+    if silencioso:
+        return
     novos = sum(1 for m in motores.values() if m.get("amostra_suficiente"))
     log(f"nota publicável: {len(publico)} motores em {NOTA_PUBLICA.name} "
         f"({novos} medidos aqui, {len(publico) - novos} preservados)")
+
+
+def tabela_de_escolha(cfg, em_uso, linhas, heranca_em):
+    """Uma linha por motor, com tudo que a escolha precisa saber antes de gastar.
+
+    Existe porque a régua rodava tarde demais. O `qualidade.py --resumo` é chamado no passo
+    3b, **depois** da rodada 1, quando o dinheiro já foi gasto; a escolha acontece no passo
+    1. O diferencial do projeto existia, funcionava e não chegava na hora de decidir.
+
+    Sai daqui pronta para virar aba, também para tirar a montagem da mão de quem lê o
+    SKILL.md. Em 21/08/2026 o Danilo relatou que a aba vinha com combinações prontas em
+    escolha única, quando o documento manda `multiSelect` com um item por motor — e sem
+    custo à vista, embora `custo_tipico_usd` já estivesse no `config.json`. Dois desvios do
+    mesmo documento, na mesma tela.
+    """
+    por_modelo = {mo: (m, f) for mo, m, f in em_uso}
+    truncou, rodadas = {}, {}
+    for l in linhas:
+        rodadas[l["modelo"]] = rodadas.get(l["modelo"], 0) + (l.get("execucoes") or 0)
+        truncou[l["modelo"]] = truncou.get(l["modelo"], 0) + sum(
+            1 for e in (l.get("erros") or []) if e.get("tipo") == "truncado")
+
+    log("\nMOTORES DISPONÍVEIS — monte a aba com multiSelect, um item por linha\n")
+    log(f"  {'id':11}{'rótulo':26} {'índice':11} {'US$/rod':>8} {'nota':>6} {'recente':>8} "
+        f"{'trunca':>7}  papel")
+    log("-" * 110)
+    for mo in cfg.get("motores") or []:
+        m, fonte = por_modelo.get(mo["modelo"], ({}, None))
+        n = rodadas.get(mo["modelo"], 0)
+        t = truncou.get(mo["modelo"], 0)
+        indice = m.get("indice")
+        rec = m.get("indice_recente")
+        marca = "*" if mo.get("padrao") else " "
+        log(f"{marca} {mo['id']:11}{mo['rotulo'][:25]:26} {mo.get('indice', '—')[:11]:11} "
+            f"{mo.get('custo_tipico_usd', 0):>8.2f} {str(indice or '—'):>6} "
+            f"{str(rec or '—'):>8} {(f'{t}/{n}' if n else '—'):>7}  "
+            f"{m.get('papel', 'sem medição')}"
+            + (f"  [herdada]" if fonte == "herdada" else ""))
+    log("\n  * sugestão de partida (padrao no config.json). Não é teto nem mínimo.")
+    log("  US$/rod é custo típico por rodada, e a pesquisa tem duas.")
+    log("  nota é a série inteira; recente é a mesma série com o antigo pesando menos.")
+    log("  trunca é quantas rodadas o motor cortou no limite de tokens, do total medido.")
+    log("\n  Um índice por família: dois motores do mesmo índice leem as mesmas páginas,")
+    log("  e a concordância entre eles não valida nada.")
 
 
 def herdada():
@@ -337,6 +383,8 @@ def herdada():
 def main():
     p = argparse.ArgumentParser(description="Mede a qualidade dos motores pelas pesquisas feitas.")
     p.add_argument("--resumo", action="store_true", help="Só o que a skill precisa saber.")
+    p.add_argument("--escolha", action="store_true",
+                   help="A tabela da aba de escolha de motores, pronta para copiar.")
     args = p.parse_args()
 
     cfg, lim = carregar_cfg()
@@ -402,7 +450,7 @@ def main():
         "historico": linhas,
     }
     DESTINO.write_text(json.dumps(saida, ensure_ascii=False, indent=2), encoding="utf-8")
-    publicar_nota(motores, lim, hoje)
+    publicar_nota(motores, lim, hoje, silencioso=args.escolha)
 
     ordem = sorted(motores.items(), key=lambda kv: -(kv[1]["indice"] or 0))
 
@@ -420,7 +468,7 @@ def main():
         m["pesquisas"].add(l["pesquisa"])
     MASSA_MINIMA = 3
 
-    if not args.resumo:
+    if not args.resumo and not args.escolha:
         log(f"\n{len(linhas)} medições em {len({l['pesquisa'] for l in linhas})} pesquisas\n")
         log(f"{'MOTOR':30} {'PESQ':>4} {'URLs':>5} {'PRECISÃO':>9} {'CONFIRM':>8} {'CONFIAB':>8} {'ÍNDICE':>7} {'RECENTE':>8}  FAIXA")
         log("-" * 96)
@@ -464,7 +512,7 @@ def main():
                 f"{meia_vida} dias. Seta quando divergem\n  em mais de um ponto: ↑ o motor "
                 "melhorou depois do que a média longa registra, ↓ piorou.")
 
-    if not args.resumo:
+    if not args.resumo and not args.escolha:
         # Variação desde a última data medida antes de hoje.
         datas = sorted({x["data"] for x in serie if x["data"] < hoje})
         if datas:
@@ -528,6 +576,10 @@ def main():
             f"{lim['minimo_urls_para_avaliar']} URLs por motor,")
         log("  trate todos como 'confirmação com ressalva'.")
         log(f"\n  arquivo: {DESTINO}")
+        return
+
+    if args.escolha:
+        tabela_de_escolha(cfg, em_uso, linhas, heranca_em)
         return
 
     log("\nCOMO TRATAR CADA MOTOR NESTA PESQUISA\n")
