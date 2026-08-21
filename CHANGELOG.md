@@ -2324,6 +2324,74 @@ com inércia curta e longa, e a régua na hora da escolha dos motores.
 
 ---
 
+## [2026-08-21 15:43] — `--recalcular`: a régua de hoje sobre a observação de ontem
+
+### OBJETIVO
+
+A outra metade da separação das 15:35. O arquivo de observação estava sendo escrito e
+ninguém o lia. Sem consumo, a separação não entrega nada.
+
+### PROBLEMA
+
+Recalcular a nota depois de mudar a régua exigia rodar a verificação de novo, e ela vai à
+rede. A rede de hoje não é a de agosto: página que estava no ar na data da pesquisa e saiu
+do ar depois viraria erro de citação de um motor que não errou nada.
+
+### ANÁLISE / ROOT CAUSE
+
+O obstáculo era estrutural, não de interface. `verificar_urls` e `verificar_tema` misturavam
+ir à rede com julgar o que se achou. Escrever um recálculo por fora criaria **duas
+implementações da régua**, e elas divergiriam na primeira correção aplicada só em uma.
+
+### SOLUÇÃO
+
+Régua extraída para `julgar_urls(urls, texto, observacao)` e `julgar_tema(problemas, urls,
+observacao)`, que não tocam a rede. `verificar_urls` e `verificar_tema` passaram a colher e
+chamar essas — uma implementação só, exercitada pelos dois caminhos.
+
+A divisão de trabalho ficou explícita e importa: o que é derivável do bruto é **recomputado**
+a cada recálculo — forma da URL, confissão do modelo no texto ao lado, régua de tema — porque
+é barato e é onde as correções entram. Se o recálculo lesse a forma gravada, a correção do
+achado I (aparar o marcador de citação colado na URL) não teria efeito retroativo nenhum.
+O que veio da web é **lido** da observação.
+
+`verificar.py --recalcular`: carrega `r{N}_observacao.json`, aplica a régua, reescreve o
+veredito. Os termos usados vêm do próprio arquivo, então não precisam ser redigitados. Os
+cartões de domínio também são preservados e reaproveitados — sondar de novo mediria o site
+de hoje, mesma armadilha do veredito de rede.
+
+### RESULTADOS
+
+Pesquisa de ASIC, rodada 1, com rede: **51,2 segundos**. Recálculo: **0,097 segundo**. Cerca
+de 500 vezes mais rápido, com **zero diferenças** no veredito das 9 URLs registradas, e os
+cartões preservados.
+
+Fidelidade da refatoração conferida em três frentes, e todas com zero diferença:
+- `julgar_urls` extraída, caminho com rede comparado contra HEAD sobre a mesma pasta
+- `julgar_tema` extraída, mesma comparação
+- rede de regressão sobre as oito pesquisas, nas duas extrações
+
+Pesquisa sem observação gravada: avisa "sem observação gravada — nada a recalcular" e não
+escreve nada. Nenhum arquivo do Danilo é tocado.
+
+### LIÇÕES APRENDIDAS
+
+**Duas implementações da mesma régua é o defeito que se planta hoje e se colhe em três
+semanas.** A refatoração custou uma hora e evitou o cenário em que a correção entra no
+caminho com rede e o recálculo continua julgando pelo critério velho, sem nada acusar.
+
+**A rede de regressão tem um ponto cego, e ele apareceu aqui.** Ela roda `--sem-rede`, então
+não exercitava nada do que foi refatorado. Foi preciso comparar com rede à mão, contra a
+versão de HEAD, sobre a mesma pasta. Vale registrar como limitação conhecida da rede.
+
+### PRÓXIMO PASSO
+
+Com o recálculo pronto, a fila é: separar nota de histórico no `qualidade-motores.json` para
+a nota viajar com a skill, média móvel com inércia curta e longa, e a régua na hora da
+escolha dos motores.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

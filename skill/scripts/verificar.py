@@ -240,7 +240,7 @@ def origens(resultados, verif):
     }
 
 
-def concentracao(resultados, verif, sem_rede=False):
+def concentracao(resultados, verif, sem_rede=False, cartoes=None):
     """Os domínios que sustentam a pesquisa, e não apenas aparecem nela.
 
     `origens` conta domínios distintos e responde "há variedade de fontes?". Não responde
@@ -291,18 +291,45 @@ def concentracao(resultados, verif, sem_rede=False):
     if not sem_rede:
         for e in eixos:
             e["cartao"] = V.cartao_do_dominio(e["dominio"])
+    elif cartoes:
+        # No recálculo o cartão vem do que já se leu: sondar de novo mediria o site de
+        # hoje e não o do dia da pesquisa, que é a mesma armadilha do veredito de rede.
+        for e in eixos:
+            e["cartao"] = cartoes.get(e["dominio"])
 
     return {"mencoes_por_motor": mencoes_por_motor, "eixos": eixos}
 
 
 # ---------------------------------------------------------------- verificação
 
-def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
+def carregar_observacao(pasta, rodada):
+    """O que a web respondeu nesta rodada, se já foi perguntado alguma vez."""
+    arq = pasta / f"r{rodada}_observacao.json"
+    if not arq.exists():
+        return None
+    try:
+        return json.loads(arq.read_text(encoding="utf-8")).get("por_motor") or {}
+    except Exception as e:
+        log("VERIFICAR", f"{arq.name} ilegível ({type(e).__name__}) — ignorado")
+        return None
+
+
+def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False, recalcular=False):
     arq = pasta / f"r{rodada}.json"
     if not arq.exists():
         return None
     dados = json.loads(arq.read_text(encoding="utf-8"))
     resultados = dados.get("resultados") or []
+
+    gravado = carregar_observacao(pasta, rodada)
+    if recalcular:
+        if gravado is None:
+            log("VERIFICAR", f"r{rodada}: sem observação gravada — nada a recalcular. "
+                            "Só pesquisas verificadas a partir de 21/08/2026 a têm.")
+            return None
+        termos = (gravado.get(next(iter(gravado), ""), {}) or {}).get("_termos_usados") or termos
+        log("VERIFICAR", f"{arq.name}: recalculando a régua sobre observação já colhida, sem rede")
+
     log("VERIFICAR", f"{arq.name}: {len(resultados)} motores · criticidade {criticidade}")
 
     saida_agentes, decisoes = {}, []
@@ -320,9 +347,15 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
             continue
 
         obs = observado.setdefault(slot, {})
-        problemas = V.verificar_urls(urls, conteudo, slot, not sem_rede, observacao=obs)
-        if termos and not sem_rede:
-            V.verificar_tema(problemas, urls, termos, slot, observacao=obs)
+        if recalcular:
+            # Nada de rede: a régua de hoje sobre o que se observou no dia da pesquisa.
+            obs.update(gravado.get(slot) or {})
+            problemas = V.julgar_urls(urls, conteudo, obs)
+            V.julgar_tema(problemas, urls, obs)
+        else:
+            problemas = V.verificar_urls(urls, conteudo, slot, not sem_rede, observacao=obs)
+            if termos and not sem_rede:
+                V.verificar_tema(problemas, urls, termos, slot, observacao=obs)
         problemas = {u: x for u, x in problemas.items() if x["estado"] != "ok"}
 
         citacoes = r.get("citacoes") or []
@@ -351,7 +384,8 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
     # medidas do conjunto
     coerencia = divergencias_numericas(resultados) + unidades_trocadas(resultados)
     ind = origens(resultados, saida_agentes)
-    conc = concentracao(resultados, saida_agentes, sem_rede)
+    conc = concentracao(resultados, saida_agentes, sem_rede or recalcular,
+                        cartoes=(gravado or {}).get("_cartoes") if recalcular else None)
 
     for c in coerencia[:5]:
         decisoes.append({
@@ -404,7 +438,8 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
     destino = pasta / f"r{rodada}_verificacao.json"
     destino.write_text(json.dumps(pacote, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    gravar_observacao(pasta, rodada, observado, sem_rede)
+    cartoes = {e["dominio"]: e["cartao"] for e in conc["eixos"] if e.get("cartao")}
+    gravar_observacao(pasta, rodada, observado, sem_rede or recalcular, cartoes)
 
     escrever_decisoes(pasta, rodada, pacote)
     log("VERIFICAR", f"gravado: {destino.name} e r{rodada}_decisoes.md · "
@@ -412,7 +447,7 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
     return pacote
 
 
-def gravar_observacao(pasta, rodada, observado, sem_rede):
+def gravar_observacao(pasta, rodada, observado, sem_rede, cartoes=None):
     """O que a web respondeu, por URL, na data em que foi perguntado.
 
     Separado do veredito de propósito. Observação é cara e não volta: o código HTTP, o
@@ -446,6 +481,8 @@ def gravar_observacao(pasta, rodada, observado, sem_rede):
                 base[u] = campos
             else:
                 base.setdefault(u, {}).update(campos)
+    if cartoes:
+        anterior.setdefault("_cartoes", {}).update(cartoes)
     pacote = {
         "rodada": rodada,
         "_leia": ("O que a web respondeu, por URL, na data da consulta. Não contém "
@@ -456,7 +493,7 @@ def gravar_observacao(pasta, rodada, observado, sem_rede):
         "por_motor": anterior,
     }
     destino.write_text(json.dumps(pacote, ensure_ascii=False, indent=2), encoding="utf-8")
-    n = sum(len(v) for v in anterior.values())
+    n = sum(len(v) for k, v in anterior.items() if not k.startswith("_"))
     log("VERIFICAR", f"observação de {n} URLs gravada em {destino.name}")
 
 
@@ -526,6 +563,9 @@ def main():
     p.add_argument("--criticidade", choices=["baixa", "media", "alta"], default="media")
     p.add_argument("--sem-rede", action="store_true",
                    help="Não visita páginas. Só analisa o texto já coletado.")
+    p.add_argument("--recalcular", action="store_true",
+                   help="Aplica a régua de hoje sobre a observação já gravada, sem rede. "
+                        "Use depois de mudar a régua, para a série não misturar critérios.")
     args = p.parse_args()
 
     pasta = Path(args.pasta).expanduser().resolve()
@@ -539,7 +579,7 @@ def main():
     rodadas = [1, 2] if (args.todas or args.rodada is None) else [args.rodada]
     feitas = 0
     for n in rodadas:
-        if verificar_rodada(pasta, n, termos, args.criticidade, args.sem_rede):
+        if verificar_rodada(pasta, n, termos, args.criticidade, args.sem_rede, args.recalcular):
             feitas += 1
     if not feitas:
         raise SystemExit(f"ERRO: nenhuma rodada encontrada em {pasta}")

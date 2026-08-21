@@ -130,8 +130,71 @@ def classificar_url(url, texto):
     return motivos
 
 
+def julgar_urls(urls, texto, observacao):
+    """A régua inteira, aplicada sobre observação já colhida. Não toca a rede.
+
+    Esta é a única implementação do julgamento: `verificar_urls` colhe e chama esta, e o
+    recálculo chama esta direto. Duas cópias da régua divergiriam na primeira correção
+    aplicada só em uma delas.
+
+    A divisão de trabalho importa. O que é derivável do bruto — a forma da URL, a confissão
+    do modelo no texto ao lado — é **recomputado** aqui toda vez, porque é barato e porque
+    é onde as correções entram. O que veio da web é **lido** da observação, porque não se
+    reproduz: o servidor que respondeu 404 em agosto pode responder 200 hoje, e vice-versa.
+    """
+    achados = {}
+    for u in urls:
+        obs = observacao.get(u) or {}
+
+        motivos = classificar_url(u, texto)
+        if motivos:
+            duro = any(m not in MOTIVOS_FRACOS_DE_FORMA for m in motivos)
+            achados[u] = {"estado": "suspeita" if duro else "citação imprecisa",
+                          "motivos": list(motivos)}
+
+        # Sem observação de rede não há o que julgar sobre existência. É o caso do
+        # `--sem-rede` e o de URL acrescentada depois da coleta.
+        if "http" not in obs and "erro_rede" not in obs:
+            continue
+
+        status, erro = obs.get("http"), obs.get("erro_rede")
+        reg = achados.setdefault(u, {"estado": "ok", "motivos": []})
+        reg["http"] = status
+
+        if status in (404, 410):
+            reg["estado"] = "inexistente"
+            reg["motivos"].append(f"HTTP {status} — a página não existe")
+        elif erro and ("NameResolution" in erro or "getaddrinfo" in erro or "nodename" in erro):
+            reg["estado"] = "inexistente"
+            reg["motivos"].append("o domínio não resolve")
+        elif status and 200 <= status < 400:
+            # Responder 200 não lava acusação de forma. O domínio raiz responde bem e
+            # continua sendo citação imprecisa; a confissão de link construído continua
+            # sendo suspeita. Quem chegou aqui sem acusação já está "ok".
+            pass
+        elif erro:
+            reg["motivos"].append(f"não deu para verificar: {erro[:90]}")
+            if reg["estado"] == "ok":
+                reg["estado"] = "inconclusiva"
+
+        # O arquivo da internet separa dois casos que a resposta HTTP confunde: página que
+        # existiu e saiu do ar, contra URL que nunca existiu. Só a segunda é indício de
+        # invenção. Critério emprestado da literatura de verificação de citações
+        # (arXiv 2604.03173, 2605.06635).
+        arquivada = obs.get("arquivada")
+        if reg["estado"] == "inexistente" and arquivada is not None:
+            if arquivada:
+                reg["motivos"].append("existiu e saiu do ar — há registro no arquivo da internet")
+                reg["estado"] = "removida"
+            else:
+                reg["motivos"].append("nenhum registro no arquivo da internet — provavelmente nunca existiu")
+                reg["estado"] = "inventada"
+
+    return achados
+
+
 def verificar_urls(urls, texto, slot, verificar_rede=True, observacao=None):
-    """Confere se cada URL existe de fato.
+    """Vai à rede saber o que existe, e devolve o veredito da régua sobre o que achou.
 
     URL ausente é o caso benigno: dá para notar. URL presente sustentando conteúdo
     inventado é o caso grave, porque parece verificada e ninguém confere. Esta função
@@ -144,24 +207,13 @@ def verificar_urls(urls, texto, slot, verificar_rede=True, observacao=None):
     refazer a rede, e uma página que saiu do ar desde a pesquisa passaria a contar como
     erro de citação de um motor que não errou nada.
     """
-    def anotar(u, **campos):
-        if observacao is None:
-            return
-        observacao.setdefault(u, {}).update(campos)
     if not urls:
         return {}
 
-    achados = {}
-    for u in urls:
-        motivos = classificar_url(u, texto)
-        anotar(u, forma=motivos)
-        if motivos:
-            duro = any(m not in MOTIVOS_FRACOS_DE_FORMA for m in motivos)
-            achados[u] = {"estado": "suspeita" if duro else "citação imprecisa",
-                          "motivos": motivos}
-
+    obs = {} if observacao is None else observacao
     if not verificar_rede:
-        return achados
+        return {u: r for u, r in julgar_urls(urls, texto, obs).items()
+                if r["estado"] != "ok"}
 
     log(f"AGENTE {slot}", f"verificando existência de {len(urls)} URLs")
 
@@ -190,34 +242,15 @@ def verificar_urls(urls, texto, slot, verificar_rede=True, observacao=None):
         except Exception as e:
             return u, None, f"{type(e).__name__}: {e}"
 
+    hoje = datetime.now().strftime("%Y-%m-%d")
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
         for u, status, erro in ex.map(checar, list(urls)):
-            anotar(u, http=status, erro_rede=erro,
-                   quando=datetime.now().strftime("%Y-%m-%d"))
-            reg = achados.setdefault(u, {"estado": "ok", "motivos": []})
-            reg["http"] = status
+            obs.setdefault(u, {}).update(http=status, erro_rede=erro, quando=hoje)
 
-            if status in (404, 410):
-                reg["estado"] = "inexistente"
-                reg["motivos"].append(f"HTTP {status} — a página não existe")
-            elif erro and ("NameResolution" in erro or "getaddrinfo" in erro or "nodename" in erro):
-                reg["estado"] = "inexistente"
-                reg["motivos"].append("o domínio não resolve")
-            elif status and 200 <= status < 400:
-                # Responder 200 não lava acusação de forma. O domínio raiz responde bem
-                # e continua sendo citação imprecisa; a confissão de link construído
-                # continua sendo suspeita. Quem chegou aqui sem acusação já está "ok".
-                pass
-            elif erro:
-                reg["motivos"].append(f"não deu para verificar: {erro[:90]}")
-                if reg["estado"] == "ok":
-                    reg["estado"] = "inconclusiva"
-
-    # Para o que não resolveu, o arquivo da internet separa dois casos que a resposta
-    # HTTP confunde: página que existiu e saiu do ar, contra URL que nunca existiu.
-    # Só a segunda é indício de invenção. Critério emprestado da literatura de
-    # verificação de citações (arXiv 2604.03173, 2605.06635).
-    mortas = [u for u, r in achados.items() if r["estado"] == "inexistente"][:LIMITE_ARQUIVO]
+    # O arquivo da internet só se consulta para o que não resolveu, e o julgamento
+    # provisório é o que diz quais são.
+    provisorio = julgar_urls(urls, texto, obs)
+    mortas = [u for u, r in provisorio.items() if r["estado"] == "inexistente"][:LIMITE_ARQUIVO]
     if mortas:
         log(f"AGENTE {slot}", f"consultando o arquivo da internet para {len(mortas)} URLs que não resolveram")
 
@@ -234,14 +267,9 @@ def verificar_urls(urls, texto, slot, verificar_rede=True, observacao=None):
             except Exception as e:
                 log(f"AGENTE {slot}", f"arquivo não respondeu para {u[:50]}: {type(e).__name__} — sem conclusão")
                 continue
+            obs.setdefault(u, {}).update(arquivada=arquivada)
 
-            anotar(u, arquivada=arquivada)
-            if arquivada:
-                achados[u]["motivos"].append("existiu e saiu do ar — há registro no arquivo da internet")
-                achados[u]["estado"] = "removida"
-            else:
-                achados[u]["motivos"].append("nenhum registro no arquivo da internet — provavelmente nunca existiu")
-                achados[u]["estado"] = "inventada"
+    achados = julgar_urls(urls, texto, obs)
 
     graves = [u for u, r in achados.items() if r["estado"] in FALHAS_DURAS]
     if graves:
@@ -790,51 +818,7 @@ def verificar_tema(problemas, urls, termos, slot, observacao=None):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
         for u, achados, motivo_nulo in ex.map(checar, alvos):
-            if achados is None:
-                # PDF e planilha não têm HTML para ler, e isso é o esperado numa fonte
-                # acadêmica: não vira registro nenhum. Muro de acesso e falha de rede,
-                # sim, porque ali houve tentativa de leitura que não concluiu, e o estado
-                # precisa dizer isso — antes, página boa e página errada recebiam o mesmo
-                # carimbo de "fora do tema".
-                if motivo_nulo and motivo_nulo.startswith("tipo "):
-                    continue
-                reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})
-                # O motivo se registra sempre, mesmo quando o estado já é mais grave: quem
-                # lê `motivos` precisa saber que a página estava atrás de muro, e antes
-                # esse aviso sumia em silêncio nas URLs já marcadas como suspeitas.
-                reg["motivos"].append(f"tema não conferido: {motivo_nulo}")
-                # Falha do verificador não vai para a rodada 2. Sem esta marca, um 403 de
-                # editora acadêmica viraria item de revalidação, e as cinco pesquisas com
-                # termos registrados produziriam 157 itens desses contra 13 reais.
-                # Só marca origem em registro que ainda não carrega acusação própria. URL
-                # já suspeita ou inexistente precisa da rodada 2 justamente porque ninguém
-                # conseguiu ler a página: excluí-la por causa de um 403 do verificador
-                # esconde o caso mais grave atrás de uma falha nossa.
-                if motivo_nulo and motivo_nulo.startswith("rede:") and reg["estado"] == "ok":
-                    reg["origem"] = "rede"
-                if reg["estado"] == "ok":
-                    reg["estado"] = "inconclusiva"
-                continue
-            if not achados:
-                reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})
-                # O motivo precisa dizer o que de fato aconteceu. Quando o corte é por
-                # densidade, a página mencionou o termo uma vez, e escrever que ela não
-                # menciona nenhum é afirmação falsa que viaja para o relatório e para o
-                # prompt da rodada 2.
-                if motivo_nulo == "densidade":
-                    reg["motivos"].append(
-                        "a página menciona um termo central uma única vez em documento "
-                        "longo, o que não sustenta que ela trate do assunto")
-                else:
-                    reg["motivos"].append(
-                        "a página existe mas não menciona nenhum termo central da pesquisa")
-                # Sinal fraco nunca rebaixa falha dura. A URL de domínio raiz que já era
-                # `suspeita` continuava suspeita antes desta guarda; sem ela, a conferência
-                # de tema lavava a acusação mais grave e o motor deixava de responder por
-                # ela. Caso real em 12/08/2026: scorasacademy.com.br, marcada por forma e
-                # depois sobrescrita para fora do tema.
-                if reg["estado"] == "ok":
-                    reg["estado"] = "fora do tema"
+            medida.setdefault(u, {}).update(termos_achados=achados, tema_falha=motivo_nulo)
 
     if observacao is not None:
         for u, m in medida.items():
@@ -843,11 +827,74 @@ def verificar_tema(problemas, urls, termos, slot, observacao=None):
         # a régua de tema com outra lista de termos exigiria voltar à rede.
         observacao["_termos_usados"] = list(termos)
 
+    julgar_tema(problemas, alvos, medida)
+
     fora = [u for u, r in problemas.items() if r["estado"] == "fora do tema"]
     if fora:
         log(f"AGENTE {slot}", f"ALERTA: {len(fora)} páginas existem mas não falam do tema")
         for u in fora[:5]:
             log(f"AGENTE {slot}", f"  fora do tema: {u[:80]}")
+
+
+def julgar_tema(problemas, urls, observacao):
+    """A régua de tema, aplicada sobre o que já se leu das páginas. Não toca a rede.
+
+    Como em `julgar_urls`, esta é a única implementação: a conferência chama esta depois de
+    baixar, e o recálculo chama direto. O que a página dizia é observação; o que conta como
+    "trata do assunto" é régua, e já mudou duas vezes.
+    """
+    for u in urls:
+        obs = observacao.get(u) or {}
+        if "termos_achados" not in obs and "tema_falha" not in obs:
+            continue  # esta URL nunca teve o tema conferido
+        achados, motivo_nulo = obs.get("termos_achados"), obs.get("tema_falha")
+
+        if achados is None:
+            # PDF e planilha não têm HTML para ler, e isso é o esperado numa fonte
+            # acadêmica: não vira registro nenhum. Muro de acesso e falha de rede, sim,
+            # porque ali houve tentativa de leitura que não concluiu, e o estado precisa
+            # dizer isso — antes, página boa e página errada recebiam o mesmo carimbo de
+            # "fora do tema".
+            if motivo_nulo and motivo_nulo.startswith("tipo "):
+                continue
+            reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})
+            # O motivo se registra sempre, mesmo quando o estado já é mais grave: quem lê
+            # `motivos` precisa saber que a página estava atrás de muro, e antes esse aviso
+            # sumia em silêncio nas URLs já marcadas como suspeitas.
+            reg["motivos"].append(f"tema não conferido: {motivo_nulo}")
+            # Falha do verificador não vai para a rodada 2. Sem esta marca, um 403 de
+            # editora acadêmica viraria item de revalidação, e as cinco pesquisas com
+            # termos registrados produziriam 157 itens desses contra 13 reais.
+            # Só marca origem em registro que ainda não carrega acusação própria. URL já
+            # suspeita ou inexistente precisa da rodada 2 justamente porque ninguém
+            # conseguiu ler a página: excluí-la por causa de um 403 do verificador esconde
+            # o caso mais grave atrás de uma falha nossa.
+            if motivo_nulo and motivo_nulo.startswith("rede:") and reg["estado"] == "ok":
+                reg["origem"] = "rede"
+            if reg["estado"] == "ok":
+                reg["estado"] = "inconclusiva"
+            continue
+
+        if not achados:
+            reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})
+            # O motivo precisa dizer o que de fato aconteceu. Quando o corte é por
+            # densidade, a página mencionou o termo uma vez, e escrever que ela não
+            # menciona nenhum é afirmação falsa que viaja para o relatório e para o prompt
+            # da rodada 2.
+            if motivo_nulo == "densidade":
+                reg["motivos"].append(
+                    "a página menciona um termo central uma única vez em documento "
+                    "longo, o que não sustenta que ela trate do assunto")
+            else:
+                reg["motivos"].append(
+                    "a página existe mas não menciona nenhum termo central da pesquisa")
+            # Sinal fraco nunca rebaixa falha dura. A URL de domínio raiz que já era
+            # `suspeita` continuava suspeita antes desta guarda; sem ela, a conferência de
+            # tema lavava a acusação mais grave e o motor deixava de responder por ela.
+            # Caso real em 12/08/2026: scorasacademy.com.br, marcada por forma e depois
+            # sobrescrita para fora do tema.
+            if reg["estado"] == "ok":
+                reg["estado"] = "fora do tema"
 
 
 def problemas_gravados(pasta, nome_arquivo, slot, resultado):

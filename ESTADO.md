@@ -53,6 +53,10 @@ Chave do OpenRouter em `~/.claude/.env`, permissão 600, fora de qualquer reposi
 | `motores.py` | Catálogo do OpenRouter, classifica só o diferencial a cada consulta | não |
 | `regressao.py` | Roda a régua atual e a de um commit sobre as pesquisas já feitas, e mostra só as diferenças | não |
 
+> Desde 21/08/2026 a verificação grava `r{N}_observacao.json` ao lado do veredito: o que a
+> web respondeu sobre cada URL, na data em que foi perguntado. É o que permite recalcular a
+> régua depois sem voltar à rede. Ver "Quando a régua muda" abaixo.
+
 Só biblioteca padrão do Python. Nada a instalar.
 
 ## Decisões que não se re-litigam
@@ -144,6 +148,35 @@ O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o his
 5. CHANGELOG só quando precisar do porquê de uma decisão específica. Está em ordem cronológica, do mais antigo ao mais recente.
 
 **Uma advertência que custou uma pesquisa:** edição em arquivo de skill não alcança sessão já aberta. Correção vale a partir da próxima sessão, não da próxima pesquisa.
+
+## Quando a régua muda, a série precisa ser recalculada
+
+```bash
+python3 skill/scripts/verificar.py <pasta> --todas --recalcular
+```
+
+Aplica a régua de hoje sobre a observação já colhida, **sem tocar a rede**. Na pesquisa de
+ASIC: 51 segundos com rede contra 0,097 segundo no recálculo, com veredito idêntico.
+
+Isso existe porque a nota dos motores é recalculada do zero a cada execução do
+`qualidade.py`, lendo os arquivos de verificação em disco. Quando a régua muda e a série
+não é recalculada, a nota passa a somar medições feitas com critérios diferentes — foi o
+que aconteceu em 12/08 e sustentou uma decisão de composição de motores com número errado.
+
+**E por que não simplesmente rodar a verificação de novo?** Porque ela iria à rede, e a rede
+de hoje não é a de agosto. Uma página que estava no ar na data da pesquisa e saiu do ar
+depois viraria erro de citação de um motor que não errou nada. O recálculo julga a
+observação daquele dia.
+
+O que separa os dois: o que é derivável do bruto é **recomputado** a cada recálculo — a
+forma da URL, a confissão do modelo no texto ao lado, a régua de tema. O que veio da web é
+**lido** da observação. Só uma coisa continua exigindo rede, e está escrita no arquivo:
+mudar a **lista de termos** do tema, porque `termos_achados` só se relê contra os termos que
+foram perguntados.
+
+**Vale a partir de 21/08/2026.** As oito pesquisas anteriores não têm observação gravada, e
+`--recalcular` avisa e não faz nada nelas. Decidido assim de propósito: colher observação
+retroativa hoje produziria dado de hoje carimbado com data de agosto.
 
 ## Antes de commitar mudança na régua
 
