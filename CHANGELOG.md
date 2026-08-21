@@ -2087,6 +2087,79 @@ teria sido desenhada sobre a métrica errada.
 
 ---
 
+## [2026-08-21 13:03] — Rede de regressão: a régua passa a ser medida contra o histórico
+
+### OBJETIVO
+
+Danilo pôs a condição de trabalho para o resto das correções do backlog: "eu nunca posso
+quebrar o que está funcionando". Um ajuste por vez, commit e push depois de cada um.
+
+### PROBLEMA
+
+A régua não tem teste. Cada mudança era validada só no caso que a motivou — as três de
+12:53 foram conferidas contra a pesquisa de ASIC e mais nada. Uma mudança na classificação
+de URL pode apagar um alerta legítimo numa pesquisa de duas semanas atrás sem sinal nenhum,
+e restam sete achados no backlog para mexer exatamente nessa parte.
+
+### ANÁLISE / ROOT CAUSE
+
+O material de prova já existe e já foi pago: oito pesquisas em `outputs/`, com o texto
+bruto dos motores. E `verificar.py` roda sobre pesquisa antiga sem gastar crédito, o que é
+desenho declarado do projeto desde 13/08. Faltava usar isso como rede.
+
+Medido antes de escrever qualquer coisa: as oito rodam com `--todas --sem-rede` em 0,48
+segundo, sem falha, inclusive as de agosto/03 e 04 com formato de slot antigo (`A`, `B`,
+`C`).
+
+`--sem-rede` não é economia, é isolamento. Com rede, a mesma pesquisa muda de veredito
+entre duas execuções porque uma página saiu do ar ou um servidor devolveu 403, e a
+comparação passaria a medir a internet em vez da mudança de código.
+
+### SOLUÇÃO
+
+`skill/scripts/regressao.py`, novo. Copia cada pesquisa para dois diretórios temporários,
+roda a verificação num com o código de trabalho e no outro com o de um commit — extraído
+por `git show <commit>:skill/scripts/<arquivo>` — e imprime só as diferenças, por pesquisa
+e por rodada. Com `--detalhe`, cada URL que mudou de estado vem com o motivo.
+
+Roda sobre **cópia**: `verificar.py` sobrescreve `r*_verificacao.json` e `r*_decisoes.md`,
+e as pesquisas do Danilo não são material de teste.
+
+`ESTADO.md` ganha a seção "Antes de commitar mudança na régua" e a linha na tabela de
+scripts.
+
+### RESULTADOS
+
+Estreia contra `d8a6709`, o commit anterior às três correções: **21 URLs mudaram de estado
+em sete das oito pesquisas, e as 21 têm o mesmo motivo, "domínio raiz, sem página
+específica"**. Nenhum alerta legítimo caiu. Entre as 21: `lojasrenner.com.br`, `hm.com.br`
+e `decathlon.com.br` numa pesquisa sobre compras nessas três lojas, `openrouter.ai` numa
+pesquisa sobre LLM, `servicos.busca.inpi.gov.br` numa pesquisa sobre patente. O achado B do
+backlog era maior do que ele mesmo sabia.
+
+Testado também com `--outputs` numa pasta vazia: avisa e sai limpo, que é o caso de quem
+instala a skill e ainda não tem histórico.
+
+### LIÇÕES APRENDIDAS
+
+**Saída idêntica não é o objetivo de uma rede de regressão sobre régua.** Quem mexe na
+régua quer que ela mude. O que a rede pega é a mudança não pretendida, e o teste prático é
+se todas as diferenças têm a mesma explicação. Vinte e uma com o mesmo motivo passa; vinte
+com um motivo e uma com outro é onde se olha.
+
+**Material de prova caro já comprado é ativo de teste.** Oito pesquisas custaram entre US$
+1,52 e US$ 3,48 cada. Reprocessá-las custa meio segundo, e a régua deixou de ser validada
+só no caso que a motivou.
+
+### ACHADO NOVO, PARA O BACKLOG
+
+`http://localhost:11434` e `http://localhost:4000` estão sendo classificados como fonte na
+pesquisa de contingência de LLM. Não são fonte de nada — são endereços de configuração
+local que o modelo escreveu como exemplo. Antes viravam falha dura por acidente do domínio
+raiz; agora viram sinal fraco. O certo é não entrarem na contagem. Registrado como achado K.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

@@ -51,6 +51,7 @@ Chave do OpenRouter em `~/.claude/.env`, permissão 600, fora de qualquer reposi
 | `qualidade.py` | Mede precisão, confirmação e confiabilidade por motor; deriva o papel de cada um | não |
 | `dashboard.py` | Gera o painel HTML de todas as pesquisas | não |
 | `motores.py` | Catálogo do OpenRouter, classifica só o diferencial a cada consulta | não |
+| `regressao.py` | Roda a régua atual e a de um commit sobre as pesquisas já feitas, e mostra só as diferenças | não |
 
 Só biblioteca padrão do Python. Nada a instalar.
 
@@ -143,3 +144,20 @@ O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o his
 5. CHANGELOG só quando precisar do porquê de uma decisão específica. Está em ordem cronológica, do mais antigo ao mais recente.
 
 **Uma advertência que custou uma pesquisa:** edição em arquivo de skill não alcança sessão já aberta. Correção vale a partir da próxima sessão, não da próxima pesquisa.
+
+## Antes de commitar mudança na régua
+
+```bash
+python3 skill/scripts/regressao.py --detalhe
+```
+
+Roda a verificação sobre uma cópia de cada pesquisa do histórico, com o código de trabalho
+e com o do último commit, e mostra só o que mudou. Meio segundo, sem crédito, sem tocar o
+material original.
+
+**Saída idêntica não é o objetivo.** Quem mexe na régua quer que ela mude. O que a rede
+pega é a mudança que você não pretendia: em 21/08/2026, rebaixar "domínio raiz" mexeu em 21
+URLs de sete pesquisas, e as 21 tinham o mesmo motivo. Se uma tivesse outro, era regressão.
+
+Isso existe porque a régua não tem teste, e a evidência dela é histórica — o material de
+prova é caro, já foi comprado e está em `outputs/`.
