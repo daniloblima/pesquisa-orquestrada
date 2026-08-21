@@ -2241,6 +2241,89 @@ poupou um falso positivo permanente contra fonte primária.
 
 ---
 
+## [2026-08-21 15:35] — Observação passa a ser gravada separada do julgamento
+
+### OBJETIVO
+
+Danilo definiu o estado final: o histórico das pesquisas continua fora do repositório, mas
+**a nota dos motores viaja com a skill**, porque a curadoria acumulada é o ativo. E impôs a
+condição que torna isso possível: a cada mudança de regra, recalcular a nota com o critério
+novo, o que exige manter o dado bruto.
+
+### PROBLEMA
+
+O dado bruto existia pela metade. O `r*.json` guarda a resposta do motor inteira e nunca se
+perde. Mas `verificar_urls` devolvia só as URLs com problema, e o `r*_verificacao.json`
+gravava só essas: das 76 URLs conferidas nas pesquisas de formato atual, 23 tinham registro
+e 53 sumiam sem deixar o que foi observado. Das 23, só 8 preservavam o código HTTP.
+
+Consequência: recalcular a nota exigia refazer a rede. E refazer a rede hoje mede a web de
+hoje. Uma página que estava no ar em 3 de agosto e saiu do ar depois contaria como erro de
+citação de um motor que não errou nada — a nota puniria o motor por passagem do tempo.
+
+Isso já tinha mordido antes. O `ESTADO.md` registra que a régua mudou em 12/08 e que "a
+série anterior a essa data não se compara com a posterior", e o item 9 do backlog mostra a
+decisão de composição de motores que foi tomada com número contaminado.
+
+### ANÁLISE / ROOT CAUSE
+
+Duas coisas de naturezas opostas moravam no mesmo campo.
+
+**Observação** é o que a web respondeu naquele dia: código HTTP, presença no arquivo da
+internet, tipo do documento, tamanho do texto, quais termos a página menciona. Cara de
+colher, impossível de reproduzir depois.
+
+**Julgamento** é a régua que transforma observação em estado e gravidade. Barata,
+determinística, e é justamente o que muda quando se mexe nas regras.
+
+Fundidas, cada mudança de régua obrigava a escolher entre não recalcular (série suja) ou
+voltar à rede (série injusta com quem foi citado há mais tempo).
+
+### SOLUÇÃO
+
+`verificacao.py`: `verificar_urls` e `verificar_tema` ganham o parâmetro opcional
+`observacao`. Quando passado, recebe o que se soube de **cada** URL, e não só das
+reprovadas — `forma`, `http`, `erro_rede`, `arquivada`, `quando`, `tipo`, `chars`,
+`termos_achados` e `posicoes`. Sem o parâmetro, nada muda para quem chama.
+
+`verificar.py`: nova `gravar_observacao`, que escreve `r{N}_observacao.json` ao lado do
+veredito. Acumula em vez de sobrescrever, então uma segunda execução com outros termos
+acrescenta o que faltava. Não grava sob `--sem-rede`: ali não houve observação nenhuma, e
+arquivo vazio seria lido depois como "a web não respondeu", que é afirmação falsa.
+
+Os termos usados ficam gravados junto, porque `termos_achados` só se relê contra eles.
+Recalcular a régua de tema com outra lista de termos continua exigindo rede, e isso está
+escrito no arquivo.
+
+### RESULTADOS
+
+Na pesquisa de ASIC, rodada 1: **49 URLs observadas**, contra as 23 que sobreviviam antes.
+Cobertura de 30% para 100%.
+
+Regressão contra HEAD: nenhuma URL mudou de estado. A instrumentação não toca o veredito.
+
+Decidido com o Danilo que a coleta vale só daqui para frente. As oito pesquisas antigas não
+serão reprocessadas para colher observação retroativa, porque a observação seria de hoje e
+não da data delas, e isso contaminaria a série de forma silenciosa.
+
+### LIÇÕES APRENDIDAS
+
+**O que é caro de obter e impossível de repetir precisa ser gravado antes de ser julgado.**
+A régua muda toda semana; a resposta que o servidor deu num dia de agosto não volta nunca.
+Guardar só o veredito é guardar a parte descartável e jogar fora a parte insubstituível.
+
+**Cobertura parcial de registro é pior que ausência, porque não se anuncia.** Gravar só o
+que deu problema parecia economia sensata, e produziu uma série que não pode ser recalculada
+sem injustiça — sem nada no arquivo dizendo isso.
+
+### PRÓXIMO PASSO, AINDA NÃO FEITO
+
+Falta a outra metade: **consumir** a observação para recalcular sem rede. Hoje o arquivo é
+escrito e ninguém o lê. Depois disso vêm a nota viajando para o repositório, a média móvel
+com inércia curta e longa, e a régua na hora da escolha dos motores.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

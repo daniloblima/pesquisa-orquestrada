@@ -306,6 +306,7 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
     log("VERIFICAR", f"{arq.name}: {len(resultados)} motores · criticidade {criticidade}")
 
     saida_agentes, decisoes = {}, []
+    observado = {}
     for r in resultados:
         slot = r.get("slot")
         if r.get("erro"):
@@ -318,9 +319,10 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
                                          "Descarto a contribuição dele?"})
             continue
 
-        problemas = V.verificar_urls(urls, conteudo, slot, not sem_rede)
+        obs = observado.setdefault(slot, {})
+        problemas = V.verificar_urls(urls, conteudo, slot, not sem_rede, observacao=obs)
         if termos and not sem_rede:
-            V.verificar_tema(problemas, urls, termos, slot)
+            V.verificar_tema(problemas, urls, termos, slot, observacao=obs)
         problemas = {u: x for u, x in problemas.items() if x["estado"] != "ok"}
 
         citacoes = r.get("citacoes") or []
@@ -402,10 +404,60 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
     destino = pasta / f"r{rodada}_verificacao.json"
     destino.write_text(json.dumps(pacote, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    gravar_observacao(pasta, rodada, observado, sem_rede)
+
     escrever_decisoes(pasta, rodada, pacote)
     log("VERIFICAR", f"gravado: {destino.name} e r{rodada}_decisoes.md · "
                      f"{len(pacote['decisoes'])} itens para o Danilo")
     return pacote
+
+
+def gravar_observacao(pasta, rodada, observado, sem_rede):
+    """O que a web respondeu, por URL, na data em que foi perguntado.
+
+    Separado do veredito de propósito. Observação é cara e não volta: o código HTTP, o
+    registro no arquivo da internet e o que a página dizia são de um dia específico.
+    Julgamento é barato e muda toda vez que a régua muda — e quando muda, a série inteira
+    precisa ser recalculada com o critério novo, ou a nota passa a somar medições feitas
+    com réguas diferentes.
+
+    Com este arquivo, recalcular deixa de exigir rede: é instantâneo e fica fiel à data de
+    cada pesquisa. Sem ele, uma página que saiu do ar depois da pesquisa vira erro de
+    citação de um motor que não errou nada.
+
+    `--sem-rede` não grava: ali não houve observação nenhuma, e um arquivo vazio seria
+    lido depois como "a web não respondeu", que é afirmação falsa.
+    """
+    if sem_rede or not observado:
+        return
+    destino = pasta / f"r{rodada}_observacao.json"
+    anterior = {}
+    if destino.exists():
+        # Observação se acumula, nunca se sobrescreve. Uma segunda execução com termos
+        # diferentes acrescenta o que faltava sem apagar o que já se sabia.
+        try:
+            anterior = json.loads(destino.read_text(encoding="utf-8")).get("por_motor") or {}
+        except Exception:
+            anterior = {}
+    for slot, urls in observado.items():
+        base = anterior.setdefault(slot, {})
+        for u, campos in urls.items():
+            if u == "_termos_usados":
+                base[u] = campos
+            else:
+                base.setdefault(u, {}).update(campos)
+    pacote = {
+        "rodada": rodada,
+        "_leia": ("O que a web respondeu, por URL, na data da consulta. Não contém "
+                  "julgamento: estado e gravidade são da régua, que muda, e por isso "
+                  "moram em r*_verificacao.json. Este arquivo é o que permite recalcular "
+                  "a nota dos motores sem voltar à rede quando a régua mudar."),
+        "observado_em": datetime.now().strftime("%Y-%m-%d"),
+        "por_motor": anterior,
+    }
+    destino.write_text(json.dumps(pacote, ensure_ascii=False, indent=2), encoding="utf-8")
+    n = sum(len(v) for v in anterior.values())
+    log("VERIFICAR", f"observação de {n} URLs gravada em {destino.name}")
 
 
 def escrever_decisoes(pasta, rodada, pacote):

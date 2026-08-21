@@ -130,19 +130,31 @@ def classificar_url(url, texto):
     return motivos
 
 
-def verificar_urls(urls, texto, slot, verificar_rede=True):
+def verificar_urls(urls, texto, slot, verificar_rede=True, observacao=None):
     """Confere se cada URL existe de fato.
 
     URL ausente é o caso benigno: dá para notar. URL presente sustentando conteúdo
     inventado é o caso grave, porque parece verificada e ninguém confere. Esta função
     existe só para esse caso.
+
+    `observacao`, quando passada, recebe o que a web respondeu sobre **cada** URL, e não
+    só sobre as reprovadas. Isso é o que a régua julga, e é a única parte cara e
+    irreproduzível do processo: mudar a régua depois é barato, mas a resposta que o
+    servidor deu naquele dia não volta. Sem esse registro, recalcular a nota exigiria
+    refazer a rede, e uma página que saiu do ar desde a pesquisa passaria a contar como
+    erro de citação de um motor que não errou nada.
     """
+    def anotar(u, **campos):
+        if observacao is None:
+            return
+        observacao.setdefault(u, {}).update(campos)
     if not urls:
         return {}
 
     achados = {}
     for u in urls:
         motivos = classificar_url(u, texto)
+        anotar(u, forma=motivos)
         if motivos:
             duro = any(m not in MOTIVOS_FRACOS_DE_FORMA for m in motivos)
             achados[u] = {"estado": "suspeita" if duro else "citação imprecisa",
@@ -180,6 +192,8 @@ def verificar_urls(urls, texto, slot, verificar_rede=True):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
         for u, status, erro in ex.map(checar, list(urls)):
+            anotar(u, http=status, erro_rede=erro,
+                   quando=datetime.now().strftime("%Y-%m-%d"))
             reg = achados.setdefault(u, {"estado": "ok", "motivos": []})
             reg["http"] = status
 
@@ -221,6 +235,7 @@ def verificar_urls(urls, texto, slot, verificar_rede=True):
                 log(f"AGENTE {slot}", f"arquivo não respondeu para {u[:50]}: {type(e).__name__} — sem conclusão")
                 continue
 
+            anotar(u, arquivada=arquivada)
             if arquivada:
                 achados[u]["motivos"].append("existiu e saiu do ar — há registro no arquivo da internet")
                 achados[u]["estado"] = "removida"
@@ -671,7 +686,7 @@ def _raizes(termos):
     return sorted(saida)
 
 
-def verificar_tema(problemas, urls, termos, slot):
+def verificar_tema(problemas, urls, termos, slot, observacao=None):
     """Confere se a página trata do tema da pesquisa.
 
     Existir não é sustentar. Uma URL pode responder 200 e falar de outra coisa — é o que
@@ -697,6 +712,11 @@ def verificar_tema(problemas, urls, termos, slot):
     log(f"AGENTE {slot}",
         f"conferindo se {len(alvos)} páginas tratam do tema ({len(uteis)} formas: {', '.join(uteis[:8])}"
         f"{'…' if len(uteis) > 8 else ''})")
+
+    # O que foi lido de cada página, preenchido dentro de `checar` e despejado na
+    # observação no fim. Escrito de dentro de threads, e por isso só com chave própria
+    # por URL: cada tarefa toca a sua e nenhuma toca a das outras.
+    medida = {}
 
     def baixar(u, tentar_get_simples=True):
         # Sem cabeçalho Range. Servidor cujo arquivo é menor que o fim da faixa responde
@@ -735,6 +755,7 @@ def verificar_tema(problemas, urls, termos, slot):
         muro = _muro_ou_casca(texto, u, tipo)
         if muro:
             return u, None, muro
+        medida[u] = {"tipo": tipo.split(";")[0], "chars": len(texto)}
 
         alvo = _sem_acento(texto)
         achados, intervalos = [], []
@@ -762,6 +783,7 @@ def verificar_tema(problemas, urls, termos, slot):
         # numa referência e passaria numa pesquisa sobre moinhos medievais. Medido em
         # 13/08/2026 — as páginas legítimas do teste têm de 1,2 a 49,7 ocorrências por 10
         # mil caracteres, e a de insulina tem 0,08.
+        medida[u].update({"termos_achados": achados, "posicoes": posicoes})
         if posicoes == 1 and len(alvo) > TEXTO_LONGO:
             return u, [], "densidade"
         return u, achados, None
@@ -813,6 +835,13 @@ def verificar_tema(problemas, urls, termos, slot):
                 # depois sobrescrita para fora do tema.
                 if reg["estado"] == "ok":
                     reg["estado"] = "fora do tema"
+
+    if observacao is not None:
+        for u, m in medida.items():
+            observacao.setdefault(u, {}).update(m)
+        # Os termos ficam junto porque `termos_achados` só se relê contra eles. Recalcular
+        # a régua de tema com outra lista de termos exigiria voltar à rede.
+        observacao["_termos_usados"] = list(termos)
 
     fora = [u for u, r in problemas.items() if r["estado"] == "fora do tema"]
     if fora:
