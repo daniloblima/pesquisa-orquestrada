@@ -149,6 +149,29 @@ O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o his
 
 **Uma advertência que custou uma pesquisa:** edição em arquivo de skill não alcança sessão já aberta. Correção vale a partir da próxima sessão, não da próxima pesquisa.
 
+## Duas notas por motor, e a divergência entre elas é o sinal
+
+`ÍNDICE` é a série inteira, cada medição valendo o mesmo. `RECENTE` é a mesma série com as
+medições antigas pesando menos — metade a cada `meia_vida_dias` do `config.json`, hoje 30.
+
+Nenhuma das duas manda sozinha, e é esse o ponto. Só a última rodada é volátil demais para
+decidir composição de motores. O acumulado puro é o oposto: carrega defeito de passado
+longínquo como se fosse de agora e penaliza o motor que melhorou. O decaimento dá inércia
+sem congelar, e por ser contínuo não tem o degrau de uma janela fixa, onde a medição de
+ontem vale tudo e a de anteontem vale zero.
+
+**Onde as duas divergem é onde o motor mudou.** Verificado em 21/08/2026 com série
+sintética: dois motores com índice acumulado quase idêntico, 84,6 e 85,6, um melhorando e o
+outro piorando ao longo de quatro meses. A nota recente os separa em 93,4 e 74,5. A média
+longa sozinha os trataria como equivalentes.
+
+A massa mínima usa a contagem **bruta** de URLs, não a ponderada. Com decaimento, um motor
+de série longa cairia abaixo do mínimo só por o tempo ter passado, e perderia a
+classificação sem ter feito nada.
+
+Na série atual a diferença entre as duas é de 0,1 a 0,4 ponto, porque ela tem 18 dias. O
+mecanismo é para quando houver massa.
+
 ## A nota viaja, o histórico fica
 
 Dois arquivos, e a diferença entre eles é o que pode ser visto por terceiros.

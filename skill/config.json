@@ -136,6 +136,7 @@
     },
     "minimo_urls_para_avaliar": 20,
     "minimo_pesquisas_para_avaliar": 2,
+    "meia_vida_dias": 30,
     "pesos_indice": {
       "precisao_fonte": 3,
       "taxa_confirmacao": 2,

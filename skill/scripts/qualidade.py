@@ -35,9 +35,10 @@ NOTA_PUBLICA = RAIZ_SKILL / "notas-motores.json"
 
 # O que da foto interna pode ser publicado. `custo` absoluto fica de fora: é quanto o dono
 # da série gastou, ou seja, volume de uso.
-CAMPOS_PUBLICOS = ("rotulo", "pesquisas", "urls", "reprovadas", "sinais_fracos",
-                   "execucoes", "precisao_fonte", "taxa_confirmacao", "confiabilidade",
-                   "indice", "amostra_suficiente", "faixa_precisao", "faixa_geral", "papel")
+CAMPOS_PUBLICOS = ("rotulo", "pesquisas", "reprovadas", "sinais_fracos",
+                   "precisao_fonte", "taxa_confirmacao", "confiabilidade",
+                   "indice", "indice_recente", "precisao_recente", "delta_recente",
+                   "amostra_suficiente", "faixa_precisao", "faixa_geral", "papel")
 
 # A gravidade de cada estado é definida num lugar só, em buscar.py, porque a régua e o
 # medidor precisam concordar. Duplicar a lista aqui seria criar duas verdades.
@@ -180,7 +181,30 @@ def faixa(valor, cortes):
     return "crítico"
 
 
-def agregar(linhas, lim):
+def peso_por_idade(data, hoje, meia_vida):
+    """Quanto uma medição daquele dia ainda pesa hoje.
+
+    Sem `meia_vida`, tudo pesa 1 e a nota é o acumulado puro. Com ela, o peso cai pela
+    metade a cada `meia_vida` dias: uma medição de três meses atrás com meia-vida de 30
+    dias vale 0,125 de uma de hoje.
+
+    Isso existe porque as duas leituras extremas erram. Só a última rodada é volátil demais
+    para decidir composição. O acumulado puro é o oposto: carrega defeito de passado
+    longínquo como se fosse de agora, e penaliza o motor que melhorou. O decaimento dá
+    inércia sem congelar — e por ser contínuo, não tem o degrau de uma janela fixa, onde a
+    medição de ontem vale tudo e a de anteontem vale zero.
+    """
+    if not meia_vida:
+        return 1.0
+    try:
+        idade = (date.fromisoformat(str(hoje)) - date.fromisoformat(str(data))).days
+    except Exception:
+        return 1.0
+    return 0.5 ** (max(idade, 0) / meia_vida)
+
+
+def agregar(linhas, lim, hoje=None, meia_vida=None):
+    """Consolida a série por motor. Com `meia_vida`, pondera cada medição pela idade."""
     motores = {}
     for l in linhas:
         m = motores.setdefault(l["modelo"], {
@@ -188,18 +212,24 @@ def agregar(linhas, lim):
             "sinais_fracos": 0,
             "custo": 0.0, "execucoes": 0, "incidentes": 0, "afirmacoes": 0,
             "confirmadas": 0, "tem_contrib": False})
+        w = peso_por_idade(l.get("data"), hoje, meia_vida)
         m["pesquisas"].add(l["pesquisa"])
         for k in ("urls", "reprovadas", "sinais_fracos", "execucoes", "incidentes"):
-            m[k] += l.get(k, 0) or 0
-        m["custo"] += l["custo"]
+            m[k] += (l.get(k, 0) or 0) * w
+        m["custo"] += l["custo"] * w
         if l["afirmacoes"]:
             m["tem_contrib"] = True
-            m["afirmacoes"] += l["afirmacoes"]
-            m["confirmadas"] += l["confirmadas"] or 0
+            m["afirmacoes"] += l["afirmacoes"] * w
+            m["confirmadas"] += (l["confirmadas"] or 0) * w
+
+    brutas = {}
+    for l in linhas:
+        brutas[l["modelo"]] = brutas.get(l["modelo"], 0) + (l.get("urls", 0) or 0)
 
     pesos = lim["pesos_indice"]
     for modelo, m in motores.items():
         m["pesquisas"] = len(m["pesquisas"])
+        m["urls_brutas"] = brutas.get(modelo, 0)
         m["precisao_fonte"] = ((m["urls"] - m["reprovadas"]) / m["urls"]) if m["urls"] else None
         m["taxa_confirmacao"] = (m["confirmadas"] / m["afirmacoes"]) if m["afirmacoes"] else None
         m["confiabilidade"] = (1 - m["incidentes"] / m["execucoes"]) if m["execucoes"] else None
@@ -212,7 +242,10 @@ def agregar(linhas, lim):
                        if validas else None)
 
         # Amostra pequena não classifica ninguém: evita condenar motor por uma rodada ruim.
-        suficiente = (m["urls"] >= lim["minimo_urls_para_avaliar"]
+        # `urls_brutas` e não a ponderada: com decaimento, um motor de série longa cairia
+        # abaixo do mínimo só por o tempo ter passado, e perderia a classificação sem ter
+        # feito nada.
+        suficiente = (m["urls_brutas"] >= lim["minimo_urls_para_avaliar"]
                       and m["pesquisas"] >= lim["minimo_pesquisas_para_avaliar"])
         m["amostra_suficiente"] = suficiente
         m["faixa_precisao"] = faixa(m["precisao_fonte"], lim["precisao_fonte"]) if suficiente else "amostra pequena"
@@ -251,7 +284,13 @@ def publicar_nota(motores, lim, hoje):
         if not m.get("amostra_suficiente"):
             continue
         d = {k: m[k] for k in CAMPOS_PUBLICOS if k in m}
-        for k in ("precisao_fonte", "taxa_confirmacao", "confiabilidade"):
+        # Contagens saem inteiras: com decaimento elas viram float, e "urls: 500.9999"
+        # numa nota publicada parece defeito.
+        d["urls"] = int(round(m.get("urls_brutas") or m["urls"]))
+        d["reprovadas"] = int(round(d.get("reprovadas") or 0))
+        d["sinais_fracos"] = int(round(d.get("sinais_fracos") or 0))
+        d["execucoes"] = int(round(m.get("execucoes") or 0))
+        for k in ("precisao_fonte", "taxa_confirmacao", "confiabilidade", "precisao_recente"):
             if d.get(k) is not None:
                 d[k] = round(d[k], 4)
         # Custo por rodada, e não o acumulado: serve para escolher motor sem dizer quanto
@@ -275,6 +314,12 @@ def publicar_nota(motores, lim, hoje):
                              "confirmação (peso 2) e confiabilidade (peso 1), em base 100. "
                              "Precisão conta só falha dura. Confiabilidade desconta falha "
                              "total (1,0) e truncamento (0,5) por execução."),
+        "_indice_recente": ("A mesma série com as medições antigas pesando menos: metade a "
+                            "cada `meia_vida_dias` do config. `delta_recente` é a distância "
+                            "entre as duas notas — positivo, o motor melhorou depois do que "
+                            "a média longa registra; negativo, piorou. Nenhuma das duas "
+                            "manda sozinha: a longa é volátil de menos e a curta de mais, e "
+                            "onde elas divergem é onde o motor mudou."),
         "limiares_usados": lim,
         "motores": publico,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -300,7 +345,20 @@ def main():
         raise SystemExit(f"ERRO: pasta de pesquisas não encontrada: {raiz}")
 
     linhas = coletar(raiz)
-    motores = agregar(linhas, lim)
+    hoje_d = str(date.today())
+    motores = agregar(linhas, lim, hoje_d)
+
+    # A segunda leitura da mesma série, com as medições antigas valendo menos. Nenhuma das
+    # duas manda sozinha: onde elas divergem é onde o motor mudou, e é isso que interessa
+    # na hora de escolher.
+    meia_vida = lim.get("meia_vida_dias")
+    recentes = agregar(linhas, lim, hoje_d, meia_vida) if meia_vida else {}
+    for modelo, m in motores.items():
+        r = recentes.get(modelo) or {}
+        m["indice_recente"] = r.get("indice")
+        m["precisao_recente"] = r.get("precisao_fonte")
+        if m.get("indice") is not None and r.get("indice") is not None:
+            m["delta_recente"] = round(r["indice"] - m["indice"], 1)
 
     # A foto atual é sobrescrita a cada execução; a série de notas nunca. Sem ela não há
     # como saber se um motor melhorou ou piorou, que é o ponto de acompanhar.
@@ -364,14 +422,18 @@ def main():
 
     if not args.resumo:
         log(f"\n{len(linhas)} medições em {len({l['pesquisa'] for l in linhas})} pesquisas\n")
-        log(f"{'MOTOR':30} {'PESQ':>4} {'URLs':>5} {'PRECISÃO':>9} {'CONFIRM':>8} {'CONFIAB':>8} {'ÍNDICE':>7}  FAIXA")
+        log(f"{'MOTOR':30} {'PESQ':>4} {'URLs':>5} {'PRECISÃO':>9} {'CONFIRM':>8} {'CONFIAB':>8} {'ÍNDICE':>7} {'RECENTE':>8}  FAIXA")
         log("-" * 96)
         for modelo, m in ordem:
             def pct(v):
                 return f"{v * 100:.0f}%" if v is not None else "—"
-            log(f"{m['rotulo'][:30]:30} {m['pesquisas']:>4} {m['urls']:>5} "
+            rec = m.get("indice_recente")
+            d = m.get("delta_recente")
+            col = "—" if rec is None else (f"{rec}" if d is None or abs(d) < 1
+                                           else f"{rec} {'↑' if d > 0 else '↓'}")
+            log(f"{m['rotulo'][:30]:30} {m['pesquisas']:>4} {int(m['urls_brutas']):>5} "
                 f"{pct(m['precisao_fonte']):>9} {pct(m['taxa_confirmacao']):>8} "
-                f"{pct(m['confiabilidade']):>8} {str(m['indice'] or '—'):>7}  {m['faixa_geral']}")
+                f"{pct(m['confiabilidade']):>8} {str(m['indice'] or '—'):>7} {col:>8}  {m['faixa_geral']}")
 
         maduros = {tema: d for tema, d in por_tema.items()
                    if max((len(m["pesquisas"]) for m in d.values()), default=0) >= MASSA_MINIMA}
@@ -396,6 +458,11 @@ def main():
         log(f"  índice geral: confiável >= {g['confiavel']} · atenção >= {g['atencao']}")
         log(f"  só classifica com {lim['minimo_urls_para_avaliar']}+ URLs e "
             f"{lim['minimo_pesquisas_para_avaliar']}+ pesquisas")
+        if meia_vida:
+            log(f"\n  ÍNDICE é a série inteira, cada medição valendo o mesmo. RECENTE é a "
+                f"mesma série com\n  as medições antigas pesando menos — metade a cada "
+                f"{meia_vida} dias. Seta quando divergem\n  em mais de um ponto: ↑ o motor "
+                "melhorou depois do que a média longa registra, ↓ piorou.")
 
     if not args.resumo:
         # Variação desde a última data medida antes de hoje.

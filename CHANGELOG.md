@@ -2469,6 +2469,81 @@ cobre o caso de série local parcial, com um motor medido e três herdados.
 
 ---
 
+## [2026-08-21 15:58] — Média móvel: a nota ganha memória curta ao lado da longa
+
+### OBJETIVO
+
+Pedido do Danilo, com o problema formulado por ele nos dois extremos: "a média móvel é um
+antídoto para apenas a nota da última rodada, porque ela é muito volátil. Mas a nota
+acumulada leva junto coisas muito antigas, e provavelmente os motores já foram melhorando,
+então está penalizando o motor por um defeito no passado longínquo."
+
+### PROBLEMA
+
+`agregar` somava a série inteira sem peso por recência. Um motor que citava mal em maio e
+cita bem em agosto carrega a nota de maio com o mesmo peso da de ontem, e nada no relatório
+mostra que ele mudou.
+
+### ANÁLISE / ROOT CAUSE
+
+Duas leituras da mesma série, e as duas erram sozinhas. A última rodada é ruído. O acumulado
+puro é inércia demais.
+
+Considerada e descartada a **janela fixa** (últimas N pesquisas): tem degrau — a medição de
+ontem vale tudo e a de anteontem vale zero — e com a série atual, de 8 pesquisas, uma janela
+de 3 deixaria motor com massa insuficiente.
+
+Escolhido o **decaimento exponencial por idade em dias**: peso `0.5 ** (idade / meia_vida)`.
+Contínuo, sem degrau, e o parâmetro é um número em dias, que se explica numa frase.
+
+### SOLUÇÃO
+
+`qualidade.py`: nova `peso_por_idade(data, hoje, meia_vida)`, e `agregar` passa a aceitar
+`meia_vida`. Sem ela, tudo pesa 1 e o comportamento é o de antes — a mesma função serve às
+duas leituras, em vez de duas implementações.
+
+A série é agregada duas vezes. Cada motor ganha `indice_recente`, `precisao_recente` e
+`delta_recente`, e a tabela ganha a coluna `RECENTE`, com seta quando a divergência passa de
+um ponto.
+
+`config.json`: `meia_vida_dias: 30`, junto dos outros limiares.
+
+**A massa mínima passou a usar a contagem bruta de URLs, não a ponderada.** Sem isso, um
+motor de série longa cairia abaixo de `minimo_urls_para_avaliar` só por o tempo ter passado
+e perderia a classificação sem ter feito nada. Foi a única armadilha real da mudança.
+
+`notas-motores.json` leva as duas notas, com a explicação de como ler a diferença. As
+contagens são publicadas inteiras: com decaimento elas viram float, e "urls: 500.9999" numa
+nota publicada parece defeito.
+
+### RESULTADOS
+
+Validado com série sintética de quatro meses, porque a série real tem 18 dias e não
+discrimina. Dois motores construídos com índice acumulado quase idêntico:
+
+| motor | precisão acumulada | precisão recente | índice | recente |
+|---|---|---|---|---|
+| melhorando | 79,5% | 91,2% | 84,6 | 93,4 |
+| piorando | 80,8% | 66,0% | 85,6 | 74,5 |
+
+A média longa os trataria como equivalentes. A recente os separa por 19 pontos.
+
+Na série real, todos os números acumulados ficaram **idênticos** aos da versão anterior,
+conferido rodando o `qualidade.py` de HEAD contra o atual sobre o mesmo `outputs/`. A
+mudança é aditiva.
+
+### LIÇÕES APRENDIDAS
+
+**Ponderação não pode alcançar o critério de massa.** O peso serve para dizer quanto uma
+medição vale, não para dizer se ela existiu. Misturar os dois faz o tempo desqualificar
+motor em silêncio.
+
+**Série curta não valida mecanismo temporal.** Com 18 dias, as duas notas diferem por 0,1
+ponto e qualquer erro passaria despercebido. O teste teve de ser construído com dados de
+quatro meses.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão
