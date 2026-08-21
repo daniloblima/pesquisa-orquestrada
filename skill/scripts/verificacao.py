@@ -82,7 +82,8 @@ FALHAS_DURAS = ("inexistente", "inventada", "suspeita", "removida")
 # Sinal para leitura humana. Entra no relatório, e vai para a revalidação sempre que
 # houver trecho, como qualquer outro estado reprovado. O que muda é o peso: sinal fraco
 # nunca invalida agente nem conta como erro de citação no índice de qualidade.
-SINAIS_FRACOS = ("fora do tema", "inconclusiva", "citação imprecisa")
+SINAIS_FRACOS = ("fora do tema", "inconclusiva", "citação imprecisa",
+                 "número não localizado")
 
 # Motivos de forma que dizem que a citação é imprecisa, e não que a página não existe.
 # Rebaixados de falha dura para sinal fraco em 21/08/2026: numa pesquisa sobre valor
@@ -395,6 +396,48 @@ def cartao_do_dominio(dominio, timeout=15):
     if not titulo and not descricao:
         return None
     return {"titulo": titulo[:120], "descricao": descricao[:220]}
+
+
+def afirmacoes_da_url(url, texto, citacoes=None, teto=8):
+    """**Todas** as afirmações que uma URL sustenta, e não só a primeira.
+
+    `contexto_da_url` devolve uma, que basta para recuperar o que uma fonte reprovada
+    sustentava. Não basta para conferir se a fonte sustenta o que dizem: uma página citada
+    cinco vezes tem cinco afirmações coladas nela, e conferir só a primeira deixa as outras
+    quatro passarem sem ninguém olhar.
+
+    Medido em 21/08/2026: uma afirmação com número inventado, injetada de propósito numa
+    fonte real citada três vezes, passou sem sinal porque o contexto olhado era o da
+    primeira citação.
+    """
+    achadas, vistos = [], set()
+    if texto and url in texto:
+        padrao = re.compile(re.escape(url) + r"(?![\w/\-])(?!\.[\w/])")
+        pos = 0
+        while len(achadas) < teto:
+            m = padrao.search(texto, pos)
+            if not m:
+                break
+            pos = m.start() + len(url)
+            if _e_linha_de_lista(texto, m.start()):
+                continue
+            ini = texto.rfind("\n\n", 0, m.start())
+            if ini < 0 or m.start() - ini > 700:
+                ini = max(0, m.start() - 700)
+            fim = texto.find("\n\n", m.start())
+            if fim < 0 or fim - m.start() > 300:
+                fim = min(len(texto), m.start() + 300)
+            t = re.sub(r"\s+", " ", texto[ini:fim].strip())
+            if t and t not in vistos:
+                vistos.add(t)
+                achadas.append(t)
+
+    # O caminho por marcador acha uma por vez; sem ocorrência literal, ele é tudo o que há.
+    if not achadas:
+        t = contexto_da_url(url, texto, citacoes=citacoes)
+        if t:
+            achadas.append(t)
+    return achadas
 
 
 def _linha_em(texto, pos):
@@ -714,7 +757,8 @@ def _raizes(termos):
     return sorted(saida)
 
 
-def verificar_tema(problemas, urls, termos, slot, observacao=None):
+def verificar_tema(problemas, urls, termos, slot, observacao=None,
+                   contextos=None, numeros_do_pedido=()):
     """Confere se a página trata do tema da pesquisa.
 
     Existir não é sustentar. Uma URL pode responder 200 e falar de outra coisa — é o que
@@ -812,6 +856,12 @@ def verificar_tema(problemas, urls, termos, slot, observacao=None):
         # 13/08/2026 — as páginas legítimas do teste têm de 1,2 a 49,7 ocorrências por 10
         # mil caracteres, e a de insulina tem 0,08.
         medida[u].update({"termos_achados": achados, "posicoes": posicoes})
+        # A página já foi baixada e lida para a conferência de tema. Checar os números da
+        # afirmação aqui custa zero de rede.
+        if contextos:
+            n = conferir_numeros(contextos.get(u) or [], texto, numeros_do_pedido)
+            if n:
+                medida[u]["numeros"] = n
         if posicoes == 1 and len(alvo) > TEXTO_LONGO:
             return u, [], "densidade"
         return u, achados, None
@@ -836,6 +886,77 @@ def verificar_tema(problemas, urls, termos, slot, observacao=None):
             log(f"AGENTE {slot}", f"  fora do tema: {u[:80]}")
 
 
+# Número que discrimina: com casa decimal, ou de três dígitos para cima. "três anos" e
+# "5 modelos" aparecem em qualquer página e não provam nada; 92,5 e 4.200 provam.
+_NUMERO = re.compile(r"(?<![\w.,])(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?![\w])")
+
+
+def numeros_que_discriminam(texto):
+    """Os números de um texto que valem como prova, se estiverem na fonte."""
+    achados = set()
+    for m in _NUMERO.finditer(texto or ""):
+        v = m.group(1)
+        bruto = v.replace(".", "").replace(",", ".") if v.count(",") <= 1 else v
+        try:
+            f = float(bruto)
+        except ValueError:
+            continue
+        decimal = ("," in v) or ("." in v and len(v.split(".")[-1]) != 3)
+        if not decimal and f < 100:
+            continue
+        if 1900 < f < 2100 and not decimal:   # ano solto não sustenta nada
+            continue
+        achados.add(v)
+    return achados
+
+
+def _numero_na_pagina(n, pagina):
+    """O mesmo número, escrito como o Brasil escreve e como o resto escreve.
+
+    O motor responde em português e a fonte costuma estar em inglês: 44,43 na afirmação e
+    44.43 na página são o mesmo dado, e tratá-los como diferentes acusaria a fonte certa.
+    """
+    formas = {n, n.replace(",", "."), n.replace(".", ",")}
+    if n.count(",") == 1 and "." in n:                      # 1.234,56 -> 1,234.56
+        formas.add(n.replace(".", "\x00").replace(",", ".").replace("\x00", ","))
+    return any(f in pagina for f in formas)
+
+
+def conferir_numeros(afirmacao, pagina, do_pedido=()):
+    """Quais números da afirmação a página de fato traz.
+
+    É a pergunta que faltava em todas as camadas: elas conferiam se a página **existe** e se
+    ela **trata do assunto**, nunca se ela **sustenta o que foi dito**. Número é a parte
+    verificável sem julgar sentido — determinística, barata e onde o erro custa mais caro,
+    porque número errado atribuído a fonte real viaja para dentro de documento de cliente.
+
+    `do_pedido` desconta o que veio do próprio prompt. Em 21/08/2026, "para um lote de 4.200
+    unidades" fez cinco fontes serem acusadas de não sustentar um número que era do pedido do
+    Danilo, não da fonte.
+    """
+    if not pagina:
+        return None
+    if isinstance(afirmacao, str):
+        afirmacao = [afirmacao]
+
+    # Uma entrada por afirmação: a fonte pode sustentar cinco, e o veredito é de cada uma.
+    # Agregar tudo num conjunto só faria uma afirmação certa cobrir uma inventada.
+    itens = []
+    for t in afirmacao or ():
+        nums = numeros_que_discriminam(t) - set(do_pedido)
+        if not nums:
+            continue
+        confirmados = {n for n in nums if _numero_na_pagina(n, pagina)}
+        itens.append({"afirmados": sorted(nums), "confirmados": sorted(confirmados),
+                      "trecho": t[-240:]})
+    if not itens:
+        return None
+    return {"por_afirmacao": itens,
+            "afirmados": sorted({n for i in itens for n in i["afirmados"]}),
+            "confirmados": sorted({n for i in itens for n in i["confirmados"]}),
+            "sem_apoio": sum(1 for i in itens if not i["confirmados"])}
+
+
 def julgar_tema(problemas, urls, observacao):
     """A régua de tema, aplicada sobre o que já se leu das páginas. Não toca a rede.
 
@@ -848,6 +969,20 @@ def julgar_tema(problemas, urls, observacao):
         if "termos_achados" not in obs and "tema_falha" not in obs:
             continue  # esta URL nunca teve o tema conferido
         achados, motivo_nulo = obs.get("termos_achados"), obs.get("tema_falha")
+
+        num = obs.get("numeros")
+        orfas = [i for i in (num or {}).get("por_afirmacao", []) if not i["confirmados"]]
+        if orfas:
+            reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})
+            quais = ", ".join(orfas[0]["afirmados"][:4])
+            resto = f" e mais {len(orfas) - 1}" if len(orfas) > 1 else ""
+            reg["motivos"].append(
+                f"a página não traz o número que a afirmação atribui a ela "
+                f"({quais}){resto}")
+            reg["afirmacoes_sem_apoio"] = [
+                {"numeros": i["afirmados"], "trecho": i["trecho"]} for i in orfas[:3]]
+            if reg["estado"] == "ok":
+                reg["estado"] = "número não localizado"
 
         if achados is None:
             # PDF e planilha não têm HTML para ler, e isso é o esperado numa fonte

@@ -2612,6 +2612,100 @@ outras.
 
 ---
 
+## [2026-08-21 16:19] — A quinta camada: a fonte sustenta o número?
+
+### OBJETIVO
+
+O buraco de fundo, aberto no backlog desde 12/08 e descrito lá como "aquele do qual todos os
+itens acima são manifestação: a skill confere endereço e não confere conteúdo". Nunca tinha
+sido atacado porque esperava um caso concreto. O caso apareceu hoje.
+
+### PROBLEMA
+
+As quatro camadas respondem "esta página existe e fala do assunto?". Nenhuma responde "ela
+sustenta o que foi dito?". Uma afirmação com número inventado, colada numa fonte real e do
+tema, passa por todas as quatro sem sinal nenhum.
+
+### ANÁLISE / ROOT CAUSE
+
+Número é a parte verificável sem julgar sentido: determinística, barata, e onde o erro custa
+mais caro, porque número errado atribuído a fonte real viaja para dentro de documento de
+cliente.
+
+E o custo de rede é **zero**: `verificar_tema` já baixa e lê o texto de cada página. Faltava
+apenas comparar com a afirmação, que `contexto_da_url` já sabia recuperar.
+
+Três refinamentos vieram da medição, cada um derrubando a versão anterior do detector.
+
+**Primeiro: só número que discrimina.** "Três anos" e "5 modelos" aparecem em qualquer
+página. O corte ficou em ter casa decimal ou ser de três dígitos para cima, e ano solto sai.
+
+**Segundo: descontar o que veio do pedido.** Na primeira medição, cinco fontes foram acusadas
+de não sustentar "4.200" — que é o tamanho do lote na pergunta do Danilo, não um dado de
+fonte nenhuma. Os números do `prompt_mestre.md` passaram a ser descontados.
+
+**Terceiro, e o que mais mudou o desenho: uma fonte sustenta várias afirmações.**
+`contexto_da_url` devolve o trecho da **primeira** ocorrência da URL. O teste de injeção
+falhou por isso: uma afirmação com número inventado, plantada de propósito numa fonte citada
+três vezes, passou sem sinal porque a camada olhou a primeira citação e não a terceira.
+Nova `afirmacoes_da_url`, que colhe todas, com teto de 8.
+
+### SOLUÇÃO
+
+`verificacao.py`
+- `numeros_que_discriminam(texto)`, `_numero_na_pagina(n, pagina)` e `conferir_numeros`.
+- `_numero_na_pagina` casa as duas grafias: o motor responde em português e a fonte costuma
+  estar em inglês, e 44,43 contra 44.43 são o mesmo dado. Tratá-los como diferentes acusaria
+  a fonte certa.
+- `conferir_numeros` devolve **uma entrada por afirmação**, com trecho. Agregar tudo num
+  conjunto faria uma afirmação certa cobrir uma inventada na mesma fonte.
+- `afirmacoes_da_url`, que colhe todas as ocorrências.
+- Novo sinal fraco `número não localizado`, com `afirmacoes_sem_apoio` no registro.
+
+`verificar.py`: colhe o contexto de **todas** as URLs, não só das reprovadas, e lê os números
+do pedido do `prompt_mestre.md`. O `contexto` do registro passou a sair dessa mesma colheita,
+em vez de ser recalculado.
+
+### RESULTADOS
+
+**O achado, na pesquisa real e sem nada injetado:** `noxhash.com` sustentava oito números da
+espinha de depreciação — 18,5 / 29,6 / 40,7 / 47,1 / 86,7 / 87,5 / 92,5 / 96,3 — e a página
+**não traz nenhum deles**. Conferido à mão: ela existe, é exatamente sobre o tema, tem 12.771
+caracteres de texto e fala de depreciação em faixas arredondadas — "50–70%", "40–55%",
+"10–20%". Os motores devolveram precisão de uma casa decimal atribuída a ela.
+
+É a mesma fonte do achado H, publicada por quem aluga máquina ASIC por assinatura. Ela passou
+nas quatro camadas anteriores e sustentava a parte da pesquisa que iria para documento de
+cliente.
+
+Teste de injeção, depois da correção de múltiplas afirmações: afirmação falsa plantada numa
+fonte real citada três vezes é detectada, com o trecho e os números.
+
+Falsos positivos na pesquisa inteira: um, `t.me/s/kaboomracks`. Telegram é conteúdo volátil e
+não é conferível por número — registrado como limitação, não corrigido.
+
+Cobertura: das 47 URLs com contexto, 16 tinham número conferível. Antes dos refinamentos, o
+detector acusava 5 fontes boas; depois, zero.
+
+Recálculo sem rede reproduz o resultado com zero diferenças. Regressão contra HEAD: nenhuma
+URL mudou de estado.
+
+### LIÇÕES APRENDIDAS
+
+**O teste que falha é o que ensina.** A injeção não disparou, e investigar por quê revelou um
+defeito estrutural que valia mais que o teste: uma fonte citada cinco vezes tinha uma
+afirmação conferida. Se eu tivesse escolhido uma URL citada só uma vez, o teste teria passado
+e o defeito continuaria lá.
+
+**Detector novo se mede contra falso positivo antes de contra acerto.** Três rodadas de
+refinamento saíram de olhar quem ele acusava injustamente, e cada uma nasceu de um caso
+concreto — o "3 anos", o "4.200" do pedido, a linha de tabela.
+
+**Uma camada barata e honesta vale mais que uma cara e ambígua.** Ela confere número, e só. O
+que não sabe fazer está escrito no SKILL.md em quatro linhas, e por isso é sinal fraco.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

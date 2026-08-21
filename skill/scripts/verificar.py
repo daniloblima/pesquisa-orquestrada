@@ -332,6 +332,13 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False, recalcu
 
     log("VERIFICAR", f"{arq.name}: {len(resultados)} motores · criticidade {criticidade}")
 
+    # Número que veio do pedido não precisa estar na fonte. "Para um lote de 4.200
+    # unidades" é premissa do Danilo, e cobrá-la das fontes acusou cinco delas em
+    # 21/08/2026.
+    prompt = pasta / "prompt_mestre.md"
+    num_pedido = (V.numeros_que_discriminam(prompt.read_text(encoding="utf-8"))
+                  if prompt.exists() else set())
+
     saida_agentes, decisoes = {}, []
     observado = {}
     for r in resultados:
@@ -346,6 +353,11 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False, recalcu
                                          "Descarto a contribuição dele?"})
             continue
 
+        # O contexto de todas as URLs, e não só das reprovadas: é a afirmação que cada
+        # fonte sustenta, e sem ela não há o que conferir contra a página.
+        citacoes_r = r.get("citacoes") or []
+        contextos = {u: V.afirmacoes_da_url(u, conteudo, citacoes=citacoes_r) for u in urls}
+
         obs = observado.setdefault(slot, {})
         if recalcular:
             # Nada de rede: a régua de hoje sobre o que se observou no dia da pesquisa.
@@ -355,12 +367,15 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False, recalcu
         else:
             problemas = V.verificar_urls(urls, conteudo, slot, not sem_rede, observacao=obs)
             if termos and not sem_rede:
-                V.verificar_tema(problemas, urls, termos, slot, observacao=obs)
+                V.verificar_tema(problemas, urls, termos, slot, observacao=obs,
+                                 contextos=contextos, numeros_do_pedido=num_pedido)
         problemas = {u: x for u, x in problemas.items() if x["estado"] != "ok"}
 
-        citacoes = r.get("citacoes") or []
         for u, reg in problemas.items():
-            reg["contexto"] = V.contexto_da_url(u, conteudo, citacoes=citacoes)
+            achadas = contextos.get(u) or []
+            reg["contexto"] = achadas[0] if achadas else None
+            if len(achadas) > 1:
+                reg["outras_afirmacoes"] = len(achadas) - 1
             lote = V.citacoes_no_trecho(reg["contexto"])
             if lote > 2:
                 reg["citacoes_no_trecho"] = lote
