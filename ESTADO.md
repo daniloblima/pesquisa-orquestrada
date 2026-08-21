@@ -149,6 +149,25 @@ O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o his
 
 **Uma advertência que custou uma pesquisa:** edição em arquivo de skill não alcança sessão já aberta. Correção vale a partir da próxima sessão, não da próxima pesquisa.
 
+## A nota viaja, o histórico fica
+
+Dois arquivos, e a diferença entre eles é o que pode ser visto por terceiros.
+
+| Arquivo | Contém | Vai ao repositório? |
+|---|---|---|
+| `skill/notas-motores.json` | Agregado por motor: precisão, confirmação, confiabilidade, índice, papel, custo médio por rodada | **Sim.** Sem tema, sem URL, sem nome de pesquisa |
+| `skill/qualidade-motores.json` | O mesmo mais `serie_notas` e `historico`, com uma linha por pesquisa | Não. O histórico cita o tema de cada pesquisa |
+
+A nota publicada é **semente, não verdade**. Quem instala parte dela e, assim que a série
+local tiver massa para um motor, passa a medir o próprio — os usos são outros, e o que cada
+um pesa é outro. As duas divergem de propósito, e o resumo marca `[nota herdada]` no que
+ainda não foi medido localmente.
+
+**A publicação nunca apaga o que não pode substituir.** Só motor com amostra suficiente
+local sobrescreve a nota herdada; o resto é preservado. Sem essa guarda, a primeira execução
+do `qualidade.py` numa instalação nova publicava nota vazia por cima da semente e apagava a
+curadoria antes de ela ser lida — bug encontrado e corrigido em 21/08/2026.
+
 ## Quando a régua muda, a série precisa ser recalculada
 
 ```bash

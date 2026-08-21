@@ -23,6 +23,22 @@ from pathlib import Path
 RAIZ_SKILL = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ_SKILL / "qualidade-motores.json"
 
+# A nota que viaja com a skill. É o único artefato de medição que vai ao repositório
+# público: agregado por motor, sem tema, sem URL e sem nome de pesquisa. O
+# `qualidade-motores.json` fica de fora porque o histórico dele cita o tema de cada
+# pesquisa feita, que é dado de uso.
+#
+# Ela é semente, não verdade. Quem instala parte desta nota e, assim que a série local
+# tiver massa, passa a medir os próprios motores — os usos são outros, e o que cada um
+# pesa é outro. As duas divergem de propósito, e o resumo mostra qual está valendo.
+NOTA_PUBLICA = RAIZ_SKILL / "notas-motores.json"
+
+# O que da foto interna pode ser publicado. `custo` absoluto fica de fora: é quanto o dono
+# da série gastou, ou seja, volume de uso.
+CAMPOS_PUBLICOS = ("rotulo", "pesquisas", "urls", "reprovadas", "sinais_fracos",
+                   "execucoes", "precisao_fonte", "taxa_confirmacao", "confiabilidade",
+                   "indice", "amostra_suficiente", "faixa_precisao", "faixa_geral", "papel")
+
 # A gravidade de cada estado é definida num lugar só, em buscar.py, porque a régua e o
 # medidor precisam concordar. Duplicar a lista aqui seria criar duas verdades.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -222,6 +238,57 @@ PAPEL_EXPLICADO = {
 }
 
 
+def publicar_nota(motores, lim, hoje):
+    """Grava a nota que viaja com a skill: agregado por motor, sem rastro de pesquisa.
+
+    **Só substitui o que a medição local sustenta.** Motor sem massa aqui mantém a nota que
+    veio junto. Sem essa guarda, a primeira execução numa instalação nova publicaria uma
+    nota vazia por cima da semente e apagaria a curadoria antes mesmo de ela ser lida —
+    medido em 21/08/2026, com `outputs/` vazio.
+    """
+    publico = dict((ler(NOTA_PUBLICA) or {}).get("motores") or {})
+    for modelo, m in motores.items():
+        if not m.get("amostra_suficiente"):
+            continue
+        d = {k: m[k] for k in CAMPOS_PUBLICOS if k in m}
+        for k in ("precisao_fonte", "taxa_confirmacao", "confiabilidade"):
+            if d.get(k) is not None:
+                d[k] = round(d[k], 4)
+        # Custo por rodada, e não o acumulado: serve para escolher motor sem dizer quanto
+        # o dono da série gastou.
+        if m.get("execucoes"):
+            d["custo_medio_rodada_usd"] = round(m["custo"] / m["execucoes"], 4)
+        d["medida_em"] = hoje
+        publico[modelo] = d
+
+    if not publico:
+        return
+
+    NOTA_PUBLICA.write_text(json.dumps({
+        "atualizado_em": hoje,
+        "_leia": ("Nota inicial dos motores, medida em uso real. Serve de ponto de partida: "
+                  "assim que a sua série local tiver massa (ver limiares), ela passa a valer "
+                  "e esta fica só como referência. As duas divergem de propósito, porque os "
+                  "usos são outros. Nada aqui é escrito à mão — sai de qualidade.py sobre as "
+                  "pesquisas feitas."),
+        "_como_se_calcula": ("índice = média ponderada de precisão de fonte (peso 3), taxa de "
+                             "confirmação (peso 2) e confiabilidade (peso 1), em base 100. "
+                             "Precisão conta só falha dura. Confiabilidade desconta falha "
+                             "total (1,0) e truncamento (0,5) por execução."),
+        "limiares_usados": lim,
+        "motores": publico,
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    novos = sum(1 for m in motores.values() if m.get("amostra_suficiente"))
+    log(f"nota publicável: {len(publico)} motores em {NOTA_PUBLICA.name} "
+        f"({novos} medidos aqui, {len(publico) - novos} preservados)")
+
+
+def herdada():
+    """A nota que veio com a skill, se existir. Vazia numa série já madura não faz falta."""
+    d = ler(NOTA_PUBLICA) or {}
+    return d.get("motores") or {}, d.get("atualizado_em")
+
+
 def main():
     p = argparse.ArgumentParser(description="Mede a qualidade dos motores pelas pesquisas feitas.")
     p.add_argument("--resumo", action="store_true", help="Só o que a skill precisa saber.")
@@ -277,6 +344,7 @@ def main():
         "historico": linhas,
     }
     DESTINO.write_text(json.dumps(saida, ensure_ascii=False, indent=2), encoding="utf-8")
+    publicar_nota(motores, lim, hoje)
 
     ordem = sorted(motores.items(), key=lambda kv: -(kv[1]["indice"] or 0))
 
@@ -368,10 +436,27 @@ def main():
                 if m:
                     log(f"  {rot[:26]:26} " + " · ".join(f"{k}: {v}" for k, v in sorted(m.items())))
 
-    if not ordem:
-        log("\nNENHUMA PESQUISA MEDIDA AINDA\n")
-        log("  A série começa vazia de propósito: a nota de um motor tem de sair das suas")
-        log("  pesquisas, não das de outra pessoa. Até haver "
+    # A nota que veio com a skill cobre o motor que a série local ainda não sustenta. É
+    # semente: assim que a medição local tem massa, ela manda, porque os usos são outros e
+    # o que cada um pesa é outro. As duas divergem de propósito.
+    heranca, heranca_em = herdada()
+    em_uso = []
+    for modelo, m in ordem:
+        em_uso.append((modelo, m, "local"))
+    medidos = {modelo for modelo, _ in ordem if _.get("amostra_suficiente")}
+    for modelo, h in heranca.items():
+        if modelo in medidos:
+            continue
+        ja = next((i for i, (mo, _, _) in enumerate(em_uso) if mo == modelo), None)
+        if ja is None:
+            em_uso.append((modelo, h, "herdada"))
+        else:
+            em_uso[ja] = (modelo, h, "herdada")
+    em_uso.sort(key=lambda t: -(t[1].get("indice") or 0))
+
+    if not em_uso:
+        log("\nNENHUMA PESQUISA MEDIDA AINDA, E NENHUMA NOTA HERDADA\n")
+        log("  Até haver "
             f"{lim['minimo_pesquisas_para_avaliar']} pesquisas e "
             f"{lim['minimo_urls_para_avaliar']} URLs por motor,")
         log("  trate todos como 'confirmação com ressalva'.")
@@ -379,9 +464,17 @@ def main():
         return
 
     log("\nCOMO TRATAR CADA MOTOR NESTA PESQUISA\n")
-    for modelo, m in ordem:
-        log(f"  {m['rotulo']} — {m['papel']}")
+    for modelo, m, fonte in em_uso:
+        quando = m.get("medida_em") or heranca_em
+        marca = "" if fonte == "local" else f"  [nota herdada de {quando}, não medida aqui]"
+        log(f"  {m['rotulo']} — {m['papel']}{marca}")
         log(f"      {PAPEL_EXPLICADO[m['papel']]}")
+
+    if any(f == "herdada" for _, _, f in em_uso):
+        log(f"\n  Nota herdada é ponto de partida, medida em outro uso. Ela vale até a sua")
+        log(f"  série ter {lim['minimo_pesquisas_para_avaliar']} pesquisas e "
+            f"{lim['minimo_urls_para_avaliar']} URLs para aquele motor; daí a sua medição")
+        log("  passa a valer e as duas divergem, porque os usos são outros.")
     log(f"\n  arquivo: {DESTINO}")
 
 

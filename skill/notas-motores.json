@@ -1,0 +1,104 @@
+{
+  "atualizado_em": "2026-08-21",
+  "_leia": "Nota inicial dos motores, medida em uso real. Serve de ponto de partida: assim que a sua série local tiver massa (ver limiares), ela passa a valer e esta fica só como referência. As duas divergem de propósito, porque os usos são outros. Nada aqui é escrito à mão — sai de qualidade.py sobre as pesquisas feitas.",
+  "_como_se_calcula": "índice = média ponderada de precisão de fonte (peso 3), taxa de confirmação (peso 2) e confiabilidade (peso 1), em base 100. Precisão conta só falha dura. Confiabilidade desconta falha total (1,0) e truncamento (0,5) por execução.",
+  "limiares_usados": {
+    "precisao_fonte": {
+      "confiavel": 0.9,
+      "atencao": 0.8
+    },
+    "taxa_confirmacao": {
+      "confiavel": 0.6,
+      "atencao": 0.4
+    },
+    "confiabilidade": {
+      "confiavel": 0.9,
+      "atencao": 0.7
+    },
+    "indice_geral": {
+      "confiavel": 80,
+      "atencao": 65
+    },
+    "minimo_urls_para_avaliar": 20,
+    "minimo_pesquisas_para_avaliar": 2,
+    "pesos_indice": {
+      "precisao_fonte": 3,
+      "taxa_confirmacao": 2,
+      "confiabilidade": 1
+    }
+  },
+  "motores": {
+    "perplexity/sonar-deep-research": {
+      "rotulo": "Perplexity Deep Research",
+      "pesquisas": 5,
+      "urls": 192,
+      "reprovadas": 14,
+      "sinais_fracos": 24,
+      "execucoes": 11,
+      "precisao_fonte": 0.9271,
+      "taxa_confirmacao": 0.6316,
+      "confiabilidade": 0.4545,
+      "indice": 75.0,
+      "amostra_suficiente": true,
+      "faixa_precisao": "confiável",
+      "faixa_geral": "atenção",
+      "papel": "confirmação com ressalva",
+      "custo_medio_rodada_usd": 0.7424,
+      "medida_em": "2026-08-21"
+    },
+    "openai/gpt-5.6-terra": {
+      "rotulo": "GPT-5.6 Terra",
+      "pesquisas": 8,
+      "urls": 395,
+      "reprovadas": 14,
+      "sinais_fracos": 42,
+      "execucoes": 16,
+      "precisao_fonte": 0.9646,
+      "taxa_confirmacao": 0.4898,
+      "confiabilidade": 0.9062,
+      "indice": 79.7,
+      "amostra_suficiente": true,
+      "faixa_precisao": "confiável",
+      "faixa_geral": "atenção",
+      "papel": "confirmação com ressalva",
+      "custo_medio_rodada_usd": 0.1815,
+      "medida_em": "2026-08-21"
+    },
+    "google/gemini-3.1-pro-preview": {
+      "rotulo": "Gemini 3.1 Pro",
+      "pesquisas": 5,
+      "urls": 110,
+      "reprovadas": 25,
+      "sinais_fracos": 22,
+      "execucoes": 9,
+      "precisao_fonte": 0.7727,
+      "taxa_confirmacao": 0.5714,
+      "confiabilidade": 0.8889,
+      "indice": 72.5,
+      "amostra_suficiente": true,
+      "faixa_precisao": "crítico",
+      "faixa_geral": "atenção",
+      "papel": "confirmação com ressalva",
+      "custo_medio_rodada_usd": 0.1379,
+      "medida_em": "2026-08-21"
+    },
+    "x-ai/grok-4.20-multi-agent": {
+      "rotulo": "Grok 4.20 Multi-Agent",
+      "pesquisas": 6,
+      "urls": 501,
+      "reprovadas": 12,
+      "sinais_fracos": 31,
+      "execucoes": 12,
+      "precisao_fonte": 0.976,
+      "taxa_confirmacao": 0.7143,
+      "confiabilidade": 1.0,
+      "indice": 89.3,
+      "amostra_suficiente": true,
+      "faixa_precisao": "confiável",
+      "faixa_geral": "confiável",
+      "papel": "confirmação",
+      "custo_medio_rodada_usd": 0.5541,
+      "medida_em": "2026-08-21"
+    }
+  }
+}

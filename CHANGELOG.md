@@ -2392,6 +2392,83 @@ escolha dos motores.
 
 ---
 
+## [2026-08-21 15:51] — A nota dos motores passa a viajar com a skill
+
+### OBJETIVO
+
+Estado final definido pelo Danilo: o histórico das pesquisas continua privado, mas a nota
+dos motores vai ao repositório público. "Esse é o trabalho acumulado de curadoria, e essa
+curadoria é de ouro." A nota serve de partida para quem instala e, a partir dali, reflete o
+uso daquela pessoa.
+
+### PROBLEMA
+
+Tudo o que a régua media ficava no `qualidade-motores.json`, e ele está inteiro no
+`.gitignore` — com razão, porque o `historico` tem uma linha por pesquisa, com o nome e o
+tema de cada uma. Consequência: nenhuma medição saía daqui, e quem instalava a skill
+começava do zero. Oito pesquisas de curadoria não chegavam a ninguém.
+
+O próprio `qualidade.py` dizia isso em texto, no caso de série vazia: "a nota de um motor
+tem de sair das suas pesquisas, não das de outra pessoa". Frase que passou a contradizer a
+decisão e foi reescrita.
+
+### ANÁLISE / ROOT CAUSE
+
+Dois conteúdos de sensibilidade diferente num arquivo só. `motores` é agregado por modelo e
+não cita tema, URL nem pesquisa. `serie_notas` e `historico` citam. Separados, o primeiro
+pode viajar.
+
+### SOLUÇÃO
+
+`skill/notas-motores.json`, novo e **versionado**. Agregado por motor: precisão de fonte,
+taxa de confirmação, confiabilidade, índice, faixa, papel e `custo_medio_rodada_usd`. Traz
+também os limiares usados e uma explicação de como o índice se calcula, para o número não
+chegar sem régua.
+
+`custo` absoluto ficou de fora: é quanto o dono da série gastou, ou seja, volume de uso. O
+custo **médio por rodada** entra, e serve ao achado F, que precisa de custo à vista na hora
+de escolher motor.
+
+A herança entra no resumo do `qualidade.py`. Motor sem massa local aparece com a nota
+herdada, marcado `[nota herdada de <data>, não medida aqui]`, e o rodapé explica que ela
+vale até a série local ter as 2 pesquisas e 20 URLs do `config.json`.
+
+### BUG ENCONTRADO NO PRÓPRIO TESTE
+
+Na primeira simulação de instalação nova — `outputs/` vazio, nota presente — o resultado foi
+"NENHUMA NOTA HERDADA". Causa: `publicar_nota` rodava antes de `herdada()` e gravava nota
+vazia por cima da semente. **A primeira execução do `qualidade.py` numa instalação nova
+apagaria a curadoria antes de ela ser lida.**
+
+Corrigido com a regra de que a publicação nunca substitui o que não pode: só motor com
+`amostra_suficiente` local sobrescreve, e o resto é preservado. O log passou a dizer quantos
+foram medidos aqui e quantos foram preservados.
+
+### RESULTADOS
+
+Na máquina do Danilo: 4 motores medidos localmente, 0 preservados, nenhum marcado como
+herdado. Correto — a série é dele.
+
+Em instalação simulada, com `outputs/` vazio: os 4 motores aparecem com nota herdada de
+2026-08-21, marcados, e o arquivo continua com 4 motores depois da execução.
+
+Conferido que a nota publicada não vaza nada: busca por nome de pesquisa e por `tema` no
+arquivo não retorna ocorrência.
+
+Regressão contra HEAD: nenhuma URL mudou de estado.
+
+### LIÇÕES APRENDIDAS
+
+**Ordem de operações destrói dado em silêncio.** Publicar antes de ler não dá erro, não
+avisa e o resultado parece plausível — "nenhuma nota herdada" é uma frase que a pessoa
+aceitaria numa instalação nova. Só apareceu porque o caso vazio foi simulado de propósito.
+
+**Toda escrita que substitui precisa saber o que está substituindo.** A guarda certa não é
+"não publique se estiver vazio", é "só substitua o que você pode substituir" — que também
+cobre o caso de série local parcial, com um motor medido e três herdados.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

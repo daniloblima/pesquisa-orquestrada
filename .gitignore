@@ -17,7 +17,12 @@ _planejamento/
 *NOTA*.md
 
 # Medições de qualidade: dado de uso, não do produto. O histórico cita os temas
-# das pesquisas feitas, e quem instala deve começar a própria série do zero.
+# das pesquisas feitas — por isso este arquivo fica.
+#
+# `skill/notas-motores.json` NÃO entra aqui, de propósito: é a nota agregada por motor,
+# sem tema, sem URL e sem nome de pesquisa, e viaja com a skill como ponto de partida para
+# quem instala. É o trabalho acumulado de curadoria, que é o ativo do projeto. Decidido em
+# 21/08/2026, e antes disso nenhuma medição saía daqui.
 skill/qualidade-motores.json
 
 # Backlog de problemas: cita temas e URLs das pesquisas reais, que é dado de uso.
