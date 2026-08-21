@@ -39,6 +39,14 @@ PARA_O_FLUXO = {"baixa": False, "media": False, "alta": True}
 
 TETO_DECISOES = 10
 
+# Quando um domínio deixa de ser uma fonte entre outras e vira o eixo da pesquisa. Fatia
+# das menções de prova de um motor, e mínimo de menções para não disparar em corpus curto.
+# Medidos em 21/08/2026 sobre a pesquisa de valor residual de ASIC: com 20%, os eleitos
+# são `hashrateindex.com` (25% e 17%) e `noxhash.com` (23% e 6%), que eram exatamente os
+# dois eixos reais. O terceiro colocado fica em 12% e não entra.
+LIMIAR_EIXO = 0.20
+MINIMO_MENCOES_EIXO = 5
+
 
 def log(etapa, mensagem):
     print(f"[{datetime.now():%H:%M:%S}] [{etapa}] {mensagem}", flush=True)
@@ -232,6 +240,54 @@ def origens(resultados, verif):
     }
 
 
+def concentracao(resultados, verif):
+    """Os domínios que sustentam a pesquisa, e não apenas aparecem nela.
+
+    `origens` conta domínios distintos e responde "há variedade de fontes?". Não responde
+    "de quem depende a afirmação que importa?", e as duas perguntas divergem: em
+    21/08/2026 a sobreposição agregada era baixa, 0.176, enquanto a espinha numérica
+    inteira da pesquisa vinha de um domínio só, citado pelos dois motores. Contar motores
+    não é contar fontes.
+
+    Eixo compartilhado é o caso perigoso: domínio citado como prova por mais de um motor
+    e concentrando boa parte das provas de pelo menos um. Ali a concordância entre motores
+    não valida nada, porque os dois leram a mesma página.
+    """
+    mencoes_por_motor = {}
+    for r in resultados:
+        if r.get("erro"):
+            continue
+        reprovadas = {u for u, x in (verif.get(r["slot"], {}) or {}).items()
+                      if x.get("estado") in V.FALHAS_DURAS}
+        conta = V.mencoes_de_fonte(r.get("conteudo") or "", r.get("urls") or [],
+                                   r.get("citacoes"))
+        por_dom = defaultdict(int)
+        for u, n in conta.items():
+            if u in reprovadas:
+                continue
+            d = dominio(u)
+            if d:
+                por_dom[d] += n
+        mencoes_por_motor[r["slot"]] = dict(por_dom)
+
+    eixos = []
+    todos = {d for c in mencoes_por_motor.values() for d in c}
+    for d in todos:
+        motores = sorted(s for s, c in mencoes_por_motor.items() if c.get(d))
+        total_dom = sum(c.get(d, 0) for c in mencoes_por_motor.values())
+        fatias = {}
+        for s, c in mencoes_por_motor.items():
+            total = sum(c.values())
+            fatias[s] = round(c.get(d, 0) / total, 3) if total else 0.0
+        maior = max(fatias.values(), default=0.0)
+        if maior >= LIMIAR_EIXO and total_dom >= MINIMO_MENCOES_EIXO:
+            eixos.append({"dominio": d, "motores": motores, "mencoes": total_dom,
+                          "fatia_por_motor": fatias, "maior_fatia": maior,
+                          "compartilhado": len(motores) > 1})
+    eixos.sort(key=lambda e: (-e["maior_fatia"], e["dominio"]))
+    return {"mencoes_por_motor": mencoes_por_motor, "eixos": eixos}
+
+
 # ---------------------------------------------------------------- verificação
 
 def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
@@ -286,12 +342,28 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
     # medidas do conjunto
     coerencia = divergencias_numericas(resultados) + unidades_trocadas(resultados)
     ind = origens(resultados, saida_agentes)
+    conc = concentracao(resultados, saida_agentes)
 
     for c in coerencia[:5]:
         decisoes.append({
             "gatilho": c["tipo"], "assunto": c.get("assunto"),
             "pergunta": "Os motores discordam do mesmo número. Qual vale?",
             "valores": c.get("motores"), "trechos": c.get("trechos")})
+
+    # Eixo compartilhado vem antes do panorama agregado: é a pergunta mais cara desta
+    # verificação, e o teto de dez itens corta pelo fim da lista.
+    for e in conc["eixos"]:
+        if not e["compartilhado"]:
+            continue
+        quem = ", ".join(f"{s} {e['fatia_por_motor'][s]:.0%}" for s in e["motores"])
+        decisoes.append({
+            "gatilho": "eixo compartilhado",
+            "assunto": e["dominio"],
+            "pergunta": f"O domínio {e['dominio']} é invocado {e['mencoes']} vezes como "
+                        f"prova nesta rodada, por mais de um motor ({quem}). A "
+                        "concordância entre eles não valida essa parte, porque leram a "
+                        "mesma origem. Quem publica esse domínio, e ele ganha algo com a "
+                        "afirmação? Mando o ponto para a rodada 2 com outra origem?"})
 
     exigidas = ORIGENS_EXIGIDAS.get(criticidade, 2)
     if ind["dominios_distintos"] and ind["sobreposicao"] is not None:
@@ -311,6 +383,7 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False):
         "por_motor": saida_agentes,
         "coerencia": coerencia,
         "independencia": ind,
+        "concentracao": conc,
         "decisoes": decisoes[:TETO_DECISOES],
         "decisoes_omitidas": max(0, len(decisoes) - TETO_DECISOES),
     }
@@ -361,6 +434,16 @@ def escrever_decisoes(pasta, rodada, pacote):
                f"- domínios distintos: {ind['dominios_distintos']}",
                f"- citados por mais de um motor: {len(ind['dominios_compartilhados'])}",
                f"- sobreposição: {ind['sobreposicao']}"]
+
+    eixos = pacote.get("concentracao", {}).get("eixos") or []
+    if eixos:
+        linhas += ["", "## De quem a pesquisa depende", "",
+                   "Domínios que concentram as provas. Sobreposição baixa no agregado "
+                   "convive com afirmação central apoiada numa origem só.", ""]
+        for e in eixos:
+            quem = ", ".join(f"{s} {e['fatia_por_motor'][s]:.0%}" for s in e["motores"])
+            marca = " — **citado por mais de um motor**" if e["compartilhado"] else ""
+            linhas.append(f"- `{e['dominio']}`: {e['mencoes']} menções ({quem}){marca}")
     (pasta / f"r{rodada}_decisoes.md").write_text("\n".join(linhas) + "\n", encoding="utf-8")
 
 

@@ -1983,6 +1983,110 @@ pesquisas reais.
 
 ---
 
+## [2026-08-21 12:53] — Achados A, B e D do backlog: comando quebrado, domínio raiz e eixo compartilhado
+
+### OBJETIVO
+
+Corrigir os três achados que a sessão da pesquisa de valor residual de ASIC marcou como os
+que mudam resultado, entre os dez que ela registrou no `BACKLOG.md` de manhã.
+
+### PROBLEMA
+
+**A.** O passo 5 do `SKILL.md` mandava rodar a rodada 2 com `--termos`, que o `buscar.py`
+não tem. O argparse aborta antes de qualquer chamada, então não gasta crédito, mas o
+comando documentado é inexecutável. Os termos são do `verificar.py`, e a confusão nasceu
+de os dois scripts terem comandos parecidos no mesmo documento.
+
+**B.** `asicminervalue.com` e `hashrateindex.com` foram classificadas `suspeita`, que é
+falha dura, com o motivo "domínio raiz, sem página específica". As duas existem e são as
+referências centrais do tema. Eram as **únicas** duas falhas duras da rodada 1: o motor não
+errou uma citação sequer e levou duas.
+
+**D.** Toda a espinha numérica da depreciação vinha de `noxhash.com`, citado pelos dois
+motores, e nenhum sinal automático apontou. O `noxhash.com` é uma plataforma que aluga
+máquina ASIC por assinatura, ou seja, parte interessada na afirmação que sustentava.
+
+### ANÁLISE / ROOT CAUSE
+
+**B.** Em `verificar_urls`, todo motivo devolvido por `classificar_url` virava o mesmo
+estado `suspeita`, e a checagem de rede tinha uma guarda explícita para não lavá-lo com
+HTTP 200. A heurística julga **forma**, e forma não prova invenção — o resultado entrava na
+mesma categoria de `inventada`. Quando a fonte é uma plataforma cujo produto é o próprio
+índice, citar a raiz é a citação correta.
+
+**D.** `origens()` conta domínios **distintos** e responde "há variedade de fontes?". A
+pergunta que faltava é "de quem depende a afirmação que importa?", e as duas divergem: a
+sobreposição agregada era 0,176, baixa o bastante para tranquilizar, enquanto a afirmação
+central tinha uma origem só.
+
+O diagnóstico do backlog dizia que o Perplexity citava `noxhash.com` 26 vezes. Medido: no
+texto, o domínio aparece **uma vez** em cada motor, e é a mesma URL exata nos dois. Contar
+URL distinta era justamente o que escondia a concentração. Contando **invocações** — o
+endereço ao lado da afirmação mais o marcador numerado do estilo acadêmico — o domínio
+responde por 22% das provas do Perplexity e 6% do GPT, com 83 invocações somadas. O número
+26 do backlog foi corrigido lá, com data.
+
+### SOLUÇÃO
+
+`verificacao.py`
+- `SINAIS_FRACOS` ganha `citação imprecisa`, e a nova `MOTIVOS_FRACOS_DE_FORMA` cataloga o
+  motivo de forma que não acusa inexistência. Motivo duro junto com motivo fraco mantém
+  `suspeita`: a confissão de link construído continua dura mesmo em domínio raiz.
+- A guarda de HTTP 200 virou `pass`, com o porquê escrito: responder 200 não lava acusação
+  de forma, seja ela dura ou fraca.
+- O `ALERTA` passou a ler `FALHAS_DURAS` em vez de repetir a tupla à mão.
+- Nova `mencoes_de_fonte(texto, urls, citacoes)`: conta quantas vezes cada URL é invocada
+  como prova. Reusa `_e_linha_de_lista`, que é a régua já testada para separar afirmação de
+  exibição de endereço. O corte por cabeçalho de fontes **não** foi reintroduzido — está
+  registrado desde 13/08 que ele descartava metade do relatório.
+
+`verificar.py`
+- Nova `concentracao(resultados, verif)` e os limiares `LIMIAR_EIXO = 0.20` e
+  `MINIMO_MENCOES_EIXO = 5`.
+- Item de decisão `eixo compartilhado`, emitido antes do painel agregado porque o teto de
+  dez corta pelo fim. Pergunta quem publica o domínio e o que ele ganha com a afirmação.
+- `r_decisoes.md` ganha a seção "De quem a pesquisa depende", que sai sempre, mesmo sem
+  item disparado.
+
+`SKILL.md`
+- Removido o `--termos` do comando da rodada 2 (achado A).
+- Regra dura 2 reescrita: `citação imprecisa` entra na lista de sinais fracos, e o
+  rebaixamento do domínio raiz fica com a evidência que o motivou.
+- Passo 4 ganha o parágrafo do eixo compartilhado e o caso do `noxhash.com`.
+
+`qualidade.py`
+- A legenda `_reprovadas` passa a citar o novo sinal fraco e avisa que séries anteriores a
+  21/08/2026 contam domínio raiz como erro de citação.
+
+### RESULTADOS
+
+Comando da rodada 2 testado com `--estimar`, sem gastar: roda.
+
+`verificar_urls` sobre as duas URLs reais devolve `citação imprecisa`, HTTP 200, e
+`duras()` volta vazio. Com a confissão de link construído no texto, a mesma URL raiz
+continua `suspeita`.
+
+Verificação inteira rodada sobre uma **cópia** da pesquisa real, no scratchpad, para não
+sobrescrever o material do Danilo. Os dois eixos eleitos foram `hashrateindex.com` (17% e
+25%) e `noxhash.com` (6% e 22%), que eram exatamente os dois eixos reais. O terceiro
+colocado fica em 12% e não entra, então o limiar de 20% separa neste caso.
+
+### LIÇÕES APRENDIDAS
+
+**Contar URL distinta esconde concentração; contar invocação revela.** Um domínio com uma
+URL só em cada motor parecia uma fonte entre trinta, e era a espinha da pesquisa. Foi a
+troca de métrica que fez o sinal aparecer, não o ajuste de limiar.
+
+**Heurística de forma nunca deve emitir o mesmo veredito de heurística de existência.**
+"Domínio raiz" e "página que nunca existiu" moravam no mesmo estado, e o motor mais certo
+da rodada foi o mais punido.
+
+**Número de diagnóstico se confere antes de virar correção.** O "26 citações" do backlog não
+existia nos dados. A conclusão sobreviveu à conferência, e ficou mais forte, mas a correção
+teria sido desenhada sobre a métrica errada.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

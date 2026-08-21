@@ -16,7 +16,9 @@ Estas não se negociam. Violar qualquer uma invalida o relatório.
 1. **Agente sem URL não confirma nada.** Se o script marcar `sem_fontes: true`, aquele agente respondeu de memória. Não conta como fonte, não sustenta consenso, não vira "confirmado por dois". Registre a falha na seção de limitações do relatório.
 2. **Fonte reprovada manda a afirmação para revalidação, nunca para o lixo.** O script confere cada URL em quatro camadas — se existe, se a forma é de fonte real, se o modelo confessou tê-la construído e se a página ao menos trata do tema.
 
-   **Os estados têm gravidades diferentes, e essa diferença manda.** Falha dura é `inventada` (não existe e nunca esteve no arquivo da internet), `removida` (existiu e saiu do ar, então a informação pode ser real), `inexistente` (404) e `suspeita` (forma ou contexto ruins). Sinal fraco é `fora do tema` (a conferência de assunto não achou os termos) e `inconclusiva` (não deu para ler a página, por muro de acesso, documento sem HTML ou falha de rede).
+   **Os estados têm gravidades diferentes, e essa diferença manda.** Falha dura é `inventada` (não existe e nunca esteve no arquivo da internet), `removida` (existiu e saiu do ar, então a informação pode ser real), `inexistente` (404) e `suspeita` (o texto ao lado do link admite que ele foi construído, ou o domínio é encurtador ou hospedagem). Sinal fraco é `fora do tema` (a conferência de assunto não achou os termos), `inconclusiva` (não deu para ler a página, por muro de acesso, documento sem HTML ou falha de rede) e `citação imprecisa` (a URL é domínio raiz, sem página específica).
+
+   **Domínio raiz é sinal fraco desde 21/08/2026, e antes era falha dura.** A heurística julga forma, e forma não prova invenção: numa pesquisa sobre valor residual de ASIC, as duas únicas falhas duras da rodada 1 eram `asicminervalue.com` e `hashrateindex.com`, as duas referências centrais do tema, ambas no ar. Quando a fonte é uma plataforma cujo produto é o próprio índice, citar a raiz é a citação correta. Continua indo para a revalidação, que é o tratamento que a imprecisão merece, e deixou de pesar contra o motor.
 
    Só falha dura pesa contra o motor. Sinal fraco entra no relatório como aviso de leitura e nunca desqualifica agente nem afirmação sozinho: em 12/08/2026, 103 das 161 reprovações acumuladas eram sinal fraco, com falso positivo comprovado em quatro páginas que estavam exatamente no tema.
 
@@ -194,6 +196,10 @@ Uma afirmação com fonte reprovada não vira consenso mesmo que outro agente di
 
 Cuidado com falso consenso: dois agentes citando a mesma matéria não são duas fontes, são uma. Compare as URLs antes de chamar de confirmado.
 
+**A `/verificar` mede isso desde 21/08/2026, e o item se chama `eixo compartilhado`.** Ela conta quantas vezes cada domínio é invocado como prova — endereço escrito ao lado da afirmação ou marcador numerado — e acusa o domínio que passa de 20% das provas de algum motor e é citado por mais de um. Leia a seção "De quem a pesquisa depende" no fim do `r_decisoes.md` mesmo quando nenhum item disparar.
+
+**Contar motores não é contar fontes, e a sobreposição agregada não protege.** Na pesquisa de valor residual de ASIC, a sobreposição era 0,176 e até tranquilizava, enquanto a espinha numérica inteira da depreciação vinha de um domínio só, `noxhash.com`, citado pelos dois motores. Ele passou nas quatro camadas de verificação — existe, tem forma de fonte, não foi confessado como construído e trata do tema. O que ele é: uma plataforma que aluga máquina ASIC por assinatura, ou seja, quem ganha ao mostrar que comprar hardware deprecia rápido. Nenhuma camada pergunta quem publica, e por isso o item de decisão pergunta.
+
 Mostre ao Danilo um resumo curto do que foi consenso e do que vai para validação. Não peça aprovação, só informe e siga.
 
 ### Passo 5 — Rodada 2 cirúrgica
@@ -216,8 +222,7 @@ Grave `<pasta>/prompts_r2.json`:
 python3 ~/.claude/skills/pesquisa/scripts/buscar.py \
   --prompts-file <pasta>/prompts_r2.json \
   --saida <pasta>/r2.json --rodada 2 --modo <modo> \
-  --motores grok,gpt,gemini \
-  --termos "os mesmos termos da rodada 1"
+  --motores grok,gpt,gemini
 ```
 
 Leia os markdown da rodada 2 do mesmo jeito.

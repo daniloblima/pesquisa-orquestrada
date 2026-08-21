@@ -81,7 +81,16 @@ FALHAS_DURAS = ("inexistente", "inventada", "suspeita", "removida")
 # Sinal para leitura humana. Entra no relatório, e vai para a revalidação sempre que
 # houver trecho, como qualquer outro estado reprovado. O que muda é o peso: sinal fraco
 # nunca invalida agente nem conta como erro de citação no índice de qualidade.
-SINAIS_FRACOS = ("fora do tema", "inconclusiva")
+SINAIS_FRACOS = ("fora do tema", "inconclusiva", "citação imprecisa")
+
+# Motivos de forma que dizem que a citação é imprecisa, e não que a página não existe.
+# Rebaixados de falha dura para sinal fraco em 21/08/2026: numa pesquisa sobre valor
+# residual de ASIC, as duas únicas falhas duras da rodada 1 eram asicminervalue.com e
+# hashrateindex.com, ambas raiz, ambas existentes e ambas as referências centrais do
+# tema. Quando a fonte é uma plataforma cujo produto é o próprio índice, citar a raiz é
+# a citação correta. A heurística julga forma, e forma não prova invenção — imprecisão
+# de citação já tem tratamento próprio, que é a revalidação.
+MOTIVOS_FRACOS_DE_FORMA = ("domínio raiz, sem página específica",)
 
 
 def duras(problemas):
@@ -134,7 +143,9 @@ def verificar_urls(urls, texto, slot, verificar_rede=True):
     for u in urls:
         motivos = classificar_url(u, texto)
         if motivos:
-            achados[u] = {"estado": "suspeita", "motivos": motivos}
+            duro = any(m not in MOTIVOS_FRACOS_DE_FORMA for m in motivos)
+            achados[u] = {"estado": "suspeita" if duro else "citação imprecisa",
+                          "motivos": motivos}
 
     if not verificar_rede:
         return achados
@@ -178,8 +189,10 @@ def verificar_urls(urls, texto, slot, verificar_rede=True):
                 reg["estado"] = "inexistente"
                 reg["motivos"].append("o domínio não resolve")
             elif status and 200 <= status < 400:
-                if reg["estado"] != "suspeita":
-                    reg["estado"] = "ok"
+                # Responder 200 não lava acusação de forma. O domínio raiz responde bem
+                # e continua sendo citação imprecisa; a confissão de link construído
+                # continua sendo suspeita. Quem chegou aqui sem acusação já está "ok".
+                pass
             elif erro:
                 reg["motivos"].append(f"não deu para verificar: {erro[:90]}")
                 if reg["estado"] == "ok":
@@ -214,8 +227,7 @@ def verificar_urls(urls, texto, slot, verificar_rede=True):
                 achados[u]["motivos"].append("nenhum registro no arquivo da internet — provavelmente nunca existiu")
                 achados[u]["estado"] = "inventada"
 
-    graves = [u for u, r in achados.items()
-              if r["estado"] in ("inexistente", "suspeita", "inventada", "removida")]
+    graves = [u for u, r in achados.items() if r["estado"] in FALHAS_DURAS]
     if graves:
         log(f"AGENTE {slot}", f"ALERTA: {len(graves)} URLs inexistentes ou suspeitas")
         for u in graves[:6]:
@@ -252,6 +264,33 @@ def contexto_da_url(url, texto, janela=700, citacoes=None):
     # Janela menor no caminho por marcador: ali o parágrafo costuma ser uma linha só, e a
     # janela larga devolvia meio sumário para cada citação.
     return _contexto_por_marcador(url, texto, citacoes, janela=350)
+
+
+def mencoes_de_fonte(texto, urls, citacoes=None):
+    """Quantas vezes cada URL é usada como prova, e não apenas exibida numa lista.
+
+    Contar URL distinta esconde concentração. Em 21/08/2026, `noxhash.com` aparecia como
+    uma URL em cada motor e parecia uma fonte entre trinta; contando as vezes em que é
+    invocada, responde por 23% das provas do Perplexity e sustentava a espinha numérica
+    inteira da pesquisa. As duas formas de citar contam, como em `contexto_da_url`: o
+    endereço escrito ao lado da afirmação e o marcador numerado do estilo acadêmico.
+    """
+    conta = {}
+    for u in urls or ():
+        n, pos = 0, texto.find(u)
+        while pos >= 0:
+            if not _e_linha_de_lista(texto, pos):
+                n += 1
+            pos = texto.find(u, pos + 1)
+        if n:
+            conta[u] = conta.get(u, 0) + n
+    for i, u in enumerate(citacoes or (), 1):
+        # `(?!\()` deixa de fora o link markdown `[1](http...)`, que é exibição e não
+        # invocação.
+        n = len(re.findall(rf"\[{i}\](?!\()", texto))
+        if n:
+            conta[u] = conta.get(u, 0) + n
+    return conta
 
 
 def _linha_em(texto, pos):

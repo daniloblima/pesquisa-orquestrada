@@ -265,10 +265,12 @@ def main():
                   "motor por pesquisa, com os erros e o motivo de cada URL reprovada. "
                   "Limiares em config.json; nada aqui é escrito à mão."),
         "_reprovadas": ("'reprovadas' conta só falha dura: URL inexistente, inventada, "
-                        "suspeita ou removida. 'sinais_fracos' conta fora do tema e "
-                        "inconclusiva, que medem a conferência e não a citação, e por isso "
-                        "não entram na precisão. Separação feita em 12/08/2026; séries "
-                        "anteriores a essa data somavam os dois e subestimam a precisão."),
+                        "suspeita ou removida. 'sinais_fracos' conta fora do tema, "
+                        "inconclusiva e citação imprecisa, que medem a conferência e não a "
+                        "citação, e por isso não entram na precisão. Separação feita em "
+                        "12/08/2026; séries anteriores a essa data somavam os dois e "
+                        "subestimam a precisão. Domínio raiz saiu de dura para fraca em "
+                        "21/08/2026, e séries anteriores contam essa citação como erro."),
         "limiares_usados": lim,
         "motores": {k: {x: y for x, y in v.items()} for k, v in motores.items()},
         "serie_notas": serie,
