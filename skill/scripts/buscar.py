@@ -37,6 +37,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
+CREDITOS_URL = "https://openrouter.ai/api/v1/credits"
+PAINEL_CREDITOS = "https://openrouter.ai/settings/credits"
 RAIZ_SKILL = Path(__file__).resolve().parent.parent
 CONFIG_PATH = RAIZ_SKILL / "config.json"
 
@@ -165,6 +167,43 @@ def carregar_chave():
         "  OPENROUTER_API_KEY=sua_chave\n"
         f"em um destes arquivos:\n  {locais}"
     )
+
+
+def consultar_saldo(chave, timeout=15):
+    """Saldo do OpenRouter: o que foi comprado menos o que já foi gasto.
+
+    É endpoint de leitura e não gasta crédito nenhum. Existe porque a alternativa era
+    manter uma janela do painel aberta para conferir se dava para rodar mais uma
+    pesquisa. Esse número precisa estar na tela junto da estimativa, no momento em que
+    a decisão de gastar é tomada, e não num navegador ao lado.
+
+    Nunca levanta. Saldo é informação de apoio, então falha de rede aqui não pode
+    impedir uma pesquisa de rodar: devolve None e quem chamou segue sem o número.
+    """
+    req = urllib.request.Request(
+        CREDITOS_URL,
+        headers={"Authorization": f"Bearer {chave}", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            bruto = resp.read().decode("utf-8")
+        dados = (json.loads(bruto) or {}).get("data") or {}
+    except Exception as e:
+        log_excecao("SALDO", e)
+        log("SALDO", "não foi possível consultar o saldo, seguindo sem ele")
+        return None
+
+    comprado = float(dados.get("total_credits") or 0.0)
+    usado = float(dados.get("total_usage") or 0.0)
+    saldo = {
+        "comprado_usd": round(comprado, 4),
+        "usado_usd": round(usado, 4),
+        "saldo_usd": round(comprado - usado, 4),
+        "quando": datetime.now().isoformat(timespec="seconds"),
+    }
+    log("SALDO", f"US$ {saldo['saldo_usd']:.2f} disponíveis "
+                 f"(comprado US$ {comprado:.2f} · usado US$ {usado:.2f})")
+    return saldo
 
 
 # ---------------------------------------------------------------- chamada
@@ -566,7 +605,7 @@ def _faixa_entrada(preco):
     return faixa, faixa
 
 
-def estimar(prompts, cfg, par, rodada):
+def estimar(prompts, cfg, par, rodada, silencioso=False):
     """Faixa de custo, não número único.
 
     Cada motor tem perfil de input próprio e medido: o que recebe os resultados de
@@ -599,11 +638,69 @@ def estimar(prompts, cfg, par, rodada):
         minimo += c_min
         teto += c_teto
 
-    log("CUSTO", f"estimado entre US$ {minimo:.2f} e US$ {teto:.2f} · por agente: {detalhe}")
-    if any(cfg["_catalogo"][m].get("busca_nativa") for m, pr in prompts.items() if pr):
-        log("CUSTO", "o motor de busca profunda cobra por consulta interna, então o valor real "
-                     "varia com o tema e pode passar do teto em pesquisa muito ampla")
+    if not silencioso:
+        log("CUSTO", f"estimado entre US$ {minimo:.2f} e US$ {teto:.2f} · por agente: {detalhe}")
+        if any(cfg["_catalogo"][m].get("busca_nativa") for m, pr in prompts.items() if pr):
+            log("CUSTO", "o motor de busca profunda cobra por consulta interna, então o valor real "
+                         "varia com o tema e pode passar do teto em pesquisa muito ampla")
     return {"tipico_usd": round(minimo, 2), "teto_usd": round(teto, 2), "por_agente": detalhe}
+
+
+def confrontar_com_saldo(estimativa, prompts, cfg, par, rodada):
+    """Acrescenta à estimativa o saldo do OpenRouter e o veredito de cobertura.
+
+    Estimar só a rodada 1 responde a pergunta errada. Pesquisa que para entre as duas
+    rodadas por falta de crédito perde o dinheiro da primeira, porque a validação
+    cruzada só existe depois da segunda: o que precisa caber no saldo é a pesquisa
+    inteira, não a rodada que está sendo disparada.
+
+    A projeção da rodada 2 sai da mesma fórmula, com os mesmos prompts e o teto de saída
+    da rodada 2. Os prompts da rodada 2 ainda não existem neste momento, e o que se sabe
+    das dez pesquisas já feitas é que eles têm tamanho parecido com os da primeira.
+    """
+    if rodada == 1:
+        r2 = estimar(prompts, cfg, par, 2, silencioso=True)
+        estimativa["rodada2_teto_usd"] = r2["teto_usd"]
+        estimativa["pesquisa_teto_usd"] = round(estimativa["teto_usd"] + r2["teto_usd"], 2)
+        estimativa["pesquisa_tipico_usd"] = round(estimativa["tipico_usd"] + r2["tipico_usd"], 2)
+        log("CUSTO", f"pesquisa inteira, as duas rodadas: entre US$ "
+                     f"{estimativa['pesquisa_tipico_usd']:.2f} e US$ "
+                     f"{estimativa['pesquisa_teto_usd']:.2f}")
+    else:
+        estimativa["pesquisa_teto_usd"] = estimativa["teto_usd"]
+        estimativa["pesquisa_tipico_usd"] = estimativa["tipico_usd"]
+
+    try:
+        chave = carregar_chave()
+    except SystemExit:
+        log("SALDO", "sem chave do OpenRouter à mão, a estimativa segue sem o saldo")
+        return estimativa
+
+    saldo = consultar_saldo(chave)
+    if not saldo:
+        return estimativa
+
+    disponivel = saldo["saldo_usd"]
+    previsto = estimativa["pesquisa_teto_usd"]
+    estimativa["saldo"] = saldo
+    estimativa["cobertura"] = {
+        "cobre_esta_rodada": disponivel >= estimativa["teto_usd"],
+        "cobre_pesquisa_inteira": disponivel >= previsto,
+        "sobra_estimada_usd": round(disponivel - previsto, 2),
+    }
+
+    if disponivel >= previsto:
+        log("SALDO", f"cobre a pesquisa inteira no pior caso e sobram cerca de "
+                     f"US$ {disponivel - previsto:.2f}")
+    elif disponivel >= estimativa["teto_usd"]:
+        aperto = "" if disponivel >= estimativa["pesquisa_tipico_usd"] else " nem no caso típico"
+        log("SALDO", f"ATENÇÃO: cobre a rodada 1 e não a pesquisa inteira{aperto}. Faltam até "
+                     f"US$ {previsto - disponivel:.2f} para a rodada 2. "
+                     f"Recarregue em {PAINEL_CREDITOS} antes de disparar")
+    else:
+        log("SALDO", f"ATENÇÃO: o saldo não cobre nem a rodada 1, que sai por até "
+                     f"US$ {estimativa['teto_usd']:.2f}. Recarregue em {PAINEL_CREDITOS}")
+    return estimativa
 
 
 def main():
@@ -655,10 +752,12 @@ def main():
 
     estimativa = estimar(prompts, cfg, par, args.rodada)
     if args.estimar:
+        estimativa = confrontar_com_saldo(estimativa, prompts, cfg, par, args.rodada)
         print(json.dumps(estimativa, ensure_ascii=False, indent=2))
         return
 
     chave = carregar_chave()
+    saldo_antes = consultar_saldo(chave)
     log("RODADA", f"disparando {len(ativos)} motores em paralelo: {', '.join(ativos)}")
     for m in ativos:
         if cfg["_catalogo"][m].get("busca_nativa"):
@@ -679,6 +778,15 @@ def main():
     resultados.sort(key=lambda r: r["slot"])
     duracao = round(time.time() - inicio, 1)
     custo_total = round(sum(r["custo_usd"] for r in resultados), 4)
+    # Segunda medição do custo, independente do que cada chamada reportou em usage.cost.
+    # As duas raramente batem no centavo, porque o OpenRouter leva algum tempo para
+    # contabilizar, e é a diferença entre elas que denuncia gasto que passou fora da conta.
+    saldo_depois = consultar_saldo(chave)
+    custo_por_saldo = None
+    if saldo_antes and saldo_depois:
+        custo_por_saldo = round(saldo_antes["saldo_usd"] - saldo_depois["saldo_usd"], 4)
+        log("SALDO", f"consumo medido pelo saldo: US$ {custo_por_saldo:.4f} "
+                     f"· somado pelas chamadas: US$ {custo_total:.4f}")
     ok = [r["slot"] for r in resultados if not r["erro"]]
     falhos = [r["slot"] for r in resultados if r["erro"]]
     sem_fontes = [r["slot"] for r in resultados if r.get("sem_fontes")]
@@ -693,6 +801,9 @@ def main():
         "duracao_s": duracao,
         "custo_real_usd": custo_total,
         "custo_estimado_usd": estimativa["teto_usd"],
+        "custo_por_saldo_usd": custo_por_saldo,
+        "saldo_antes_usd": (saldo_antes or {}).get("saldo_usd"),
+        "saldo_depois_usd": (saldo_depois or {}).get("saldo_usd"),
         "agentes_ok": ok,
         "agentes_com_falha": falhos,
         "agentes_sem_fontes": sem_fontes,
@@ -741,6 +852,12 @@ def main():
     if sem_fontes:
         log("FIM", f"ALERTA: agentes sem nenhuma URL (não valem como confirmação): {sem_fontes}")
     log("FIM", f"custo real US$ {custo_total:.4f} (teto estimado US$ {estimativa['teto_usd']:.2f})")
+    if saldo_depois:
+        restante = saldo_depois["saldo_usd"]
+        log("FIM", f"saldo restante no OpenRouter: US$ {restante:.2f}")
+        if restante < custo_total:
+            log("FIM", f"ATENÇÃO: o que sobrou não paga outra rodada como esta. "
+                       f"Recarregue em {PAINEL_CREDITOS}")
     log("FIM", f"JSON: {saida}")
     for r in resultados:
         if not r["erro"]:

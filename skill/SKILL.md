@@ -141,6 +141,17 @@ python3 ~/.claude/skills/pesquisa/scripts/buscar.py \
 
 Apresente o valor ao Danilo e espere o aval. Se o modo for `profunda`, avise que o agente A pode levar de 3 a 10 minutos.
 
+O comando devolve quatro números, e os quatro vão para a tela: a faixa desta rodada, a
+projeção da pesquisa inteira, o saldo do OpenRouter e o que sobra depois. **O que precisa
+caber no saldo é a pesquisa inteira, nunca a rodada que está sendo disparada** — pesquisa
+que para entre as duas rodadas por falta de crédito perde o dinheiro da primeira, porque a
+validação cruzada só existe depois da segunda.
+
+Quando `cobertura.cobre_pesquisa_inteira` vier `false`, diga isso antes de qualquer outra
+coisa e não dispare sem ele decidir. A recarga é em https://openrouter.ai/settings/credits.
+O aviso é conservador de propósito: a conta usa o teto, e o gasto real tem ficado perto de
+85% dele.
+
 ### Passo 3 — Rodada 1
 
 ```bash
@@ -347,17 +358,34 @@ python3 ~/.claude/skills/pesquisa/scripts/qualidade.py
 
 A segunda linha é o que fecha o ciclo: cada pesquisa concluída realimenta a nota dos motores, então a próxima já é conduzida com a régua atualizada. Sem esse passo, o passo 3b da pesquisa seguinte trabalha com dados velhos.
 
-Feche informando ao Danilo: caminho do relatório, custo real somado de todas as rodadas (campo `custo_real_usd` em cada JSON), quantas afirmações ficaram como fonte única e o que permaneceu sem resolução.
+Depois dela, a aferição de custo:
+
+```bash
+python3 ~/.claude/skills/pesquisa/scripts/qualidade.py --custos
+```
+
+Confronta o previsto com o gasto em todas as rodadas já feitas e fecha com o saldo atual.
+Não gasta crédito: o endpoint de créditos é leitura. É o que mantém a estimativa honesta,
+porque ela é o número em cima do qual o aval de gastar é dado, e o que dispensa manter uma
+janela do painel aberta para saber se dá para a próxima.
+
+Feche informando ao Danilo: caminho do relatório, custo real somado de todas as rodadas (campo `custo_real_usd` em cada JSON), **quanto sobrou de saldo e para quantas pesquisas dá**, quantas afirmações ficaram como fonte única e o que permaneceu sem resolução.
 
 ## Comandos do script
 
 | Objetivo | Comando |
 |---|---|
-| Estimar sem gastar | `--prompt-file X.md --estimar` |
+| Estimar sem gastar, com saldo e projeção das duas rodadas | `--prompt-file X.md --estimar` |
 | Rodada 1 | `--prompt-file X.md --saida r1.json --rodada 1` |
 | Rodada 2 | `--prompts-file P.json --saida r2.json --rodada 2` |
 | Escolher motores | `--motores grok,gpt` |
 | Modo | `--modo rapida\|normal\|profunda` |
+
+Aferição de custo e saldo, no `qualidade.py`, sem gastar crédito:
+
+| Objetivo | Comando |
+|---|---|
+| Previsto contra gasto, rodada a rodada, e saldo atual | `qualidade.py --custos` |
 
 Configuração dos modelos, preços e modos: `config.json`. Trocar de motor é trocar a string `modelo`.
 
@@ -374,3 +402,19 @@ Chave: lida de `OPENROUTER_API_KEY` no ambiente, ou de `~/.claude/.env`. Nunca i
 **Um agente falhou na rodada 1.** Continue com os dois restantes e registre a falha na seção de limitações. Com um só, pare.
 
 **Modelo não existe mais.** O catálogo do OpenRouter muda rápido. Consulte `https://openrouter.ai/models` e atualize `config.json`, incluindo o bloco `precos_por_milhao_usd`.
+
+## Defeito da skill vai para o BACKLOG
+
+Os contornos acima existem para tocar o trabalho. Quando o problema é da própria skill — o script
+erra, uma regra produz falso positivo, uma etapa custa caro sem entregar —, isso se anota e não se
+conserta agora.
+
+Onde: `~/Experimentos/pesquisa-orquestrada/BACKLOG.md`
+
+**Nunca editar a skill durante uma sessão de uso.** Conserto feito no meio de uma entrega não é
+testado, e o trabalho é o que tem prazo. A sessão de manutenção é outra, e é ela que decide o que
+entra.
+
+O formato e os três estados — `observado`, `diagnosticado`, `confirmado` — estão no cabeçalho do
+próprio BACKLOG. O que você concluiu sobre a causa entra como `diagnosticado`, nunca como
+`confirmado`, a menos que você tenha aberto o código ou o arquivo e conferido ali.

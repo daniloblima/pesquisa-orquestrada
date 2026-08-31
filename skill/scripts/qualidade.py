@@ -380,17 +380,174 @@ def herdada():
     return d.get("motores") or {}, d.get("atualizado_em")
 
 
+def coletar_custos(raiz):
+    """Uma linha por rodada disparada, com o que se previu e o que se gastou.
+
+    O dado sempre esteve gravado: desde a primeira pesquisa cada rodada guarda
+    custo_estimado_usd ao lado de custo_real_usd. Nunca tinha sido confrontado, e a
+    estimativa é justamente o número em cima do qual o aval de gastar é dado.
+    """
+    linhas = []
+    for pasta in sorted(raiz.iterdir()):
+        if not pasta.is_dir():
+            continue
+        for arq in sorted(pasta.glob("*.json")):
+            d = ler(arq)
+            if not isinstance(d, dict) or "custo_real_usd" not in d:
+                continue
+            linhas.append({
+                "pesquisa": pasta.name,
+                "arquivo": arq.stem,
+                "rodada": d.get("rodada"),
+                "quando": (d.get("quando") or "")[:10],
+                "modo": d.get("modo"),
+                "teto": d.get("custo_estimado_usd"),
+                "real": d.get("custo_real_usd"),
+                "por_saldo": d.get("custo_por_saldo_usd"),
+                "saldo_depois": d.get("saldo_depois_usd"),
+                "motores": len(d.get("resultados") or []),
+            })
+    return linhas
+
+
+def relatorio_custos(raiz, recentes=10):
+    """Confronta previsão e gasto, e diz onde está o saldo.
+
+    Sai como texto na tela porque o lugar dele é o fechamento de cada pesquisa, junto
+    da nota dos motores. Painel que precisa ser aberto de propósito não é consultado.
+    """
+    linhas = coletar_custos(raiz)
+    if not linhas:
+        log("Nenhuma rodada com custo gravado em " + str(raiz))
+        return
+
+    # Consultado antes de abrir o relatório: a chamada emite log próprio, e log no meio
+    # de uma tabela quebra a leitura dela.
+    saldo = saldo_agora()
+
+    log("")
+    log("=" * 78)
+    log("CUSTO PREVISTO CONTRA CUSTO REAL")
+    log("=" * 78)
+    log(f"{'pesquisa':46} {'rod':4} {'teto':>7} {'real':>7} {'real/teto':>10}")
+
+    atual = None
+    for x in linhas:
+        nome = "" if x["pesquisa"] == atual else x["pesquisa"][:46]
+        atual = x["pesquisa"]
+        rod = str(x["rodada"] or "?")
+        if "retry" in x["arquivo"]:
+            rod += "R"
+        teto = f"{x['teto']:.2f}" if x["teto"] is not None else "-"
+        real = f"{x['real']:.2f}" if x["real"] is not None else "-"
+        raz = f"{x['real'] / x['teto'] * 100:.0f}%" if (x["teto"] and x["real"] is not None) else "-"
+        marca = "  <-- passou do teto" if (x["teto"] and x["real"] and x["real"] > x["teto"]) else ""
+        log(f"{nome:46} {rod:4} {teto:>7} {real:>7} {raz:>10}{marca}")
+
+    comparaveis = [x for x in linhas if x["teto"] and x["real"] is not None]
+    est = sum(x["teto"] for x in comparaveis)
+    real = sum(x["real"] for x in comparaveis)
+    estouros = [x for x in comparaveis if x["real"] > x["teto"]]
+    pesquisas = len({x["pesquisa"] for x in linhas})
+
+    log("")
+    log(f"Série inteira: {len(comparaveis)} rodadas em {pesquisas} pesquisas · "
+        f"previsto US$ {est:.2f} · gasto US$ {real:.2f} · real = {real / est * 100:.0f}% do teto")
+
+    ult = comparaveis[-recentes:]
+    if len(ult) < len(comparaveis):
+        e2 = sum(x["teto"] for x in ult)
+        r2 = sum(x["real"] for x in ult)
+        log(f"Últimas {len(ult)} rodadas: previsto US$ {e2:.2f} · gasto US$ {r2:.2f} · "
+            f"real = {r2 / e2 * 100:.0f}% do teto")
+
+    if estouros:
+        quais = ", ".join(f"{x['pesquisa'][:24]} {x['arquivo']} ({x['real'] / x['teto'] * 100:.0f}%)"
+                          for x in estouros)
+        log(f"Passaram do teto: {len(estouros)} de {len(comparaveis)} — {quais}")
+    else:
+        log("Nenhuma rodada passou do teto.")
+
+    # A conta que interessa antes de disparar: quanto custa uma pesquisa fechada, com as
+    # duas rodadas. Rodada avulsa não é pesquisa, porque sem a segunda não há validação
+    # cruzada e o dinheiro da primeira não comprou nada.
+    fechadas = {}
+    for x in linhas:
+        if x["rodada"] in (1, 2) and "retry" not in x["arquivo"] and x["real"] is not None:
+            fechadas.setdefault(x["pesquisa"], {})[x["rodada"]] = x["real"]
+    completas = [sum(v.values()) for v in fechadas.values() if len(v) == 2]
+    if completas:
+        log(f"Pesquisa completa, duas rodadas: US$ {min(completas):.2f} a "
+            f"US$ {max(completas):.2f} · média US$ {sum(completas) / len(completas):.2f} "
+            f"({len(completas)} pesquisas)")
+
+    divergentes = [x for x in linhas
+                   if x["por_saldo"] is not None and x["real"] and
+                   abs(x["por_saldo"] - x["real"]) > max(0.05, 0.2 * x["real"])]
+    if divergentes:
+        log("")
+        log("Rodadas em que o consumo medido pelo saldo destoa do somado pelas chamadas:")
+        for x in divergentes:
+            log(f"  {x['pesquisa'][:40]} {x['arquivo']}: saldo US$ {x['por_saldo']:.4f} · "
+                f"chamadas US$ {x['real']:.4f}")
+
+    log("")
+    if saldo:
+        log(f"Saldo no OpenRouter agora: US$ {saldo['saldo_usd']:.2f} "
+            f"(comprado US$ {saldo['comprado_usd']:.2f} · usado US$ {saldo['usado_usd']:.2f})")
+        if completas:
+            tipica = sum(completas) / len(completas)
+            pior = max(completas)
+            log(f"Cobre {saldo['saldo_usd'] / tipica:.1f} pesquisa no custo médio de "
+                f"US$ {tipica:.2f}. A mais cara da série saiu por US$ {pior:.2f}.")
+            if saldo["saldo_usd"] < tipica:
+                log("ATENÇÃO: o saldo não cobre nem uma pesquisa completa no custo médio. "
+                    "Recarregue em https://openrouter.ai/settings/credits")
+            elif saldo["saldo_usd"] < pior:
+                log("Atenção: cobre a pesquisa média e não a mais cara já feita. "
+                    "Tema amplo ou muitos motores podem não caber.")
+    else:
+        gravados = [x for x in linhas if x["saldo_depois"] is not None]
+        if gravados:
+            u = gravados[-1]
+            log(f"Saldo não consultado agora. O último gravado foi US$ "
+                f"{u['saldo_depois']:.2f}, em {u['quando']}.")
+        else:
+            log("Saldo não consultado e nenhum saldo gravado nas rodadas ainda.")
+    log("=" * 78)
+
+
+def saldo_agora():
+    """Consulta o saldo do OpenRouter. É leitura, não gasta crédito.
+
+    A /qualidade não gasta nada e essa promessa continua de pé: o endpoint de créditos
+    não cobra. Falha em silêncio de propósito, devolvendo None, porque medir motor não
+    pode depender de rede.
+    """
+    try:
+        import buscar
+        return buscar.consultar_saldo(buscar.carregar_chave())
+    except (Exception, SystemExit):
+        return None
+
+
 def main():
     p = argparse.ArgumentParser(description="Mede a qualidade dos motores pelas pesquisas feitas.")
     p.add_argument("--resumo", action="store_true", help="Só o que a skill precisa saber.")
     p.add_argument("--escolha", action="store_true",
                    help="A tabela da aba de escolha de motores, pronta para copiar.")
+    p.add_argument("--custos", action="store_true",
+                   help="Confronta o custo estimado com o real, rodada a rodada, e mostra o saldo.")
     args = p.parse_args()
 
     cfg, lim = carregar_cfg()
     raiz = raiz_outputs(cfg)
     if not raiz.exists():
         raise SystemExit(f"ERRO: pasta de pesquisas não encontrada: {raiz}")
+
+    if args.custos:
+        relatorio_custos(raiz)
+        return
 
     linhas = coletar(raiz)
     hoje_d = str(date.today())

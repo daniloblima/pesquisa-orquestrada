@@ -1,6 +1,6 @@
 # ESTADO — leia isto primeiro
 
-Atualizado: 2026-08-05 11:26
+Atualizado: 2026-08-31 11:20
 
 Documento de retomada. O `CHANGELOG.md` tem 1.100 linhas e guarda o detalhe de cada problema; este arquivo dá o mapa e diz onde procurar. Leia inteiro antes de mexer em qualquer coisa, e só abra o CHANGELOG quando precisar do porquê de uma decisão específica.
 
@@ -48,7 +48,7 @@ Chave do OpenRouter em `~/.claude/.env`, permissão 600, fora de qualquer reposi
 | `verificar.py` | Confere fontes, coerência e independência sobre uma pasta já coletada | não |
 | `verificacao.py` | A régua em si, importada por quem precisa dela | não |
 | `memoria.py` | Afirmações já estabelecidas, uma linha por fato | não |
-| `qualidade.py` | Mede precisão, confirmação e confiabilidade por motor; deriva o papel de cada um | não |
+| `qualidade.py` | Mede precisão, confirmação e confiabilidade por motor; deriva o papel de cada um. Com `--custos`, confronta previsto e gasto e mostra o saldo | não |
 | `dashboard.py` | Gera o painel HTML de todas as pesquisas | não |
 | `motores.py` | Catálogo do OpenRouter, classifica só o diferencial a cada consulta | não |
 | `regressao.py` | Roda a régua atual e a de um commit sobre as pesquisas já feitas, e mostra só as diferenças | não |
@@ -124,6 +124,29 @@ O Gemini concentra as URLs classificadas como inventadas, sete das oito da séri
 > fora do padrão. O Grok voltou ao padrão em 12/08. Ver `CHANGELOG.md`, entrada de 19:05.
 
 O `qualidade-motores.json` não vai para o repositório: é dado de uso, e o histórico dele cita os temas das pesquisas feitas. Quem instala a skill começa a própria série do zero. O README publica só a ordem de grandeza, sem identificar pesquisa.
+
+## Custo e saldo — acrescentado em 31/08/2026
+
+O saldo do OpenRouter deixou de morar numa janela do navegador. `buscar.py --estimar`
+consulta o endpoint de créditos, que é leitura e não cobra, e mostra quatro números antes
+do aval: a faixa desta rodada, a projeção da pesquisa inteira, o saldo e o que sobra
+depois. **O que precisa caber no saldo é a pesquisa de duas rodadas**, porque rodada 1 sem
+rodada 2 não é pesquisa nenhuma: a validação cruzada só existe depois da segunda.
+
+Cada rodada passou a gravar `saldo_antes_usd`, `saldo_depois_usd` e `custo_por_saldo_usd`.
+A diferença entre os saldos é uma medição do custo independente do `usage.cost` reportado
+por chamada, e é o que denuncia gasto passando fora da conta.
+
+A conferência da estimativa é `qualidade.py --custos`, no fechamento de cada pesquisa, ao
+lado da nota dos motores. Medido em 31/08/2026 sobre as 22 rodadas em disco: o gasto real
+foi 89% do teto na série inteira e 82% nas dez últimas rodadas. As cinco que passaram do
+teto são todas anteriores a 12/08, quando `tokens_input_busca` virou parâmetro por modelo.
+
+A fórmula não precisa de conserto. O teto presta como teto e erra por sobra, cerca de 15%,
+e o veredito de cobertura usa o teto de propósito: errar para o lado conservador custa uma
+recarga a mais, e errar para o outro custa a rodada 1 inteira.
+
+Uma pesquisa completa custou entre US$ 1,45 e US$ 3,94, média US$ 2,38, em dez pesquisas.
 
 ## Pendências reais
 

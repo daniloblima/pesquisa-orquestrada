@@ -2706,6 +2706,103 @@ que não sabe fazer está escrito no SKILL.md em quatro linhas, e por isso é si
 
 ---
 
+## [2026-08-31 11:20] — O saldo do OpenRouter entra na estimativa, e a estimativa passa a ser conferida
+
+### OBJETIVO
+Duas coisas que o uso real pediu. Primeiro, saber o saldo do OpenRouter no momento em que
+a decisão de gastar é tomada: a prática era manter uma janela do painel aberta e consultar
+o saldo de tempos em tempos, fora do fluxo da skill. Segundo, conferir se a estimativa de
+custo mostrada antes de cada rodada acerta, já que é ela que sustenta o aval de disparar.
+
+### PROBLEMA
+A estimativa nunca tinha sido confrontada com o gasto, embora o dado estivesse gravado
+desde a primeira pesquisa: cada rodada guarda `custo_estimado_usd` ao lado de
+`custo_real_usd` e ninguém nunca somou as duas colunas.
+
+E a estimativa respondia a pergunta errada. Ela projeta a rodada que está sendo disparada,
+quando o que precisa caber no saldo é a pesquisa inteira. Rodada 1 que roda e rodada 2 que
+não roda por falta de crédito perde o dinheiro da rodada 1, porque a validação cruzada só
+existe depois da segunda.
+
+No dia desta correção o saldo era US$ 2,51 e a projeção da pesquisa inteira, US$ 4,47. A
+rodada 1 caberia, e a pesquisa não. Nada na skill diria isso.
+
+### ANÁLISE / ROOT CAUSE
+Dois endpoints de leitura do OpenRouter, testados no terminal antes de qualquer código:
+`GET /api/v1/credits` devolve `total_credits` e `total_usage`, cuja diferença é o saldo, e
+`GET /api/v1/auth/key` devolve gasto do dia, da semana e do mês. Nenhum dos dois cobra.
+
+A conferência da estimativa, rodada sobre as 22 rodadas em disco, mostrou que a fórmula
+não precisa de conserto: o gasto real foi 89% do teto na série inteira e 82% nas dez
+últimas. As cinco rodadas que passaram do teto são todas anteriores a 12/08/2026, quando
+`tokens_input_busca` virou parâmetro por modelo. Depois disso, uma só, a r2 de
+contingência-llm-agentica, com 138%.
+
+Ou seja: o teto presta como teto e erra por sobra, cerca de 15%. O que faltava não era
+precisão e sim o confronto com o saldo.
+
+### SOLUÇÃO
+`skill/scripts/buscar.py`:
+
+- `CREDITOS_URL`, `PAINEL_CREDITOS` e `consultar_saldo(chave)`, que devolve comprado,
+  usado e saldo. Nunca levanta: falha de rede aqui devolve `None` e a pesquisa segue, porque
+  saldo é informação de apoio e não pode impedir uma rodada de rodar.
+- `estimar()` ganhou `silencioso=False`, porque agora é chamada duas vezes na rodada 1 e
+  dois blocos de log iguais na tela atrapalham em vez de informar.
+- `confrontar_com_saldo()` projeta a pesquisa inteira somando a estimativa da rodada 2 —
+  mesmos prompts, teto de saída da rodada 2 — e devolve `cobertura` com
+  `cobre_esta_rodada`, `cobre_pesquisa_inteira` e `sobra_estimada_usd`. O veredito se decide
+  pelo teto e não pelo típico: errar para o lado conservador custa uma recarga a mais, e
+  errar para o outro custa a rodada 1 inteira.
+- Cada rodada passou a gravar `saldo_antes_usd`, `saldo_depois_usd` e `custo_por_saldo_usd`.
+  A diferença de saldo é uma segunda medição do custo, independente do `usage.cost` que cada
+  chamada reporta.
+- O log de fechamento diz o saldo restante e alerta quando ele não paga outra rodada igual.
+
+`skill/scripts/qualidade.py`:
+
+- `--custos`: tabela de previsto contra gasto rodada a rodada, agregado da série, agregado
+  das dez últimas, lista das que passaram do teto, faixa de custo de uma pesquisa completa e
+  o saldo atual, com quantas pesquisas ele ainda cobre. Não gasta crédito.
+- `saldo_agora()` importa `consultar_saldo` do `buscar.py` em vez de duplicar a chamada.
+
+`skill/SKILL.md`: passo 2 exige mostrar os quatro números e proíbe disparar com
+`cobre_pesquisa_inteira` falso sem decisão do Danilo; passo final acrescenta a aferição ao
+fechamento e manda informar o saldo restante.
+
+### RESULTADOS
+Medição das 22 rodadas, gerada pelo próprio comando novo:
+
+| Recorte | Previsto | Gasto | Real sobre o teto |
+|---|---|---|---|
+| Série inteira, 22 rodadas em 11 pesquisas | US$ 29,16 | US$ 25,93 | 89% |
+| Dez últimas rodadas | US$ 16,39 | US$ 13,43 | 82% |
+
+Pesquisa completa de duas rodadas: US$ 1,45 a US$ 3,94, média US$ 2,38.
+
+`--estimar` exercitado com o prompt real da pesquisa de 31/08: rodada 1 entre US$ 1,79 e
+US$ 2,30, pesquisa inteira até US$ 4,47, saldo US$ 2,51 e o alerta correto de que cobre a
+rodada 1 e não a pesquisa.
+
+O caminho de gravação foi exercitado por teste de fumaça com dublê no lugar de
+`chamar_agente` e `consultar_saldo`, sem tocar a rede: os cinco campos de custo chegam ao
+JSON da rodada e a conta do saldo bate. `dashboard.py` continua lendo os JSONs.
+
+### LIÇÕES APRENDIDAS
+O dado da conferência já estava em disco desde a primeira pesquisa. O que faltava era
+alguém somar duas colunas. Antes de instrumentar mais alguma coisa, vale procurar o que já
+está gravado e nunca foi lido.
+
+Estimativa que ninguém confere vira número de fé. A conferência precisa morar no fechamento
+de cada pesquisa, junto da nota dos motores, e não num painel que se abre de propósito —
+painel que exige abrir não é consultado.
+
+O que precisa caber no orçamento é a unidade que entrega valor, e aqui a unidade é a
+pesquisa de duas rodadas. Rodada avulsa não é pesquisa: sem a segunda não há validação
+cruzada, e o dinheiro da primeira não comprou nada.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão
