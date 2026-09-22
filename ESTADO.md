@@ -1,6 +1,6 @@
 # ESTADO — leia isto primeiro
 
-Atualizado: 2026-08-31 11:20
+Atualizado: 2026-09-22 16:17
 
 Documento de retomada. O `CHANGELOG.md` tem 1.100 linhas e guarda o detalhe de cada problema; este arquivo dá o mapa e diz onde procurar. Leia inteiro antes de mexer em qualquer coisa, e só abra o CHANGELOG quando precisar do porquê de uma decisão específica.
 
@@ -28,15 +28,17 @@ Repositório público: github.com/daniloblima/pesquisa-orquestrada
     ├── config.json               motores, modos, preços, limiares
     ├── catalogo-motores.json     catálogo do OpenRouter classificado
     ├── qualidade-motores.json    notas medidas, série por data, log de erros — LOCAL, fora do repositório
-    ├── references/               prompt-mestre.md, formato-relatorio.md
-    └── scripts/                  buscar.py, dashboard.py, motores.py, qualidade.py
+    ├── references/               prompt-mestre.md, formato-relatorio.md, prompt-parecer.md
+    └── scripts/                  buscar.py, verificar.py, verificacao.py, sustentacao.py,
+                                  qualidade.py, dashboard.py, motores.py, memoria.py,
+                                  regressao.py
 ```
 
 `~/.claude/skills/pesquisa` é symlink para `skill/`. Uma fonte de verdade só, versionada.
 
-Chave do OpenRouter em `~/.claude/.env`, permissão 600, fora de qualquer repositório. Nunca dentro do projeto.
+Chaves em `~/.claude/.env`, permissão 600, fora de qualquer repositório. Nunca dentro do projeto. `OPENROUTER_API_KEY` é obrigatória; `TYPESAFE_API_KEY` é opcional e só liga a sexta camada — sem ela, o Jev roda pelo próprio OpenRouter.
 
-## Os quatro scripts
+## Os scripts
 
 > Reorganizado em 13/08/2026: são três skills, e os scripts moram todos em `skill/scripts/`.
 > `/pesquisa` coleta e redige, `/verificar` confere o material coletado e `/qualidade` mede os
@@ -102,6 +104,32 @@ continua sendo o buraco que nenhuma camada cobre.
 Medição completa em `_planejamento/2026.09.22 NOTA - avaliacao do Jev.md`, que fica fora do
 repositório porque cita temas e URLs de pesquisas reais.
 
+## O que mudou em 22/09/2026
+
+Sessão de manutenção longa, oito commits. O fio foi avaliar o Jev e, ao medir, descobrir que
+parte grande do problema não precisava dele.
+
+**A sexta camada entrou**, com as duas rotas descritas acima.
+
+**Cinco itens do BACKLOG fecharam, e três deles eram outra coisa.** F e I eram a mesma causa;
+G era F mais um achado que ninguém tinha nomeado; H não procedia contra o código. A lição de
+método: conferir o diagnóstico antes de codar mudou o trabalho em três dos cinco.
+
+**Dois registros antigos estavam errados e foram corrigidos.** O caso `noxhash`, citado em três
+arquivos como o acerto de estreia da quinta camada, era um falso positivo — a página traz a
+tabela de onde os percentuais derivam, e o motor declarou a conta. E o item H do BACKLOG
+atribuía ao código 403 uma reprovação que vinha do `**` colado na URL.
+
+**Três medições que ninguém tinha feito, e todas mudaram prioridade.** 16 de 29 acusações de
+uma pesquisa vinham de URL suja. 34 de 34 divergências numéricas do histórico eram falsas. 17
+de 77 respostas truncaram, e 10 perderam a seção de fontes.
+
+**O passo 2 ganhou a parada mais importante do fluxo.** O prompt se lê no arquivo antes de
+pagar, porque o Danilo lê o prompt e não lê os resultados, e é a única janela em que o escopo
+ainda pode ser corrigido.
+
+Medição completa em `_planejamento/2026.09.22 NOTA - avaliacao do Jev.md`.
+
 ## Decisões que não se re-litigam
 
 **O Claude Code orquestra, o OpenRouter só busca.** A alternativa era um orquestrador via API, como no PRD original. A clarificação vira conversa de verdade, a consolidação roda em modelo melhor e a lógica fica em markdown editável.
@@ -121,12 +149,18 @@ repositório porque cita temas e URLs de pesquisas reais.
 Detalhe completo no CHANGELOG, com data e teste.
 
 1. **Busca que falha em silêncio.** Plugin sem `engine` explícito: modelos Google respondem de memória, HTTP 200, sem aviso. Sinal de que buscou: volume de tokens de entrada e presença de URLs.
-2. **URL que existe na forma e não no mundo.** É o modo grave, porque parece verificado. Quatro camadas hoje: existe, forma de fonte, confissão do modelo no texto, e se a página trata do tema. O arquivo da internet separa página removida de URL inventada.
+2. **URL que existe na forma e não no mundo.** É o modo grave, porque parece verificado. Seis camadas hoje: existe, forma de fonte, confissão do modelo no texto, se a página trata do tema, se traz o número atribuído a ela, e se sustenta o que disseram. O arquivo da internet separa página removida de URL inventada.
 3. **Consenso sobre ausência não é prova de ausência.** Três motores afirmaram que não havia dispositivo impondo teto de 75 kW; o art. 23, § 6º da REN ANEEL 1.000/2021 diz exatamente isso. Nenhum achou. Regra dura 8 e passo 5b existem por causa disso.
 4. **Estimativa com parâmetro único.** Motores cobram de formas incompatíveis: um recebe a busca no prompt e chega a 80 mil tokens de entrada; outro busca do lado do provedor e cobra por consulta. `tokens_input_busca` é por modelo, medido.
-5. **Truncamento.** Relatório cortado perde a seção de fontes, que fica no fim. Tetos de tokens já subidos duas vezes.
+5. **Truncamento.** Relatório cortado perde a seção de fontes, que fica no fim. Medido em 22/09/2026 sobre o histórico: 17 de 77 respostas truncaram, e em 10 delas a seção `FONTES CONSULTADAS` não chegou — 13% de tudo já coletado. O `r{N}.json` grava `truncado`, `truncado_detalhe` e o `usage` inteiro, e a última URL de resposta truncada fica fora da conferência. Tetos já subidos duas vezes.
 6. **Falha entrando como sucesso.** `finish_reason=error` com `erro` nulo. Hoje marca o agente como falho.
-7. **Citação só no rodapé.** Motor que lista URLs apenas na seção final impede recuperar a afirmação que cada fonte sustentava, e a revalidação não alcança nada. O prompt mestre exige URL no próprio parágrafo; `reprovadas_sem_rastro` marca quando falha assim mesmo.
+7. **Pontuação de markdown colada no endereço.** `**` do negrito e `[N` do marcador de citação viram parte da URL, que passa a apontar para lugar nenhum e é acusada de invenção. Em 22/09/2026, 16 das 29 acusações de uma pesquisa tinham essa causa. `limpar_url` apara na coleta e na verificação.
+
+8. **Acusação grave apoiada numa medição só.** `inexistente` vira `inventada`, pesa no índice do motor e para o fluxo, e bastava um 404 numa tentativa. Dois PDFs do Banco Mundial foram acusados por um 404 que não se reproduz. A checagem repete antes de acusar.
+
+9. **Vocabulário compartilhado não é objeto compartilhado.** O detector de divergência numérica apontou 34 pares no histórico e os 34 eram falsos positivos — comparava IRPJ sobre mercadoria com serviços em geral, potências de categorias diferentes, modelos de ASIC diferentes. A sexta camada julga se os dois trechos medem a mesma coisa.
+
+10. **Citação só no rodapé.** Motor que lista URLs apenas na seção final impede recuperar a afirmação que cada fonte sustentava, e a revalidação não alcança nada. O prompt mestre exige URL no próprio parágrafo; `reprovadas_sem_rastro` marca quando falha assim mesmo.
 
 ## Números atuais
 
@@ -204,6 +238,9 @@ Uma pesquisa completa custou entre US$ 1,45 e US$ 3,94, média US$ 2,38, em dez 
 - **Nenhum caso com resposta conhecida.** Se um relatório sair inteiro errado, nada acusa.
 - **Substituir os indicadores de fontes coletadas e tempo total no painel**, que perderam utilidade, por taxa de confirmação e taxa de URL reprovada.
 - **Modo `profunda` nunca exercitado.**
+- **Elevar o teto do Perplexity é hipótese não testada.** A medição de 21/08 sugere que não encarece: a rodada de 20.000 tokens custou US$ 0,97 e a de 150 custou US$ 1,00. Desde 22/09 o `usage` inteiro é gravado, com `reasoning_tokens`, então dá para conferir na próxima pesquisa real sem gastar nada a mais.
+- **A estimativa erra quatro vezes para motor com plugin de busca**, porque conta só o prompt escrito e o plugin injeta o conteúdo das páginas. Item G de 21/08 no BACKLOG.
+- **"Sem origem comum" é falso alarme quando a rodada 2 é disjunta por desenho.** Item J, gravidade baixa.
 
 ## Como retomar
 

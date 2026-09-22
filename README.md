@@ -99,7 +99,13 @@ Estão todos documentados em [CHANGELOG.md](CHANGELOG.md), com sintoma, causa e 
 
 A literatura mede esse fenômeno: de 3% a 13% das URLs citadas por agentes de pesquisa nunca existiram, e agentes de busca profunda alucinam a taxas maiores que modelos com busca simples ([arXiv 2604.03173](https://arxiv.org/abs/2604.03173), [arXiv 2605.06635](https://arxiv.org/html/2605.06635v1)). Não é acidente de um modelo ruim, é taxa base.
 
-Hoje cada URL passa por quatro camadas: se existe, se a forma é de fonte real, se o modelo confessou tê-la construído no texto ao redor e se a página trata do tema. Quando não resolve, o arquivo da internet separa página removida de URL que nunca existiu — só a segunda indica invenção. Nenhuma camada custa API, e falha de checagem nunca vira acusação: o estado fica inconclusivo.
+Hoje cada URL passa por seis camadas: se existe, se a forma é de fonte real, se o modelo confessou tê-la construído no texto ao redor, se a página trata do tema, se ela traz o número que a afirmação atribui a ela, e se sustenta o que disseram que ela sustenta. Quando não resolve, o arquivo da internet separa página removida de URL que nunca existiu — só a segunda indica invenção. Falha de checagem nunca vira acusação: o estado fica inconclusivo.
+
+As cinco primeiras medem forma e não custam API. A sexta lê sentido, e é a única que consulta um modelo: o Jev, da TypeSafe, que responde pergunta tipada e devolve um veredito com probabilidade em vez de texto. Ela é opcional — sem chave configurada a skill roda igual, com a conferência de tema por vocabulário no lugar dela. Com chave, custa cerca de US$ 0,012 numa pesquisa de 109 URLs, contra os US$ 2,38 de média que a pesquisa inteira custa.
+
+**Por que uma camada de sentido faz diferença.** As cinco primeiras respondem "esta página existe e fala do assunto?". Nenhuma responde "o que está escrito ali sustenta o que disseram?". A diferença aparece em dois lugares. Fonte legítima escrita em outro idioma era reprovada por vocabulário, porque a conferência casa raiz de palavra: uma página em inglês que traz exatamente a frase traduzida na afirmação era marcada como fora do tema. E afirmação sem número não era avaliável de forma alguma — numa pesquisa medida, 31 das 47 URLs com contexto passavam sem nenhum julgamento de conteúdo.
+
+**O que ela não faz.** Não julga afirmação de ausência — "não existe dispositivo", "não há precedente" —, porque modelos erram em dupla negação e um veredito de "sustenta" sobre uma negação viraria autorização. Essas vão para conferência em fonte primária, que é o que a regra de ausência sempre mandou fazer.
 
 **Estimativa de custo com parâmetro único.** Motores cobram de formas incompatíveis: um recebe os resultados de busca no prompt e chega a 80 mil tokens de entrada, outro pesquisa do lado do provedor e cobra por consulta. Nenhuma média serve para os dois, e a estimativa errava por fator de 2 a 3 nas duas direções.
 
