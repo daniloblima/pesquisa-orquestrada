@@ -110,6 +110,62 @@ def duras(problemas):
     return {u: r for u, r in problemas.items() if r.get("estado") in FALHAS_DURAS}
 
 
+# O que o motor cola no fim do endereço e não faz parte dele: negrito e itálico de
+# markdown, marcador de citação em estilo acadêmico, pontuação de fim de frase.
+_SUJEIRA_NO_FIM = re.compile(r"(?:\*+|_+|\[+\d*|\]+|[.,;:!?]+|\s+)+$")
+
+
+def limpar_url(u):
+    """Apara do fim o que é formatação do texto, não endereço.
+
+    Medido em 22/09/2026 sobre a pesquisa de casos de uso produtivo: 16 das 29 URLs
+    acusadas de não existir tinham lixo colado. Treze terminavam em `**`, porque o motor
+    escreveu o endereço em negrito, e três em `.[[N`, que é o marcador de citação do
+    Perplexity. Entre as acusadas estavam o relatório do ESMAP, dois PDFs do Banco Mundial
+    e três reportagens do Mongabay, todas no ar e conferidas com 200.
+
+    O custo dessa sujeira não é só ruído. `inventada` é a acusação mais grave da skill,
+    pesa contra o motor no índice de qualidade e, em criticidade alta, para o fluxo até o
+    Danilo responder. A mesma página aparecia duas vezes no relatório, uma limpa com 200 e
+    outra suja com 404, com vereditos opostos.
+    """
+    u = (u or "").strip()
+    anterior = None
+    while u != anterior:
+        anterior = u
+        u = _SUJEIRA_NO_FIM.sub("", u)
+    return u
+
+
+# Endereço que só responde na máquina de quem lê. Não é fonte de nada e não se classifica:
+# sai da lista antes de contar. O modelo escreve `http://localhost:11434` como exemplo de
+# uso do Ollama, e até 21/08/2026 isso virava falha dura por "domínio raiz"; depois virou
+# sinal fraco, que é menos errado e continua errado, porque entra na contagem de URLs do
+# motor e dilui a medida de precisão.
+_LOCAL = re.compile(
+    r"^(?:localhost|127\.\d+\.\d+\.\d+|0\.0\.0\.0|\[::1\]|::1|"
+    r"10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|"
+    r"172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|"
+    r"[^.]+\.local)$", re.IGNORECASE)
+
+
+def e_endereco_local(url):
+    """A URL aponta para a própria máquina, ou para a rede local de quem lê."""
+    try:
+        p = urlparse(url or "")
+    except Exception:
+        return False
+    if p.scheme in ("file", "data", "about", "chrome", "javascript"):
+        return True
+    host = (p.hostname or "").strip()
+    return bool(host) and bool(_LOCAL.match(host))
+
+
+def fontes_de_verdade(urls):
+    """A lista sem o que nunca foi fonte. Use antes de classificar ou de contar."""
+    return [u for u in urls if u and not e_endereco_local(u)]
+
+
 def classificar_url(url, texto):
     """Marca a URL como suspeita antes mesmo de ir à rede, pela forma e pelo contexto."""
     motivos = []
@@ -229,6 +285,24 @@ def verificar_urls(urls, texto, slot, verificar_rede=True, observacao=None):
     log(f"AGENTE {slot}", f"verificando existência de {len(urls)} URLs")
 
     def checar(u):
+        u, status, erro = _checar_uma(u)
+        # Acusar de inexistente é a saída mais cara da régua: vira `inventada` quando o
+        # arquivo da internet não tem registro, pesa contra o motor no índice de qualidade
+        # e, em criticidade alta, para o fluxo. Uma medição de rede única não é base
+        # suficiente para isso.
+        #
+        # Em 22/09/2026, sete PDFs do `documents1.worldbank.org` foram acusados com base
+        # num 404 que não se reproduz: dez tentativas seguidas devolveram 200, e doze
+        # simultâneas ao mesmo host também. O 404 foi episódio do servidor, e a acusação
+        # ficou gravada no relatório.
+        if status in (404, 410):
+            time.sleep(1.5)
+            u, status2, erro2 = _checar_uma(u)
+            if status2 not in (404, 410):
+                return u, status2, erro2
+        return u, status, erro
+
+    def _checar_uma(u):
         req = urllib.request.Request(
             u, method="HEAD",
             headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"},

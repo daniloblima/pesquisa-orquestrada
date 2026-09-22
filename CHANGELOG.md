@@ -2925,6 +2925,54 @@ Veredito equivalente nas duas rotas sobre o mesmo par de afirmação e página: 
 
 ---
 
+## [2026-09-22 12:28] — A URL suja, o endereço local, e a acusação baseada numa tentativa só
+
+### OBJETIVO
+
+Triar o BACKLOG e corrigir o lote que produz falha dura falsa. Quatro itens pareciam quatro problemas; eram dois, mais um terceiro que ninguém tinha visto.
+
+### PROBLEMA 1 — pontuação de markdown colada no endereço (itens F e I)
+
+O extrator captura `https://...pdf**` quando o motor escreve a URL em negrito, e `https://...html.[[1` quando o Perplexity cola o marcador de citação. O endereço sujo é outro endereço: dá 404, não tem registro no arquivo da internet e vira `inventada`, que é a acusação mais grave da skill.
+
+**Medido na pesquisa de casos de uso produtivo: 16 das 29 URLs acusadas de não existir tinham lixo colado.** Treze com `**`, três com `.[[N`. Entre as acusadas, o relatório do ESMAP, dois PDFs do Banco Mundial e três reportagens do Mongabay, todas conferidas com 200. A mesma página aparecia duas vezes no relatório, uma limpa com 200 e outra suja com 404, com vereditos opostos.
+
+**Solução.** `limpar_url` em `verificacao.py`, aparando `*`, `_`, `[`, `]` e pontuação do fim, em laço até estabilizar. Fica na régua e não no coletor porque as pesquisas em disco guardam a URL como o motor a escreveu: sem aplicar na verificação também, recalcular pesquisa antiga reproduz a acusação.
+
+**Efeito na mesma pesquisa:** sinais de 48 para 24, acusações graves de 25 para 6. Das 6 restantes, 4 são 404 conferido na rede, 1 é confissão de construção no texto do motor e 1 é o scribd (ver limitações).
+
+### PROBLEMA 2 — endereço local contado como fonte (item K)
+
+`http://localhost:11434` e `http://localhost:4000`, que o modelo escreve como exemplo de uso do Ollama e do LiteLLM, entravam na contagem de URLs do motor e diluíam a medida de precisão.
+
+**Solução.** `e_endereco_local` e `fontes_de_verdade` tiram da lista antes de classificar: `localhost`, `127.x`, `0.0.0.0`, `::1`, faixas privadas, `.local`, e os esquemas `file`, `data`, `about`. A regressão mostrou três saindo em duas pesquisas, exatamente as previstas. `localhost.com.br` continua sendo domínio externo.
+
+### PROBLEMA 3 — o que não estava no BACKLOG: uma medição de rede virava acusação permanente
+
+Dois PDFs do Banco Mundial com endereço limpo foram acusados com base num 404 que não se reproduz. Em 22/09: dez tentativas seguidas, dez vezes 200; doze requisições simultâneas ao mesmo host, doze vezes 200. Nem User-Agent nem HEAD contra GET explicam.
+
+Foi episódio do servidor, e virou `inventada` no relatório, com peso no índice de qualidade do motor.
+
+**Solução.** `checar` repete depois de 1,5 segundo quando o primeiro resultado é 404 ou 410, e só acusa se o segundo confirmar. Custo: alguns segundos por pesquisa, só nas URLs que iriam ser acusadas.
+
+### O ITEM QUE NÃO PROCEDIA (item H)
+
+O BACKLOG registrava que 403 era tratado como falha dura. A régua não faz isso: em `julgar_urls` só 404 e 410 viram `inexistente`, e com 403 sem erro de rede nenhum ramo dispara. Conferido rodando a régua sobre as duas URLs citadas — `news.mongabay.com` devolve `ok` sem motivo, e `www.clasp.ngo` devolve `citação imprecisa` por domínio raiz, que independe do código HTTP.
+
+O que acusou as duas foi o `**`. O sintoma era real, a causa apontada não.
+
+### RESULTADOS
+
+Regressão sobre 13 pesquisas: 4 URLs mudaram de estado, todas explicáveis — três endereços locais saindo e a versão suja do `endev.info`, cuja versão limpa continua `suspeita` por confissão no texto.
+
+### LIÇÕES APRENDIDAS
+
+**Quatro itens do BACKLOG eram dois problemas e um terceiro invisível.** F e I são a mesma causa com pontuação diferente. G era F mais um achado que ninguém tinha nomeado. H não procedia. Triar conferindo contra o código mudou o trabalho: sem isso, teria sido escrito um tratamento especial de 403 que não conserta nada, e a fragilidade de acusar com uma medição só continuaria lá.
+
+**A acusação mais grave merecia a evidência mais forte, e tinha a mais fraca.** `inventada` para o fluxo, pesa no índice e viaja para o relatório, e bastava um 404 numa tentativa. A assimetria passou despercebida desde a criação da régua.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

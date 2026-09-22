@@ -345,7 +345,20 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False, recalcu
         slot = r.get("slot")
         if r.get("erro"):
             continue
-        urls = r.get("urls") or []
+        # A limpeza e o filtro entram aqui, e não só na coleta, porque as pesquisas já em
+        # disco guardam a URL como o motor escreveu — com o `**` do negrito e o `[[N` do
+        # marcador de citação colados. Sem isto, recalcular pesquisa antiga reproduz a
+        # acusação errada, e é justamente sobre pesquisa antiga que a régua se afere.
+        urls = []
+        for u in (r.get("urls") or []):
+            u = V.limpar_url(u)
+            if u and u not in urls:
+                urls.append(u)
+        antes = len(urls)
+        urls = V.fontes_de_verdade(urls)
+        if antes != len(urls):
+            log("VERIFICAR", f"{slot}: {antes - len(urls)} endereço(s) local(is) fora da "
+                             "contagem — não são fonte de nada")
         conteudo = r.get("conteudo") or ""
         if not urls:
             decisoes.append({"gatilho": "motor sem fonte", "motor": slot,

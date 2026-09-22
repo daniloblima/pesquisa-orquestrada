@@ -208,6 +208,9 @@ def consultar_saldo(chave, timeout=15):
 
 # ---------------------------------------------------------------- chamada
 
+from verificacao import limpar_url  # a régua é única: ver verificacao.py
+
+
 def extrair_urls(conteudo, annotations):
     """Junta as URLs das citações estruturadas com as que aparecem no texto."""
     urls = []
@@ -220,7 +223,7 @@ def extrair_urls(conteudo, annotations):
 
     # Fallback: nem todo modelo devolve citação estruturada.
     for u in re.findall(r"https?://[^\s\)\]\>\"'`,;]+", conteudo or ""):
-        urls.append(u.rstrip(".,;:"))
+        urls.append(limpar_url(u))
 
     vistas, unicas = set(), []
     for u in urls:
