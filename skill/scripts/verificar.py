@@ -78,7 +78,14 @@ PADRAO_MEDIDA = re.compile(rf"{NUMERO}\s*({UNIDADES})", re.I)
 # preposição e verbo comum não separam nada.
 PARADAS = set("""a o e de da do das dos em no na nos nas um uma uns umas para por com que
 se the of and in to for on is are was were este esta isso esse essa como mais menos entre
-sobre até ser foi são não sim seu sua seus suas ao aos à às pelo pela""".split())
+sobre até ser foi são não sim seu sua seus suas ao aos à às pelo pela
+cerca aproximadamente aproximada aproximado praticamente quase média médio medio torno
+estimado estimada estimativa valor valores total respectivamente quando enquanto durante
+depois antes ainda apenas somente""".split())
+# A segunda linha entrou em 22/09/2026. Advérbio de aproximação não ancora objeto nenhum, e
+# "cerca" com "halving" fez o detector comparar a queda do S19 com a do S19j Pro, em datas
+# diferentes, produzindo as duas divergências falsas do item C do BACKLOG. Com a lista
+# ampliada as duas somem e nenhuma outra pesquisa muda de contagem.
 
 
 def _ancoras(texto):
@@ -173,7 +180,55 @@ def divergencias_numericas(resultados, minimo_ancoras=2):
     achados.sort(key=lambda x: -x["_forca"])
     for a in achados:
         a.pop("_forca", None)
-    return achados[:8]
+    return _so_as_reais(achados[:8])
+
+
+# Abaixo disto, os dois trechos provavelmente não medem a mesma coisa e o par não vira
+# pergunta. Escolhido em 0,5 por ser o ponto em que o `Noul` deixa de pender para o sim;
+# medido em 22/09/2026, ele separou 13 de 13 pares nas duas pesquisas com caso conhecido.
+CONFIANCA_MESMA_GRANDEZA = 0.5
+
+
+def _so_as_reais(achados):
+    """Tira do lote o par que compara grandezas diferentes, quando há como julgar.
+
+    A heurística casa por unidade igual mais vocabulário compartilhado, e vocabulário não
+    identifica objeto: na pesquisa de tributação, os 8 pares apontados eram 8 falsos
+    positivos, com os motores concordando que IRPJ sobre mercadoria presume 8%, CSLL 12% e
+    serviços em geral 32%. Divergência falsa em criticidade alta para o fluxo e consome a
+    atenção do Danilo, que é o recurso mais caro aqui.
+
+    Sem a camada de sustentação configurada, devolve o lote como estava. O julgamento fica
+    gravado em cada achado para quem for ler depois.
+    """
+    if not achados:
+        return achados
+    try:
+        import sustentacao as S
+        if not S.disponivel():
+            return achados
+    except ImportError:
+        return achados
+
+    saida = []
+    for a in achados:
+        motores = list(a["motores"])
+        if len(motores) != 2:
+            saida.append(a)
+            continue
+        ma, mb = motores
+        p = S.mesma_grandeza(a["trechos"].get(ma), a["trechos"].get(mb),
+                             a["motores"][ma], a["motores"][mb], a["unidade"])
+        if p is None:                      # sem chave ou falha de rede: mantém como era
+            saida.append(a)
+            continue
+        a["mesma_grandeza"] = p
+        if p >= CONFIANCA_MESMA_GRANDEZA:
+            saida.append(a)
+        else:
+            log("COERÊNCIA", f"par descartado ({a['assunto']}, {a['unidade']}): os trechos "
+                             f"medem coisas diferentes (p={p:.2f})")
+    return saida
 
 
 def unidades_trocadas(resultados):

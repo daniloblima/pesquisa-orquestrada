@@ -338,6 +338,54 @@ def julgar(afirmacao, pagina, com_tema=True):
     return saida
 
 
+def mesma_grandeza(trecho_a, trecho_b, valor_a, valor_b, unidade):
+    """Os dois trechos atribuem valores diferentes à mesma grandeza sobre o mesmo objeto?
+
+    A heurística de coerência acha pares por unidade igual mais vocabulário compartilhado, e
+    vocabulário não identifica objeto. Medido em 22/09/2026 sobre as pesquisas em disco: na
+    de tributação, as 8 divergências apontadas eram 8 falsos positivos — os motores
+    concordavam que o IRPJ sobre venda de mercadoria presume 8%, a CSLL 12% e serviços em
+    geral 32%, e o detector comparava esses percentuais entre si como se fossem o mesmo
+    número medido duas vezes. Na de valor residual de ASIC, comparava a queda do S19 com a
+    do S19j Pro, em datas diferentes.
+
+    Devolve `None` sem chave, e aí quem chama mantém o par como candidato — que é o
+    comportamento de sempre.
+    """
+    if not trecho_a or not trecho_b:
+        return None
+    state = {
+        "trecho_A": trecho_a,
+        "valor_A": f"{valor_a} {unidade}",
+        "trecho_B": trecho_b,
+        "valor_B": f"{valor_b} {unidade}",
+    }
+    perguntas = {
+        "mesma": {
+            "type": "noul",
+            "instructions": (
+                "Dois trechos de pesquisas diferentes citam um número na mesma unidade. "
+                "Eles estão medindo a MESMA grandeza sobre o MESMO objeto, no mesmo "
+                "recorte de tempo e de escopo? Responda sobre o que cada trecho mede, não "
+                "sobre os números serem parecidos."),
+            "criteria": {
+                "true": "Os dois medem a mesma coisa sobre o mesmo objeto, então valores "
+                        "diferentes seriam uma contradição real entre as fontes",
+                "false": "Medem coisas diferentes, ou a mesma coisa sobre objetos, "
+                         "tributos, categorias, períodos ou escopos distintos, e por isso "
+                         "valores diferentes são esperados e não se contradizem",
+            },
+        },
+    }
+    try:
+        r = _pedir(state, perguntas, timeout=40)
+    except SemChave:
+        return None
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError):
+        return None
+    return round((r.get("answers", {}).get("mesma") or {}).get("noul", 0.0), 3)
+
+
 def motivo_legivel(j):
     """A linha que entra em `motivos`, escrita para quem lê o r_decisoes.md."""
     if not j:

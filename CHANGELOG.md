@@ -2973,6 +2973,58 @@ Regressão sobre 13 pesquisas: 4 URLs mudaram de estado, todas explicáveis — 
 
 ---
 
+## [2026-09-22 14:45] — A coerência numérica nunca acertou, e agora se cala quando não sabe
+
+### OBJETIVO
+
+Fechar o item C do BACKLOG: o detector de divergência numérica compara objetos diferentes.
+
+### PROBLEMA — muito maior do que o item registrava
+
+O item anotava 2 falsos positivos numa pesquisa. Rodando o detector sobre as sete pesquisas com divergência em disco: **34 pares apontados, 34 falsos positivos.**
+
+Na de tributação, os 8 pares confrontavam percentuais sobre os quais os motores concordavam — IRPJ sobre venda de mercadoria presume 8%, CSLL 12%, serviços em geral 32% —, tratando-os como a mesma grandeza medida duas vezes. Na de minigeração, potências de categorias diferentes. Na de óleo e gás, alíquotas de contratos diferentes. Na de ASIC, a queda do S19 contra a do S19j Pro, em datas diferentes.
+
+A coerência numérica não acertou uma vez no histórico, e cada item que produziu consumiu atenção do Danilo. Em criticidade alta, parou o fluxo.
+
+### ANÁLISE
+
+A heurística casa por unidade igual mais vocabulário compartilhado, com exigência de âncora rara. Vocabulário não identifica objeto: "prestação", "serviços", "lucro" e "presumido" são âncoras legítimas do tema tributário e não dizem qual tributo nem qual atividade. "cerca" e "halving" não dizem qual modelo de ASIC nem qual data.
+
+### SOLUÇÃO — duas camadas, e a primeira não pede chave
+
+**Paradas ampliadas.** Advérbio de aproximação saiu das âncoras. Zera os 2 casos do item C e não muda a contagem de nenhuma outra pesquisa, o que é o teste de que não apaga sinal legítimo.
+
+**`mesma_grandeza`, na sexta camada.** Um `Noul` perguntando se os dois trechos medem a mesma coisa sobre o mesmo objeto, no mesmo recorte de tempo e escopo. Abaixo de 0,5 o par é descartado e o motivo vai para o log.
+
+### RESULTADOS
+
+Com a camada ligada: 34 pares para 0 nas sete pesquisas. Sem chave: 34, que é o comportamento antigo menos os dois das paradas.
+
+Controle com cinco casos escritos à mão, porque 34 de 34 descartados seria bom demais sem prova:
+
+| caso | p | veredito |
+|---|---|---|
+| Dinkelman, mesmo estudo, 9 contra 13,5 pontos percentuais | 0,68 | diverge |
+| REN 1.000/2021, mesmo limite, 75 contra 100 kW | 0,85 | diverge |
+| Petrobras, mesmo ano, 511 contra 490 bilhões | 0,87 | diverge |
+| IRPJ 8% contra serviços 32% (caso real) | 0,04 | mesmo |
+| S19 92,5% contra S19j Pro 86,7% (caso real) | 0,06 | mesmo |
+
+Cinco de cinco, com o limiar de 0,5 caindo no meio do vale entre 0,06 e 0,68.
+
+### O QUE NÃO ESTÁ MEDIDO
+
+Os três casos de divergência real são sintéticos, escritos para o teste. Está medido que a camada descarta o que deve descartar; não está medido que ela preserva uma divergência real surgida numa pesquisa de verdade, porque não existe nenhuma no acervo — as 34 do histórico eram todas falsas.
+
+### LIÇÕES APRENDIDAS
+
+**Um detector que nunca acertou parecia estar funcionando.** Ele produzia itens, os itens tinham forma de achado, e ninguém somou quantos eram verdadeiros. O item C existia desde 21/08 com "gravidade média" e dois exemplos; a conta inteira só apareceu ao rodar sobre todas as pesquisas de uma vez.
+
+**Vocabulário compartilhado não é objeto compartilhado.** A heurística pedia âncora rara justamente para evitar isso, e mesmo assim casava "prestação" com "serviços" numa pesquisa em que tudo é prestação de serviços. Num corpus de um tema só, a palavra rara do idioma é a palavra comum do texto.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão
