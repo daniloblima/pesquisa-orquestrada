@@ -32,6 +32,16 @@ import urllib.request
 from datetime import datetime
 from urllib.parse import urlparse
 
+# A camada de sustentação é opcional por desenho: a skill viaja pelo GitHub e quem a
+# instala pode não ter conta na TypeSafe. Sem o módulo, ou sem a chave, tudo abaixo roda
+# exatamente como antes. Ver `sustentacao.py`.
+try:
+    import sustentacao as SUSTENTACAO
+    if not SUSTENTACAO.disponivel():
+        SUSTENTACAO = None
+except ImportError:
+    SUSTENTACAO = None
+
 
 def log(etapa, mensagem):
     """Substituível: buscar.py e verificar.py injetam o log com arquivo."""
@@ -862,6 +872,18 @@ def verificar_tema(problemas, urls, termos, slot, observacao=None,
             n = conferir_numeros(contextos.get(u) or [], texto, numeros_do_pedido)
             if n:
                 medida[u]["numeros"] = n
+            # A sexta camada, que julga sentido em vez de forma. Roda sobre a mesma página
+            # já baixada, custa cerca de US$ 0,0002 por afirmação e só existe se a
+            # TYPESAFE_API_KEY estiver configurada — sem ela `julgar` devolve None e a
+            # heurística de tema continua sendo a régua, como sempre foi.
+            if SUSTENTACAO is not None:
+                julgados = []
+                for t in (contextos.get(u) or [])[:3]:
+                    j = SUSTENTACAO.julgar(t, texto, com_tema=True)
+                    if j:
+                        julgados.append({**j, "trecho": t[-240:]})
+                if julgados:
+                    medida[u]["sustentacao"] = julgados
         if posicoes == 1 and len(alvo) > TEXTO_LONGO:
             return u, [], "densidade"
         return u, achados, None
@@ -890,11 +912,35 @@ def verificar_tema(problemas, urls, termos, slot, observacao=None,
 # "5 modelos" aparecem em qualquer página e não provam nada; 92,5 e 4.200 provam.
 _NUMERO = re.compile(r"(?<![\w.,])(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?![\w])")
 
+# Endereço colado na afirmação. Sai antes de procurar número, porque o que está dentro de
+# uma URL é identificador de página e não valor afirmado.
+_SEM_URL = re.compile(r"https?://\S+|www\.\S+")
+
+# O motor declara quando o número é dele e não da fonte. Quando a frase anuncia a conta, o
+# número não estar escrito na página é o esperado, e cobrá-lo acusa fonte que sustenta.
+# Medido em 22/09/2026: o caso noxhash, que estava registrado como o acerto de estreia
+# desta camada, abre com "Convertendo esses exemplos em perdas aproximadas" e os seis
+# percentuais fecham na aritmética sobre a tabela que a página traz.
+_DERIVACAO = re.compile(
+    r"\b(convertendo|convertido|convertidos|calculad[oa]s?|estimad[oa]s? a partir|"
+    r"o que (?:representa|equivale|corresponde|implica)|equivale a|corresponde a|"
+    r"resulta em|derivad[oa]s?|inferid[oa]s?|extrapolad[oa]s?|"
+    r"em termos (?:percentuais|relativos)|na nossa conta|pela conta)\b",
+    re.IGNORECASE)
+
 
 def numeros_que_discriminam(texto):
-    """Os números de um texto que valem como prova, se estiverem na fonte."""
+    """Os números de um texto que valem como prova, se estiverem na fonte.
+
+    A URL citada ao lado da afirmação sai antes da extração. Ela é endereço, não conteúdo,
+    e os números dela não foram afirmados por ninguém — mas casam com o padrão e viravam
+    prova cobrada da página. Medido em 22/09/2026 sobre o histórico: `stj-resp-2075903-sp`
+    produzia o número `2075903`, que a página escreve como `2.075.903` e por isso nunca
+    era encontrado; `infoid=2990` produzia `2990` numa afirmação que não tinha número
+    nenhum. Dois dos sete falsos positivos conferidos naquele dia, e a mesma causa.
+    """
     achados = set()
-    for m in _NUMERO.finditer(texto or ""):
+    for m in _NUMERO.finditer(_SEM_URL.sub(" ", texto or "")):
         v = m.group(1)
         bruto = v.replace(".", "").replace(",", ".") if v.count(",") <= 1 else v
         try:
@@ -948,13 +994,35 @@ def conferir_numeros(afirmacao, pagina, do_pedido=()):
             continue
         confirmados = {n for n in nums if _numero_na_pagina(n, pagina)}
         itens.append({"afirmados": sorted(nums), "confirmados": sorted(confirmados),
-                      "trecho": t[-240:]})
+                      "derivado": bool(_DERIVACAO.search(t)), "trecho": t[-240:]})
     if not itens:
         return None
     return {"por_afirmacao": itens,
             "afirmados": sorted({n for i in itens for n in i["afirmados"]}),
             "confirmados": sorted({n for i in itens for n in i["confirmados"]}),
-            "sem_apoio": sum(1 for i in itens if not i["confirmados"])}
+            "derivados": sum(1 for i in itens if i["derivado"] and not i["confirmados"]),
+            "sem_apoio": sum(1 for i in itens
+                             if not i["confirmados"] and not i["derivado"])}
+
+
+def motivo_legivel_sustentacao(j):
+    """A linha da sexta camada, escrita para quem lê o r_decisoes.md.
+
+    Fica aqui, e não em `sustentacao.py`, porque a régua precisa dela mesmo quando o módulo
+    não está instalado — o recálculo lê observação gravada por uma execução que tinha chave.
+    """
+    rotulo = {
+        "sustenta": "a página sustenta a afirmação",
+        "sustenta_em_parte": "a página apoia parte da afirmação, com divergência de valor, "
+                             "escopo ou objeto",
+        "contradiz": "a página contradiz a afirmação",
+        "nao_trata": "a página não trata do que a afirmação declara",
+    }.get(j.get("estado"), j.get("estado"))
+    c = j.get("confianca")
+    if c is None:
+        return rotulo
+    ressalva = "" if j.get("auto") else " (confiança baixa, confira você mesmo)"
+    return f"{rotulo}, confiança {c:.2f}{ressalva}"
 
 
 def julgar_tema(problemas, urls, observacao):
@@ -971,7 +1039,10 @@ def julgar_tema(problemas, urls, observacao):
         achados, motivo_nulo = obs.get("termos_achados"), obs.get("tema_falha")
 
         num = obs.get("numeros")
-        orfas = [i for i in (num or {}).get("por_afirmacao", []) if not i["confirmados"]]
+        # Afirmação que anuncia a própria conta não se cobra da página. O `derivado` fica
+        # gravado na observação para quem for ler, e só não dispara o sinal.
+        orfas = [i for i in (num or {}).get("por_afirmacao", [])
+                 if not i["confirmados"] and not i.get("derivado")]
         if orfas:
             reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})
             quais = ", ".join(orfas[0]["afirmados"][:4])
@@ -1009,6 +1080,54 @@ def julgar_tema(problemas, urls, observacao):
             if reg["estado"] == "ok":
                 reg["estado"] = "inconclusiva"
             continue
+
+        # A sexta camada entra aqui, e o que ela faz com o tema é substituir a régua de
+        # vocabulário quando existe julgamento de sentido. A heurística conta raiz de
+        # palavra e reprova fonte legítima escrita em outro idioma: em 22/09/2026, dos 8
+        # casos marcados como "fora do tema" no histórico, o Jev julgou 8 como tratando do
+        # assunto e cinco como sustentação plena, e todos os que abri na página eram falso
+        # positivo. Sem chave, `sust` não existe e nada abaixo muda.
+        sust = obs.get("sustentacao") or []
+        if sust:
+            reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})
+            negativas = [j for j in sust if j.get("para_fonte_primaria")]
+            julgadas = [j for j in sust if j.get("estado") in
+                        ("sustenta", "sustenta_em_parte", "contradiz", "nao_trata")]
+
+            if negativas:
+                # Não recebe veredito e não vira reprovação. Vira tarefa do passo 5b, que
+                # é o que a regra dura 8 sempre mandou fazer com afirmação negativa.
+                reg["motivos"].append(
+                    "afirmação negativa apoiada nesta fonte: confira no texto oficial "
+                    "(passo 5b) — o julgamento automático não se aplica")
+                reg["para_fonte_primaria"] = [j["trecho"] for j in negativas[:3]]
+
+            contra = [j for j in julgadas
+                      if j["estado"] in ("contradiz", "nao_trata") and j.get("auto")]
+            if contra:
+                pior = min(contra, key=lambda j: 0 if j["estado"] == "contradiz" else 1)
+                reg["motivos"].append(motivo_legivel_sustentacao(pior))
+                reg["sustentacao_reprovada"] = [
+                    {"estado": j["estado"], "confianca": j["confianca"],
+                     "trecho": j["trecho"]} for j in contra[:3]]
+                if reg["estado"] == "ok":
+                    reg["estado"] = ("fonte contradiz" if pior["estado"] == "contradiz"
+                                     else "fonte não sustenta")
+
+            # Julgamento sem convicção não acusa ninguém, e também não absolve: fica como
+            # aviso de leitura, que é o tratamento que sinal fraco sempre teve aqui.
+            incerta = [j for j in julgadas if not j.get("auto")]
+            if incerta and not contra:
+                pior = min(incerta, key=lambda j: j["confianca"])
+                reg["motivos"].append(motivo_legivel_sustentacao(pior))
+
+            # A régua de vocabulário some quando há julgamento de sentido com convicção.
+            trata = [j.get("trata_do_tema") for j in julgadas
+                     if j.get("trata_do_tema") is not None]
+            if trata and max(trata) >= 0.5:
+                if reg["estado"] == "ok" and not reg["motivos"]:
+                    problemas.pop(u, None)
+                continue
 
         if not achados:
             reg = problemas.setdefault(u, {"estado": "ok", "motivos": []})

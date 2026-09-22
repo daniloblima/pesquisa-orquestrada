@@ -28,6 +28,24 @@ python3 ~/.claude/skills/pesquisa/scripts/verificar.py <pasta-da-pesquisa> \
 Confere, para cada fonte: se a URL existe, se a forma é de fonte real, se o modelo confessou
 tê-la construído, se a página trata do assunto, e qual trecho do texto ela sustentava.
 
+**Desde 22/09/2026 há uma sexta camada, que pergunta se a página diz o que disseram que ela
+diz.** As cinco primeiras medem forma — endereço, domínio, vocabulário, número escrito. Esta lê
+sentido, e quem julga é o Jev, da TypeSafe, pelo `sustentacao.py`. Devolve um de quatro
+vereditos — sustenta, sustenta em parte, contradiz, não trata — com uma confiança: acima de
+0,80 o veredito vale, abaixo disso entra como aviso de leitura e quem decide é o Danilo.
+
+Ela também substitui a conferência de tema, que conta raiz de palavra e reprova fonte legítima
+escrita em outro idioma. O texto de Capoche sobre Potosí, em espanhol com termos em inglês,
+está registrado no BACKLOG desde 13/08 por essa causa.
+
+**Afirmação de ausência não recebe veredito dela.** "Não existe dispositivo", "não há
+precedente", "nenhuma norma prevê" saem marcadas para a conferência em fonte primária, sem
+julgamento do modelo, porque em 3 de 7 negações plantadas ele respondeu "sustenta". É o
+gatilho 1 desta skill, e continua valendo inteiro.
+
+**Sem a chave `TYPESAFE_API_KEY` em `~/.claude/.env`, esta camada desliga e o resto roda
+igual.** Custa cerca de US$ 0,012 numa pesquisa de 109 URLs.
+
 E duas medidas sobre o conjunto, que nenhuma fonte isolada revela:
 
 **Coerência** — o mesmo número aparecendo com valores diferentes entre motores, unidade

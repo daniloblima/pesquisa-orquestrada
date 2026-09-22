@@ -2803,6 +2803,90 @@ cruzada, e o dinheiro da primeira não comprou nada.
 
 ---
 
+## [2026-09-22 11:30] — A sexta camada, e o caso de estreia da quinta que era falso positivo
+
+### OBJETIVO
+
+Avaliar o Jev, da TypeSafe, para a verificação de fontes, e implementar o que a medição sustentasse. O pedido do Danilo era direto: as pesquisas substituem um time de analistas, e motor de busca trazendo informação que não existe custa caro.
+
+### O QUE FOI MEDIDO, ANTES DE MEXER EM QUALQUER COISA
+
+Teste retroativo sobre 47 pares de afirmação e fonte, tirados dos sinais gravados em nove verificações de doze pesquisas entre 03/08 e 02/09. Custo total US$ 0,0085. Nada foi escrito em pasta de projeto, porque havia pesquisa rodando em paralelo.
+
+Sete falsos positivos da skill foram confirmados abrindo cada página e lendo o trecho. O Jev acertou os sete. Quatro causas distintas, e a divisão entre elas decidiu o desenho:
+
+| Causa | Casos | Precisa do Jev? |
+|---|---|---|
+| Número extraído da URL colada, não da afirmação | 5 | não, é regex |
+| Derivação declarada pelo motor | 1 | não, é regex |
+| Fonte em idioma diferente do dos termos | 3 | sim |
+
+Recomendar o modelo sem ter aberto as páginas teria significado pagar para contornar bug de comparação de string. Os dois consertos baratos entraram primeiro, e só o ganho residual justificou a camada nova.
+
+### PROBLEMA 1 — O caso de estreia da quinta camada era um falso positivo
+
+Em 21/08 a quinta camada acusou o `noxhash.com` de sustentar oito números da espinha de depreciação que não estão escritos na página. Ficou registrado no `SKILL.md`, no `ESTADO.md` e no `BACKLOG.md` como a prova de que ela funcionava.
+
+A página foi aberta em 22/09. Ela traz uma tabela com os valores em dólar por terahash, por geração — S19 de ~US$ 80 para ~US$ 10 e depois US$ 3–6; S19j Pro de ~US$ 90 para ~US$ 12; S19 XP de ~US$ 34 para ~US$ 18. Os seis percentuais que o GPT escreveu fecham na aritmética sobre essa tabela, até a casa decimal: 80 para 10 dá 87,5%, 80 para 6 dá 92,5%, 90 para 12 dá 86,7%, 34 para 18 dá 47,1%, 27 para 22 dá 18,5%. E o texto do motor abre com "Convertendo esses exemplos em perdas aproximadas".
+
+O sinal disparou corretamente — os percentuais não estão escritos. O diagnóstico tirado dele é que estava errado. A frase sobre faixas arredondadas ("Flagships lose 50–70% of their value in the first 18 months") existe na página e trata da perda nos primeiros 18 meses, não da série por geração.
+
+Lição: sinal que dispara não é diagnóstico confirmado, e o registro de um acerto merece a mesma conferência na fonte que o registro de um erro. Este ficou treze meses citado em três arquivos.
+
+### PROBLEMA 2 — Número dentro da URL virava prova cobrada da página
+
+`migalhas.com.br/depeso/427640/` fazia a skill cobrar da página o número 427640. `legisweb.com.br/noticia/?id=34071` cobrava 34071. `idArquivoBinario=53213`, que é identificador de anexo da Receita, fazia a Lei 9.074/1995 no Planalto responder por ele. E `stj-resp-2075903-sp` produzia 2075903, que a página escreve como 2.075.903 e por isso nunca era encontrado.
+
+Solução: `_SEM_URL` remove endereços do texto antes da extração, em `numeros_que_discriminam`.
+
+### SOLUÇÃO — três mudanças no código
+
+**`verificacao.py`** — `_SEM_URL` tira endereços antes de extrair número. `_DERIVACAO` reconhece a frase que anuncia a conta ("convertendo", "o que representa", "equivale a") e marca o item como `derivado`, que não dispara o sinal. `julgar_tema` ganhou o bloco da sexta camada.
+
+**`sustentacao.py`** (novo) — cliente do Jev, recorte de janela por âncora, as perguntas e o roteamento de afirmação negativa.
+
+**`SKILL.md`** — regra 2 corrigida, regra 2b nova, dois estados novos.
+
+### DECISÕES TÉCNICAS
+
+**Sem chave, nada quebra.** A skill viaja pelo GitHub e quem a instala pode não ter conta na TypeSafe. `sustentacao.disponivel()` decide, o import falha em silêncio e a régua de vocabulário volta a ser a única. A regressão rodou sem chave e devolveu "nenhuma URL mudou de estado".
+
+**O Jev substitui a conferência de tema quando há chave.** Dos 8 casos marcados como `fora do tema` no histórico, o Jev julgou 8 como tratando do assunto e 5 como sustentação plena, e todos os que foram abertos eram falso positivo. Quando ele concorda com a heurística, o sinal fica — foi o que aconteceu com a página do BNDES sobre chamada de clima numa pesquisa de óleo e gás, com tema 0,08.
+
+**Afirmação de ausência não recebe veredito do modelo.** Em 3 de 7 negações plantadas ele respondeu "sustenta", e indireção com dupla negação é limitação publicada do `jev-1.13`. Vai para o passo 5b, que é o que a regra dura 8 sempre mandou.
+
+**Limiar em 0,80.** Vem do cookbook `citation_check` da TypeSafe e foi conferido: 13 de 16 corrupções plantadas detectadas, nenhum falso alarme nos 8 controles.
+
+### RESULTADOS
+
+Detecção, com corrupções plantadas sobre casos em que a página comprovadamente sustentava o original:
+
+| Corrupção | n | detectadas |
+|---|---|---|
+| troca de número | 2 | 2 |
+| negação | 7 | 4 |
+| troca de entidade | 5 | 5 |
+| troca de data | 2 | 2 |
+| **total** | **16** | **13 (81%)** |
+
+Zero falso alarme em 8 controles. As três que escaparam são todas de negação, e é por isso que afirmação de ausência foi roteada para fora do modelo.
+
+Numa pesquisa real de 109 URLs: 40 julgadas, US$ 0,0121, e os dois falsos positivos do `puc-riodigital` eliminados. Contra a média de US$ 2,38 por pesquisa, a camada é 0,5% do custo.
+
+### O QUE NÃO FOI MEDIDO
+
+Não há caso com gabarito de fonte que realmente mente no acervo — as corrupções foram plantadas por script, e três delas produziram frases que um revisor humano também acharia ambíguas. Fonte atrás de muro segue fora de alcance, e os 403 do `sec.gov` não são julgados por ninguém.
+
+### LIÇÕES APRENDIDAS
+
+**O recorte domina o veredito.** A janela caiu 2.658 caracteres antes do art. 16-B da Lei 9.074/1995, e o modelo respondeu "não trata" com confiança 0,90, acima do limiar de auto-aceite. A primeira versão pontuava por densidade de palavra, e numa lei do setor elétrico "energia" e "consumidor" aparecem do começo ao fim. Identificador passou a pesar oito vezes mais que palavra comum, a janela acertou o artigo e o veredito virou "sustenta em parte" com confiança 0,31, que manda para revisão humana.
+
+**A regressão não cobre mudança de extração.** Ela roda `--sem-rede`, e nesse modo os números vêm da observação gravada. Testa a régua, não a extração. As duas primeiras versões destes consertos passaram por ela sem que uma linha fosse exercitada, e só apareceram quando o código antigo foi rodado contra o novo com a rede do mesmo dia. Fica como limite conhecido da ferramenta.
+
+**Detector largo demais enche o `r_decisoes.md`.** A primeira versão do teste de afirmação negativa marcava todo "não" e roteou 33 de 73 julgamentos, incluindo "recursos não reembolsáveis", que é termo técnico. Restringido para afirmação de ausência, caiu para 7. A régua da própria skill já dizia: se não couber em dez minutos de leitura, a triagem falhou.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

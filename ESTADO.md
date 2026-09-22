@@ -52,12 +52,44 @@ Chave do OpenRouter em `~/.claude/.env`, permissão 600, fora de qualquer reposi
 | `dashboard.py` | Gera o painel HTML de todas as pesquisas | não |
 | `motores.py` | Catálogo do OpenRouter, classifica só o diferencial a cada consulta | não |
 | `regressao.py` | Roda a régua atual e a de um commit sobre as pesquisas já feitas, e mostra só as diferenças | não |
+| `sustentacao.py` | A sexta camada: pergunta ao Jev se a página sustenta a afirmação. Opcional, desliga sem chave | sim, mas ~US$ 0,012 por pesquisa |
 
 > Desde 21/08/2026 a verificação grava `r{N}_observacao.json` ao lado do veredito: o que a
 > web respondeu sobre cada URL, na data em que foi perguntado. É o que permite recalcular a
 > régua depois sem voltar à rede. Ver "Quando a régua muda" abaixo.
 
 Só biblioteca padrão do Python. Nada a instalar.
+
+> **A regressão não cobre mudança de extração, e isso custou uma rodada em 22/09/2026.** Ela
+> roda `--sem-rede`, e nesse modo os números e o julgamento vêm da observação já gravada. Ela
+> testa a régua — `julgar_urls`, `julgar_tema` —, nunca o que lê a página. Mudança em
+> `numeros_que_discriminam`, em `conferir_numeros` ou na sexta camada passa por ela sem ser
+> exercitada, e ela devolve "nenhuma URL mudou de estado" com a maior tranquilidade. Para
+> medir de verdade: copiar as pesquisas para fora do projeto, rodar o código do HEAD com a
+> rede de hoje, rodar o código novo com a rede de hoje, e comparar os dois. A rede muda entre
+> agosto e hoje, então comparar contra o veredito gravado em agosto mistura duas variáveis.
+
+## A sexta camada — acrescentada em 22/09/2026
+
+Pergunta se a página diz o que disseram que ela diz. As cinco anteriores medem forma; esta lê
+sentido, e quem julga é o Jev, da TypeSafe. Chave em `~/.claude/.env`, variável
+`TYPESAFE_API_KEY`, permissão 600, ao lado da do OpenRouter.
+
+**Sem chave a skill roda igual.** Isso não é detalhe de implementação: a skill viaja pelo
+GitHub e quem a instala não precisa de conta na TypeSafe. `disponivel()` decide na importação,
+e a régua de vocabulário volta a ser a única.
+
+Quatro números que valem repetir, medidos sobre 47 pares em disco e sobre corrupções plantadas:
+detectou 13 de 16 corrupções com o limiar de 0,80, não deu nenhum falso alarme nos 8 controles,
+custou US$ 0,0121 numa pesquisa real de 109 URLs, e eliminou sete falsos positivos que foram
+conferidos um a um na página.
+
+Duas coisas que ela não faz. Não julga afirmação de ausência, que vai para o passo 5b porque em
+3 de 7 negações plantadas ela respondeu "sustenta". E não alcança fonte atrás de muro, que
+continua sendo o buraco que nenhuma camada cobre.
+
+Medição completa em `_planejamento/2026.09.22 NOTA - avaliacao do Jev.md`, que fica fora do
+repositório porque cita temas e URLs de pesquisas reais.
 
 ## Decisões que não se re-litigam
 
@@ -156,7 +188,8 @@ Uma pesquisa completa custou entre US$ 1,45 e US$ 3,94, média US$ 2,38, em dez 
   A apuração completa está no `CHANGELOG.md`, entrada de 12/08 16:35.
 - **Verificar se a exigência de citação inline funciona.** A correção foi gravada em 04/08 e ainda não foi exercitada: a pesquisa de 05/08 rodou em sessão aberta antes da mudança e não a recebeu. É a hipótese mais importante em aberto.
 - **Teste em domínio sem fonte primária.** A skill só viu temas com resposta certa e fonte oficial, de regulação e mercado. Em tema de gosto ou comportamento o risco muda: preferência apresentada como regra, convenção de nicho apresentada como consenso. Há instrução no passo 5b, ainda não exercitada.
-- **Verificação de que a fonte sustenta a afirmação**, e não apenas que existe e trata do tema. Desenhada, não implementada, esperando um caso concreto.
+- ~~**Verificação de que a fonte sustenta a afirmação**, e não apenas que existe e trata do tema. Desenhada, não implementada, esperando um caso concreto.~~ Implementada em 22/09/2026 como sexta camada, em `sustentacao.py`. Ver a seção acima.
+- **Nenhum caso com fonte que realmente mente.** A medição de 22/09 provou que a camada nova não acusa inocente — sete falsos positivos conferidos na página, todos corrigidos. O que ela pega de culpado foi medido com corrupção plantada por script, e três das corrupções produziram frases que um revisor humano também acharia ambíguas. Um conjunto de casos falsos escritos à mão continua faltando.
 - **Nenhum caso com resposta conhecida.** Se um relatório sair inteiro errado, nada acusa.
 - **Substituir os indicadores de fontes coletadas e tempo total no painel**, que perderam utilidade, por taxa de confirmação e taxa de URL reprovada.
 - **Modo `profunda` nunca exercitado.**
