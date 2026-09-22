@@ -26,7 +26,8 @@ _planejamento/
 skill/qualidade-motores.json
 
 # Backlog de problemas: cita temas e URLs das pesquisas reais, que é dado de uso.
-BACKLOG.md
+# O padrão cobre o histórico (`BACKLOG-historico.md`), que guarda o mesmo tipo de dado.
+BACKLOG*.md
 
 # Desenho de arquitetura em discussão — planejamento interno
 DESENHO_v2.md

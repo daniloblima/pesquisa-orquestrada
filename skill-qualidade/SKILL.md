@@ -60,3 +60,22 @@ A régua mudou em 12/08/2026: antes, falso positivo de conferência e falha de r
 verificador entravam como erro de citação. Nota anterior e nota posterior medem coisas
 diferentes e não se comparam. O script marca isso sozinho — se a comparação de índice atravessar
 essa data, ela fala da régua e não do motor.
+
+## Defeito da skill vai para o BACKLOG
+
+Os contornos acima existem para tocar o trabalho. Quando o problema é da própria skill — o script
+erra, uma regra produz falso positivo, uma etapa custa caro sem entregar —, isso se anota e não se
+conserta agora.
+
+Onde: `~/Experimentos/pesquisa-orquestrada/BACKLOG.md`
+
+**Nunca editar a skill durante uma sessão de uso.** Conserto feito no meio de uma entrega não é
+testado, e o trabalho é o que tem prazo. A sessão de manutenção é outra, e é ela que decide o que
+entra.
+
+O formato e os três estados — `observado`, `diagnosticado`, `confirmado` — estão no cabeçalho do
+próprio BACKLOG. O que você concluiu sobre a causa entra como `diagnosticado`, nunca como
+`confirmado`, a menos que você tenha aberto o código ou o arquivo e conferido ali.
+
+Vale também para a própria régua: se a nota de um motor contradiz o que o uso mostrou, isso é
+item de backlog e não ajuste na hora.
