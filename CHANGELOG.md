@@ -3025,6 +3025,42 @@ Os três casos de divergência real são sintéticos, escritos para o teste. Est
 
 ---
 
+## [2026-09-22 15:45] — O prompt se lê no arquivo, antes de pagar
+
+### OBJETIVO
+
+Fechar o item de 24/08: o Danilo não vê o que está sendo perguntado antes de gastar.
+
+### O QUE MUDOU O DESENHO
+
+O item estava catalogado como conveniência e era o de maior impacto em veracidade que restava. A razão saiu dele: **ele lê o prompt e não lê os resultados.** Lê para conferir se os ângulos combinados estão cobertos, se entrou algum que ele não quer, se falta alguma coisa, se há observação que não deveria estar ali.
+
+Isso põe o passo 2 como a única janela em que o escopo ainda pode ser corrigido. As seis camadas de verificação conferem se a fonte sustenta o que o motor disse; nenhuma confere se o motor foi mandado procurar a coisa certa.
+
+### SOLUÇÃO — as três decisões, tomadas por ele
+
+**Onde.** No `prompt_mestre.md` da pasta da pesquisa, que já era gravado ali. O passo 2 para, abre o arquivo no VSCode com `open -a` e espera. Metade do trabalho já existia: faltava a parada.
+
+**O que ele vê.** O prompt inteiro, não um resumo. A pergunta sobre resumo gerado contra extraído mecanicamente deixou de existir — não há resumo, e portanto não há intermediário que possa omitir. Como o `buscar.py` lê o arquivo ao disparar, o que ele deixa escrito é o que vai aos motores.
+
+**Marca de origem.** Cada ângulo termina em `[combinado]` ou `[acrescentado por mim]`, e as marcas saem antes do disparo.
+
+**A ordem inverteu.** Ler o prompt vem antes da estimativa, porque editar muda o tamanho do texto.
+
+### RESULTADOS
+
+Regra dura 6 reescrita: de "confirmar o custo antes de gastar" para "confirmar o escopo e o custo, nessa ordem", com a razão junto. Passo 2 com a parada. `references/prompt-mestre.md` com a seção da marca e o episódio que a motivou.
+
+Ensaiado com arquivo de exemplo: o `open -a "Visual Studio Code"` abre na tela, e a remoção das marcas por regex deixa a linha limpa.
+
+### LIÇÕES APRENDIDAS
+
+**A prioridade de um item depende de saber o que a pessoa lê.** Este estava em último na lista de gravidade e passou para primeiro quando ele contou que lê o prompt e não os resultados. Nenhuma medição de código teria revelado isso.
+
+**Quando o fluxo de trabalho da pessoa já tem uma forma, o desenho é adotá-la.** Ele revisa texto em arquivo e nunca no chat, em todas as frentes. A solução não precisou inventar tela, painel nem formato: precisou parar de passar direto por um arquivo que já estava sendo gravado no lugar certo.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

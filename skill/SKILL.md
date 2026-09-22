@@ -56,7 +56,11 @@ Estas não se negociam. Violar qualquer uma invalida o relatório.
 3. **Nenhuma URL verificada é descartada.** Toda URL que passou entra nas referências, mesmo sustentando informação fraca. As reprovadas não entram como referência: vão para a seção de limitações, nomeadas, com o motivo.
 4. **Fonte única é sempre marcada.** Nunca apresente como fato o que só um motor trouxe. O marcador é literal: `(fonte única — verificar)`.
 5. **Nunca inventar confirmação.** Se você não achou a mesma informação em dois agentes, ela não é consenso. Na dúvida, trate como fonte única.
-6. **Confirmar o custo antes de gastar.** Nunca dispare a rodada 1 sem mostrar a estimativa e receber o aval do Danilo. A estimativa vem como faixa, não como número: o motor de busca profunda cobra por consulta interna e varia com o tema.
+6. **Confirmar o escopo e o custo antes de gastar, nessa ordem.** Nunca dispare a rodada 1 sem que o Danilo tenha aberto o `prompt_mestre.md` e sem mostrar a estimativa depois disso. A estimativa vem como faixa, não como número: o motor de busca profunda cobra por consulta interna e varia com o tema.
+
+   **O prompt se lê no arquivo, nunca no chat.** Ele lê o prompt e não lê os resultados, e é ali que ele confere se todos os ângulos combinados estão cobertos, se entrou algum que ele não quer e se falta alguma coisa. Resumo na tela não serve, porque quem resume pode omitir — foi o que aconteceu em 24/08/2026, quando dois ângulos entraram entre o escopo aprovado e o prompt disparado e a pesquisa inteira pendeu para regulação sem ele saber. O passo 2 abre o arquivo e espera.
+
+   Esta é a única janela em que o escopo ainda pode ser corrigido. Nenhuma das seis camadas de verificação conserta uma pesquisa que perguntou a coisa errada.
 7. **Não pesquise você mesmo.** Seu WebSearch não substitui os motores — usá-lo destruiria a lógica de validação cruzada, porque não é um índice independente auditável. Você lê, compara e escreve.
 8. **Consenso sobre ausência não é prova de ausência.** A validação cruzada confirma o que os motores encontram; ela não diz nada sobre o que todos deixaram de encontrar. Se os três concordam que uma norma, um precedente ou um estudo não existe, isso não é um fato confirmado por três fontes — é uma busca que falhou três vezes, possivelmente pelo mesmo motivo.
 
@@ -149,6 +153,34 @@ Crie a pasta de trabalho e grave o prompt:
 ```bash
 mkdir -p ~/Experimentos/pesquisa-orquestrada/outputs/AAAA-MM-DD_slug-do-tema
 ```
+
+**Pare aqui e abra o arquivo na tela dele. Nada é disparado antes de ele ter lido.**
+
+```bash
+open -a "Visual Studio Code" <pasta>/prompt_mestre.md
+```
+
+Diga em uma linha o que ele vai encontrar: a lista de ângulos com a marca de origem, sendo
+que `[acrescentado por mim]` é o que você deduziu e ele nunca aprovou. Peça que edite no
+arquivo — cortar ângulo, acrescentar, mudar recorte, escrever observação — e avise quando
+terminar. **Não ofereça revisar no chat.** O fluxo dele é editar no arquivo, e o
+`buscar.py` lê o arquivo na hora de disparar, então o que ele deixar escrito é literalmente
+o que vai aos motores.
+
+Este passo existe porque em 24/08/2026 o prompt foi montado, gravado e disparado sem que ele
+visse o texto final. Dois ângulos entraram entre o escopo que ele aprovou e o que foi
+enviado, ambos puxando para regulação, e o `gov.br` respondeu por 64 menções na rodada. Ele
+leu isso na verificação e concluiu que a pesquisa tinha saído do alvo, sem nunca ter visto o
+que foi perguntado. Ele lê o prompt e não lê os resultados, então esta é a única janela em
+que o escopo ainda pode ser corrigido — depois dela, nenhuma das seis camadas de verificação
+conserta uma pesquisa que perguntou a coisa errada.
+
+Quando ele terminar, releia o arquivo do disco antes de seguir, porque o que vale é a versão
+dele. Tire as marcas `[combinado]` e `[acrescentado por mim]` que tiverem sobrado: elas são
+para a leitura dele e não para o motor.
+
+Só então mostre a estimativa. A ordem importa — editar muda o tamanho do prompt, e estimar
+antes daria um número sobre um texto que deixou de existir.
 
 Mostre a estimativa antes de gastar:
 

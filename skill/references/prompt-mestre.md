@@ -32,6 +32,9 @@ nenhum dos lados.
 ## Ângulos obrigatórios
 
 [LISTA DE ÂNGULOS. Cada um precisa ser coberto explicitamente.]
+[Cada linha termina com a marca de origem: `[combinado]` quando o ângulo saiu do que o
+Danilo aprovou na clarificação, `[acrescentado por mim]` quando você o deduziu ao detalhar
+o recorte. A marca é para ele ler, e sai do prompt antes do disparo — ver abaixo.]
 
 ## Perspectiva contrária
 
@@ -66,6 +69,39 @@ que você consultou, inclusive as que contradisseram a hipótese.
 ```
 
 ---
+
+## A marca de origem nos ângulos
+
+Cada ângulo da lista termina com uma destas duas marcas:
+
+```
+## Ângulos obrigatórios
+
+1. Rotas de comercialização de tecnologia de P&D             [combinado]
+2. Cadeia de suprimentos e qualificação de fornecedor        [combinado]
+3. Cláusula de P&D da ANP, percentual e base de cálculo      [acrescentado por mim]
+4. Conteúdo local, exigências e histórico                    [acrescentado por mim]
+```
+
+`[combinado]` é o ângulo que saiu do que o Danilo aprovou na clarificação. `[acrescentado
+por mim]` é o que você deduziu ao transformar o recorte de tema em instrução específica.
+
+**Esse detalhamento é trabalho legítimo e não se deve evitar.** O que a clarificação aprova
+é um recorte, e o prompt precisa virar pergunta concreta. O que não pode é o detalhamento
+mudar o centro de gravidade da pesquisa sem passar pelos olhos dele.
+
+Aconteceu em 24/08/2026, na pesquisa sobre rotas de comercialização para a aula da E3 do
+PRH-ANP. Entre o escopo que ele aprovou e o prompt disparado entraram dois ângulos que ele
+nunca viu, os dois puxando para regulação. O `gov.br` respondeu por 64 menções na rodada,
+36% das provas de um motor e 32% de outro, e ele concluiu que a pesquisa tinha saído do
+alvo sem nunca ter visto o que foi perguntado.
+
+Sem marca, quatro ângulos parecem ter todos a mesma origem. Com ela, os dois que você
+acrescentou saltam da página, e é neles que ele vai querer olhar.
+
+**A marca sai antes do disparo.** Ela existe para a leitura dele, e o motor não precisa
+dela. Tire as marcas do arquivo depois que ele terminar de editar e antes de rodar o
+`buscar.py` — ou deixe que ele as apague ao editar, o que também serve.
 
 ## Template dos prompts cirúrgicos da rodada 2
 
