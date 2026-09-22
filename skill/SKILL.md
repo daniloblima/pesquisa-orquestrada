@@ -144,6 +144,20 @@ Depois da escolha, use `--motores <ids>` nas duas rodadas e registre os ids no `
 
 Não avance sem objetivo e hipótese. O resto pode ficar em aberto.
 
+**Conte os ângulos antes de fechar o modo.** Acima de quatro ângulos obrigatórios, o modo
+`rapida` trunca: medido em 21/08/2026, um prompt com sete ângulos mais perspectiva
+contrária terminou com `finish=length` nos dois motores, e a resposta do GPT cortou no meio
+de uma frase dentro da seção 5.
+
+A saída não é elevar o teto em silêncio, porque isso encarece sem ele decidir. É dizer na
+clarificação que a conta não fecha e oferecer as duas escolhas: cortar ângulo, ou subir o
+modo assumindo o custo. A escolha é dele; o que não pode é ele descobrir depois, por um
+relatório que parece completo e acaba no meio.
+
+O risco aqui é de veracidade e não de aproveitamento. O corte cai no fim, e o fim é onde
+fica a seção de fontes — o que se perde são afirmações sem a URL que as sustentaria, e
+nenhuma das seis camadas de verificação alcança o que não chegou.
+
 ### Passo 2 — Prompt mestre e estimativa
 
 Monte o prompt mestre seguindo `references/prompt-mestre.md`. É o mesmo texto para os três agentes.
@@ -163,9 +177,16 @@ open -a "Visual Studio Code" <pasta>/prompt_mestre.md
 Diga em uma linha o que ele vai encontrar: a lista de ângulos com a marca de origem, sendo
 que `[acrescentado por mim]` é o que você deduziu e ele nunca aprovou. Peça que edite no
 arquivo — cortar ângulo, acrescentar, mudar recorte, escrever observação — e avise quando
-terminar. **Não ofereça revisar no chat.** O fluxo dele é editar no arquivo, e o
-`buscar.py` lê o arquivo na hora de disparar, então o que ele deixar escrito é literalmente
-o que vai aos motores.
+terminar. O `buscar.py` lê o arquivo na hora de disparar, então o que ele deixar escrito é
+literalmente o que vai aos motores.
+
+**Ajuste é no arquivo; reescrita é no chat.** Cortar um ângulo, trocar o recorte, anotar
+uma observação — isso ele faz direto no `prompt_mestre.md` e você nem precisa saber o que
+mudou, porque lê o arquivo de novo antes de disparar. Mas quando o prompt saiu longe do que
+ele tinha em mente, o caminho é voltar à conversa: ele dá as indicações, você reescreve o
+arquivo inteiro e abre de novo. Não insista para ele consertar sozinho no arquivo o que na
+verdade precisa ser repensado, e não trate a volta ao chat como retrocesso — a clarificação
+errou o alvo e refazer ali é mais barato que pesquisar duas vezes.
 
 Este passo existe porque em 24/08/2026 o prompt foi montado, gravado e disparado sem que ele
 visse o texto final. Dois ângulos entraram entre o escopo que ele aprovou e o que foi
@@ -446,6 +467,23 @@ Chave: lida de `OPENROUTER_API_KEY` no ambiente, ou de `~/.claude/.env`. Nunca i
 **Agente com zero URL.** Não é bug do script, é o modelo respondendo de memória. Ele não conta como fonte. Se for recorrente no mesmo slot, verifique se `engine_busca` está declarado no `config.json` — sem `engine` explícito, os modelos Google ignoram o plugin de busca em silêncio.
 
 **Resposta truncada (`finish=length`).** Suba o modo, ou o `max_tokens_r1` do modo em uso.
+
+Antes disso, leia o que o corte custou. O `r{N}.json` traz `truncado: true` e o
+`truncado_detalhe`, com `tem_secao_de_fontes` e a contagem de tokens de raciocínio contra
+tokens de texto. **Quando `tem_secao_de_fontes` é `false`, as afirmações do fim chegaram sem
+a URL que as sustenta**, e nenhuma das seis camadas alcança o que não chegou — isso vai
+obrigatoriamente para a seção de limitações do relatório, nomeando o motor.
+
+A última URL da resposta fica fora da conferência, porque o corte pode tê-la partido ao
+meio e URL partida não se distingue de inventada. Sem isso o truncamento penaliza o motor
+duas vezes: ele perde conteúdo e ainda leva nota por invenção que não houve.
+
+**Elevar o teto costuma não encarecer, e é contraintuitivo.** Medido em 21/08/2026 no
+Perplexity: a rodada que usou 20.000 tokens custou US$ 0,97 e a que escreveu 150 custou
+US$ 1,00. O orçamento de saída é único — raciocínio, busca interna e texto visível dividem
+o mesmo teto, e o texto é servido por último —, então o trabalho invisível é cobrado do
+mesmo jeito e o que muda é quanto texto você leva por ele. Uma rodada truncada com 1% de
+aproveitamento é dinheiro pago por texto que não chegou.
 
 **Texto curto e caro.** O modelo gastou o orçamento em raciocínio interno. Confirme que `reasoning_effort` está como `low` para aquele agente.
 

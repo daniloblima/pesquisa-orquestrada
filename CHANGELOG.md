@@ -3061,6 +3061,46 @@ Ensaiado com arquivo de exemplo: o `open -a "Visual Studio Code"` abre na tela, 
 
 ---
 
+## [2026-09-22 16:13] — O truncamento vira assunto de veracidade
+
+### OBJETIVO
+
+Fechar o item E e a apuração de 21/08 sobre por que o Perplexity trunca.
+
+### PROBLEMA — a conta que ninguém tinha feito
+
+O item E falava de uma pesquisa. A apuração de 21/08 media sete rodadas do Perplexity. Somando o histórico inteiro: **77 respostas de motor, 17 truncadas (22%), e em 10 delas a seção FONTES CONSULTADAS não chegou** — 13% de tudo que já foi coletado.
+
+Perplexity: 10 truncamentos, 6 sem fontes. GPT: 3 e 2.
+
+**Isso é veracidade, não aproveitamento de teto.** O corte cai no fim, o fim é onde mora a lista de fontes, e o que se perde são afirmações sem a URL que as sustentaria. Nenhuma das seis camadas de verificação alcança o que não chegou. A skill estava cega: havia um log de terminal com `finish=length` e nada que sobrevivesse até o relatório.
+
+### SOLUÇÃO
+
+**O JSON da rodada passa a carregar o veredito.** `truncado`, `truncado_detalhe` com `tem_secao_de_fontes` e as contagens, e o `usage` inteiro — incluindo `completion_tokens_details.reasoning_tokens`, o campo que a apuração de 21/08 pediu por escrito e que continuava sendo descartado. Sem ele não dá para explicar uma rodada que trunca tendo escrito 150 tokens de 12.000.
+
+**Seção de fontes ausente vai para as limitações do relatório**, nomeando o motor.
+
+**A última URL de resposta truncada sai da conferência.** O corte pode tê-la partido ao meio, e URL partida não se distingue de inventada. Sem isso o truncamento penalizava duas vezes: perdia conteúdo e derrubava a nota do motor por invenção que não houve.
+
+**A clarificação conta os ângulos.** Acima de quatro, o modo `rapida` trunca, e a escolha entre cortar ângulo ou subir o modo aparece antes de gastar.
+
+### RESULTADOS
+
+A limitação `Truncamento produz falha dura espúria` já tinha sido resolvida pela limpeza de URL de mais cedo. Conferido sobre a rodada 2 da pesquisa de percepção de oportunidade: três falhas duras do Perplexity viraram zero, e as três eram URLs válidas com o marcador de citação colado pelo corte.
+
+### O QUE FICA REGISTRADO E NÃO FOI FEITO
+
+Elevar o teto do Perplexity continua sendo hipótese não testada, e testá-la gasta crédito. A medição de 21/08 é forte: a rodada de 20.000 tokens custou US$ 0,97 e a de 150 custou US$ 1,00, o que sugere que elevar o teto não encarece e melhora o aproveitamento do que já se paga. Fica para a próxima pesquisa real, e agora o `usage` gravado permite conferir.
+
+### LIÇÕES APRENDIDAS
+
+**Um aviso que só existe no log não existe.** O `finish=length` era registrado desde sempre, no terminal, e sumia com a sessão. Dez rodadas entregaram material sem lista de fontes e nada disso chegou a um relatório.
+
+**Somar o histórico muda a prioridade.** O item estava como "gravidade média" com um caso; são 22% das respostas, e 13% perderam a seção que torna a verificação possível.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

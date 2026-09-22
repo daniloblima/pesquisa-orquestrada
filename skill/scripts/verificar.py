@@ -414,6 +414,19 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False, recalcu
         if antes != len(urls):
             log("VERIFICAR", f"{slot}: {antes - len(urls)} endereço(s) local(is) fora da "
                              "contagem — não são fonte de nada")
+
+        # A última URL de uma resposta truncada pode ter sido partida ao meio pelo corte,
+        # e uma URL partida não se distingue de uma inventada. Acusá-la penaliza o motor
+        # duas vezes: ele já perdeu conteúdo, e ainda levaria nota por invenção que não
+        # houve. Fica de fora da contagem, e o truncamento entra no relatório pelo que ele
+        # de fato é — material incompleto, não fonte falsa.
+        if r.get("truncado") and r.get("url_da_cauda"):
+            cauda = V.limpar_url(r["url_da_cauda"])
+            if cauda in urls and len(urls) > 1:
+                urls = [u for u in urls if u != cauda]
+                log("VERIFICAR", f"{slot}: resposta truncada — a última URL fica fora da "
+                                 f"conferência, porque o corte pode tê-la partido "
+                                 f"({cauda[-48:]})")
         conteudo = r.get("conteudo") or ""
         if not urls:
             decisoes.append({"gatilho": "motor sem fonte", "motor": slot,

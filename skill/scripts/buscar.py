@@ -438,6 +438,24 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave)
         resultado["custo_usd"] = float(uso.get("cost", 0.0) or 0.0)
         resultado["finish_reason"] = escolhas[0].get("finish_reason")
 
+        # O `usage` inteiro, e não os três campos de sempre. O que interessa está em
+        # `completion_tokens_details.reasoning_tokens`, que era descartado: sem ele não dá
+        # para explicar por que uma rodada trunca tendo escrito 150 tokens de 12.000
+        # disponíveis. A apuração de 21/08/2026 mediu sete rodadas do Perplexity, todas
+        # truncadas, e concluiu que o orçamento de saída é único — raciocínio, busca
+        # interna e texto visível dividem o mesmo teto, e o texto é servido por último.
+        # Aquela apuração pediu este campo por escrito e ele continuou de fora.
+        resultado["usage"] = uso
+
+        det = (uso.get("completion_tokens_details") or {})
+        raciocinio = det.get("reasoning_tokens")
+        if raciocinio:
+            visivel = max(0, (resultado["tokens_out"] or 0) - raciocinio)
+            resultado["tokens_raciocinio"] = raciocinio
+            resultado["tokens_visiveis"] = visivel
+            log(f"AGENTE {slot}",
+                f"saída: {raciocinio} tokens de raciocínio + {visivel} de texto visível")
+
         if not conteudo.strip():
             resultado["erro"] = "modelo respondeu vazio"
             log(f"AGENTE {slot}", "ATENÇÃO: conteúdo vazio na resposta")
@@ -464,7 +482,32 @@ def chamar_agente(slot, agente, prompt, max_tokens, max_results, timeout, chave)
         # recomprar a pesquisa.
 
         if resultado.get("finish_reason") == "length":
-            log(f"AGENTE {slot}", "ATENÇÃO: resposta truncada por limite de tokens (finish=length)")
+            # Truncamento é assunto de veracidade e não só de aproveitamento de teto. O
+            # corte cai no fim, e o fim é onde mora a seção de fontes: o que se perde são
+            # afirmações sem a URL que as sustentaria, e nenhuma das camadas de verificação
+            # alcança o que não chegou. Até 22/09/2026 isso vivia só num log de terminal,
+            # que some quando a sessão fecha — o veredito precisa viajar no JSON, para
+            # entrar na seção de limitações do relatório.
+            resultado["truncado"] = True
+            cauda = (conteudo or "").rstrip()
+            resultado["truncado_detalhe"] = {
+                "tokens_out": resultado["tokens_out"],
+                "tokens_raciocinio": resultado.get("tokens_raciocinio"),
+                "tokens_visiveis": resultado.get("tokens_visiveis"),
+                "tem_secao_de_fontes": "FONTES CONSULTADAS" in (conteudo or "").upper(),
+                "ultimos_60_chars": cauda[-60:],
+            }
+            falta_fonte = not resultado["truncado_detalhe"]["tem_secao_de_fontes"]
+            log(f"AGENTE {slot}",
+                "ATENÇÃO: resposta truncada por limite de tokens (finish=length)"
+                + (" — e a seção FONTES CONSULTADAS não chegou, então as afirmações do "
+                   "fim ficaram sem a URL que as sustenta" if falta_fonte else ""))
+            # A última URL do texto pode ter sido partida ao meio pelo corte. Ela não se
+            # distingue de uma URL inventada, e acusá-la penalizaria o motor duas vezes:
+            # perdeu conteúdo e ainda leva nota por invenção que não houve. Medido em
+            # 02/09/2026, rodada 2 da pesquisa de percepção de oportunidade.
+            if resultado["urls"]:
+                resultado["url_da_cauda"] = resultado["urls"][-1]
 
     except urllib.error.HTTPError as e:
         corpo = ""
