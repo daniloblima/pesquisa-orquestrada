@@ -2887,6 +2887,44 @@ Não há caso com gabarito de fonte que realmente mente no acervo — as corrup�
 
 ---
 
+## [2026-09-22 11:45] — O Jev pelo OpenRouter, como segunda rota
+
+### OBJETIVO
+
+Dar a opção de ligar a sexta camada sem abrir conta nova. Quem usa a skill já tem `OPENROUTER_API_KEY`, porque é ela que faz a pesquisa rodar.
+
+### PROBLEMA — a busca errada diz que o modelo não existe
+
+A primeira verificação consultou `GET https://openrouter.ai/api/v1/models`, achou 447 modelos, 61 provedores e nenhum casando com jev, typesafe ou system one, e concluiu que o Jev não estava lá. A conclusão estava errada.
+
+### ANÁLISE
+
+O Jev devolve decisão tipada com distribuição de probabilidade, não texto. Isso não cabe no contrato `chat/completions`, que é o que aquele catálogo lista. O OpenRouter serve o modelo desde 18/09/2026 por um endpoint próprio, `POST /api/alpha/decisions`, marcado como alpha.
+
+Duas descobertas na conferência direta, ambas em 22/09/2026:
+
+O identificador é `jev-latest`, sem prefixo de provedor. `typesafe/jev-latest` devolve HTTP 400 "does not exist", apesar de ser exatamente o nome que a página do modelo sugere. `typesafe/jev-1.13` também funciona, e pina a versão.
+
+Não há markup. A chamada de 406 tokens custou US$ 0,000017052, que é `406 / 1e6 × 0,042`, a tabela da TypeSafe ao centavo.
+
+### SOLUÇÃO
+
+`sustentacao.py` ganhou `ROTAS`, uma tupla ordenada, e `rota()` devolve a primeira cujo segredo existe. A TypeSafe nativa vem primeiro, de propósito: quem configurou aquela chave quer usar o crédito dela. O OpenRouter entra quando a primeira falta.
+
+O corpo da requisição é idêntico nas duas. A resposta também, com uma diferença útil: o OpenRouter devolve `usage.cost` medido, e a rota nativa não, então ali o custo se deriva dos tokens. `rota_em_uso()` diz por onde o julgamento passou, para o log e para o relatório.
+
+### RESULTADOS
+
+Três combinações testadas: com as duas chaves escolhe a TypeSafe; só com a nativa usa a nativa; só com a do OpenRouter usa o OpenRouter. Sem nenhuma, `disponivel()` devolve False, `julgar()` devolve None e a régua de vocabulário volta a ser a única.
+
+Veredito equivalente nas duas rotas sobre o mesmo par de afirmação e página: confiança 0,90 e 0,91. É o mesmo modelo.
+
+### LIÇÕES APRENDIDAS
+
+**Ausência num catálogo não é ausência.** O catálogo lista o que cabe num contrato, e um modelo que não gera texto não cabe no contrato de chat. A pergunta certa não era "está no `/models`?", e sim "existe rota para isto?". Custou uma afirmação errada dita ao Danilo, que sabia que o modelo estava lá e foi quem corrigiu.
+
+---
+
 ## [TEMPLATE PARA PRÓXIMAS ENTRADAS]
 
 ## [YYYY-MM-DD] — Título da Sessão

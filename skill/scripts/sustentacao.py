@@ -41,8 +41,32 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-API = "https://api.typesafe.ai/v1/systemone"
-MODELO = "jev-latest"
+# Duas rotas para o mesmo modelo, e a segunda é a que não pede nada de novo a quem instala.
+#
+# O OpenRouter serve o Jev desde 18/09/2026, por um endpoint próprio: como ele devolve
+# decisão e não texto, não cabe no contrato `chat/completions` e por isso **não aparece em
+# `/api/v1/models`**. Procurar o modelo naquele catálogo dá zero e não significa ausência —
+# foi o erro cometido em 22/09/2026 antes de conferir a rota certa.
+#
+# Medido no mesmo dia: mesmo corpo de requisição, mesma resposta, 406 tokens custando
+# US$ 0,000017052, que é exatamente a tabela da TypeSafe sem intermediação. Quem usa a
+# skill já tem `OPENROUTER_API_KEY` configurada, porque é ela que faz a pesquisa rodar,
+# então esta rota liga a sexta camada sem nenhuma conta nova.
+ROTAS = (
+    # (nome, endpoint, variável de ambiente, modelo)
+    ("typesafe", "https://api.typesafe.ai/v1/systemone", "TYPESAFE_API_KEY", "jev-latest"),
+    # O identificador é `jev-latest` nas duas, sem prefixo de provedor. Medido em
+    # 22/09/2026: `typesafe/jev-latest` devolve HTTP 400 "does not exist", apesar de ser o
+    # nome que a página do modelo sugere; `jev-latest` e `typesafe/jev-1.13` funcionam. O
+    # alias sem versão é o que acompanha as próximas.
+    ("openrouter", "https://openrouter.ai/api/alpha/decisions", "OPENROUTER_API_KEY",
+     "jev-latest"),
+)
+
+# O endpoint do OpenRouter está marcado como alpha desde a estreia. Se ele mudar, a rota
+# nativa continua valendo e é só configurar a chave da TypeSafe.
+API = ROTAS[0][1]
+MODELO = ROTAS[0][3]
 
 # Limiar de auto-aceite. Vem do cookbook `citation_check` da TypeSafe e foi conferido nos
 # 47 casos em disco: com 0,80, nenhum dos 8 controles deu falso alarme e 13 das 16
@@ -86,33 +110,67 @@ class SemChave(Exception):
     """A TypeSafe não está configurada. Quem chama segue com a heurística."""
 
 
-def chave():
-    k = (os.environ.get("TYPESAFE_API_KEY") or "").strip()
-    if k:
-        return k
-    for caminho in (Path.home() / ".claude" / ".env",
-                    Path.home() / ".config" / "typesafe" / ".env"):
+_ARQUIVOS_DE_CHAVE = (
+    Path.home() / ".claude" / ".env",
+    Path.home() / ".config" / "typesafe" / ".env",
+    Path.home() / ".config" / "openrouter" / ".env",
+)
+
+
+def _valor(nome):
+    """A chave, do ambiente ou dos `.env` conhecidos. Nunca é impressa em lugar nenhum."""
+    v = (os.environ.get(nome) or "").strip()
+    if v:
+        return v
+    for caminho in _ARQUIVOS_DE_CHAVE:
         try:
             for linha in caminho.read_text(encoding="utf-8").splitlines():
-                if linha.startswith("TYPESAFE_API_KEY="):
+                if linha.startswith(f"{nome}="):
                     v = linha.split("=", 1)[1].strip().strip("\"'")
                     if v:
                         return v
         except OSError:
             continue
+    return None
+
+
+def rota():
+    """A rota a usar, na ordem de preferência. Levanta `SemChave` se nenhuma serve.
+
+    A nativa vem primeiro porque quem configurou a chave da TypeSafe de propósito quer usar
+    ela. Quem não configurou cai no OpenRouter, que já está lá para a pesquisa funcionar, e
+    a camada liga sozinha sem pedir conta nova.
+    """
+    for nome, endpoint, var, modelo in ROTAS:
+        k = _valor(var)
+        if k:
+            return {"nome": nome, "endpoint": endpoint, "modelo": modelo, "chave": k}
     raise SemChave(
-        "TYPESAFE_API_KEY não encontrada. A camada de sustentação fica desligada e o resto "
-        "da verificação roda igual. Para ligar, ponha a linha TYPESAFE_API_KEY=... em "
-        "~/.claude/.env, com permissão 600.")
+        "Nem TYPESAFE_API_KEY nem OPENROUTER_API_KEY foram encontradas. A camada de "
+        "sustentação fica desligada e o resto da verificação roda igual. Para ligar, basta "
+        "uma das duas em ~/.claude/.env, com permissão 600 — e a do OpenRouter você já "
+        "precisa ter para a pesquisa rodar.")
+
+
+def chave():
+    return rota()["chave"]
 
 
 def disponivel():
     """Se a camada pode rodar. Chamar antes de prometer veredito a quem lê o relatório."""
     try:
-        chave()
+        rota()
         return True
     except SemChave:
         return False
+
+
+def rota_em_uso():
+    """O nome da rota, para o log e para o relatório dizerem por onde o julgamento passou."""
+    try:
+        return rota()["nome"]
+    except SemChave:
+        return None
 
 
 def e_negativa(afirmacao):
@@ -215,14 +273,20 @@ def _perguntas(afirmacao, com_tema):
 
 
 def _pedir(state, questions, timeout=60):
-    corpo = json.dumps({"state": state, "model": MODELO,
+    r = rota()
+    corpo = json.dumps({"state": state, "model": r["modelo"],
                         "questions": questions}).encode("utf-8")
-    req = urllib.request.Request(API, data=corpo, headers={
-        "Authorization": f"Bearer {chave()}",
-        "Content-Type": "application/json",
-    })
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read())
+    cabecalho = {"Authorization": f"Bearer {r['chave']}",
+                 "Content-Type": "application/json"}
+    if r["nome"] == "openrouter":
+        # O OpenRouter pede identificação do chamador para atribuir uso e ranking.
+        cabecalho["HTTP-Referer"] = "https://github.com/daniloblima/pesquisa-orquestrada"
+        cabecalho["X-Title"] = "pesquisa-orquestrada"
+    req = urllib.request.Request(r["endpoint"], data=corpo, headers=cabecalho)
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        saida = json.loads(resp.read())
+    saida["_rota"] = r["nome"]
+    return saida
 
 
 # ------------------------------------------------------------------ julgamento
@@ -262,7 +326,13 @@ def julgar(afirmacao, pagina, com_tema=True):
         "chars_julgados": len(trecho),
         "tokens": (r.get("usage") or {}).get("input_tokens"),
         "modelo": r.get("model"),
+        "rota": r.get("_rota"),
     }
+    # O OpenRouter devolve o custo medido da chamada; a rota nativa não devolve, e ali o
+    # custo se deriva dos tokens. Ter o número reportado evita estimar o que já foi medido.
+    custo = (r.get("usage") or {}).get("cost")
+    if custo is not None:
+        saida["custo_usd"] = custo
     if "tema" in a:
         saida["trata_do_tema"] = round(a["tema"].get("noul", 0.0), 3)
     return saida

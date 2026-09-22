@@ -38,7 +38,11 @@ Estas não se negociam. Violar qualquer uma invalida o relatório.
 
    **Afirmação de ausência não recebe veredito dela.** Em 3 de 7 negações plantadas o modelo respondeu "sustenta", e indireção com dupla negação é limitação publicada do `jev-1.13`. Como a regra dura 8 já manda conferir ausência em fonte primária, "não existe dispositivo", "não há precedente" e "nenhuma norma prevê" saem daqui marcadas para o passo 5b, sem julgamento. Um "sustenta" com confiança 0,99 sobre uma negação viraria autorização, que é o pior erro que este produto pode cometer.
 
-   **Sem a chave, a skill roda igual.** O `TYPESAFE_API_KEY` mora em `~/.claude/.env`, com permissão 600, ao lado da do OpenRouter. Não havendo chave, a camada desliga em silêncio e a régua de vocabulário volta a ser a única — nenhuma outra parte muda. Quem instala a skill do GitHub não precisa de conta na TypeSafe.
+   **Duas rotas para o mesmo modelo, e a segunda não pede nada de novo.** A preferida é a API da TypeSafe, pela `TYPESAFE_API_KEY` em `~/.claude/.env`. Não havendo essa chave, a camada usa o Jev pelo OpenRouter, com a `OPENROUTER_API_KEY` que você já precisa ter para a pesquisa rodar. Mesmo preço nas duas, US$ 0,042 por milhão de tokens de entrada, sem intermediação.
+
+   Uma armadilha ao procurar: o Jev **não aparece em `/api/v1/models` do OpenRouter**, porque devolve decisão e não texto e por isso não cabe no contrato de chat. Ele é servido em `POST /api/alpha/decisions`, e o identificador é `jev-latest` sem prefixo — `typesafe/jev-latest` devolve HTTP 400. Procurar no catálogo de modelos dá zero e não significa ausência.
+
+   **Sem nenhuma das duas chaves, a skill roda igual.** A camada desliga em silêncio e a régua de vocabulário volta a ser a única — nenhuma outra parte muda.
 
    **Domínio raiz é sinal fraco desde 21/08/2026, e antes era falha dura.** A heurística julga forma, e forma não prova invenção: numa pesquisa sobre valor residual de ASIC, as duas únicas falhas duras da rodada 1 eram `asicminervalue.com` e `hashrateindex.com`, as duas referências centrais do tema, ambas no ar. Quando a fonte é uma plataforma cujo produto é o próprio índice, citar a raiz é a citação correta. Continua indo para a revalidação, que é o tratamento que a imprecisão merece, e deixou de pesar contra o motor.
 

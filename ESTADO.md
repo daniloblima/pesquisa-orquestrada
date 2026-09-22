@@ -72,12 +72,23 @@ Só biblioteca padrão do Python. Nada a instalar.
 ## A sexta camada — acrescentada em 22/09/2026
 
 Pergunta se a página diz o que disseram que ela diz. As cinco anteriores medem forma; esta lê
-sentido, e quem julga é o Jev, da TypeSafe. Chave em `~/.claude/.env`, variável
-`TYPESAFE_API_KEY`, permissão 600, ao lado da do OpenRouter.
+sentido, e quem julga é o Jev, da TypeSafe.
 
-**Sem chave a skill roda igual.** Isso não é detalhe de implementação: a skill viaja pelo
-GitHub e quem a instala não precisa de conta na TypeSafe. `disponivel()` decide na importação,
-e a régua de vocabulário volta a ser a única.
+**Duas rotas, nesta ordem.** Primeiro a API da TypeSafe, pela `TYPESAFE_API_KEY` em
+`~/.claude/.env`, permissão 600. Não havendo, o mesmo modelo pelo OpenRouter, com a
+`OPENROUTER_API_KEY` que já está lá para a pesquisa funcionar. Mesmo preço nas duas, sem
+intermediação, e a ordem existe para gastar primeiro o crédito da conta direta.
+
+**O Jev não aparece em `/api/v1/models` do OpenRouter.** Ele devolve decisão e não texto, então
+não cabe no contrato de chat e é servido em `POST /api/alpha/decisions`. O identificador é
+`jev-latest`, sem prefixo de provedor — `typesafe/jev-latest` devolve HTTP 400 "does not exist",
+apesar de ser o nome que a página do modelo sugere. Procurar no catálogo de modelos dá zero e
+não prova ausência, que foi o erro cometido em 22/09/2026 antes de conferir a rota certa. O
+endpoint está marcado como alpha desde a estreia, em 18/09/2026.
+
+**Sem nenhuma das duas chaves a skill roda igual.** Isso não é detalhe de implementação: a skill
+viaja pelo GitHub e quem a instala não precisa de conta nova. `disponivel()` decide na
+importação, e a régua de vocabulário volta a ser a única.
 
 Quatro números que valem repetir, medidos sobre 47 pares em disco e sobre corrupções plantadas:
 detectou 13 de 16 corrupções com o limiar de 0,80, não deu nenhum falso alarme nos 8 controles,
