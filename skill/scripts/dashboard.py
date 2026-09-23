@@ -525,11 +525,8 @@ def main():
     if args.raiz:
         raiz = Path(args.raiz).expanduser().resolve()
     else:
-        cfg = json.loads((RAIZ_SKILL / "config.json").read_text(encoding="utf-8"))
-        configurada = (cfg.get("saida_padrao") or "").strip()
-        # Vazio resolve para outputs/ ao lado da skill, o que mantém o repositório portável.
-        raiz = (Path(configurada).expanduser().resolve() if configurada
-                else RAIZ_SKILL.parent / "outputs")
+        from pasta import raiz_saida  # a pasta das pesquisas tem uma fonte só
+        raiz = raiz_saida(criar=False)
 
     if not raiz.exists():
         raise SystemExit(f"ERRO: pasta não encontrada: {raiz}")

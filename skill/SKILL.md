@@ -56,7 +56,7 @@ Estas não se negociam. Violar qualquer uma invalida o relatório.
 3. **Nenhuma URL verificada é descartada.** Toda URL que passou entra nas referências, mesmo sustentando informação fraca. As reprovadas não entram como referência: vão para a seção de limitações, nomeadas, com o motivo.
 4. **Fonte única é sempre marcada.** Nunca apresente como fato o que só um motor trouxe. O marcador é literal: `(fonte única — verificar)`.
 5. **Nunca inventar confirmação.** Se você não achou a mesma informação em dois agentes, ela não é consenso. Na dúvida, trate como fonte única.
-6. **Confirmar o escopo e o custo antes de gastar, nessa ordem.** Nunca dispare a rodada 1 sem que o Danilo tenha aberto o `prompt_mestre.md` e sem mostrar a estimativa depois disso. A estimativa vem como faixa, não como número: o motor de busca profunda cobra por consulta interna e varia com o tema.
+6. **Confirmar o escopo e o custo antes de gastar, nessa ordem.** Nunca dispare a rodada 1 sem que o usuário tenha aberto o `prompt_mestre.md` e sem mostrar a estimativa depois disso. A estimativa vem como faixa, não como número: o motor de busca profunda cobra por consulta interna e varia com o tema.
 
    **O prompt se lê no arquivo, nunca no chat.** Ele lê o prompt e não lê os resultados, e é ali que ele confere se todos os ângulos combinados estão cobertos, se entrou algum que ele não quer e se falta alguma coisa. Resumo na tela não serve, porque quem resume pode omitir — foi o que aconteceu em 24/08/2026, quando dois ângulos entraram entre o escopo aprovado e o prompt disparado e a pesquisa inteira pendeu para regulação sem ele saber. O passo 2 abre o arquivo e espera.
 
@@ -64,7 +64,7 @@ Estas não se negociam. Violar qualquer uma invalida o relatório.
 7. **Não pesquise você mesmo.** Seu WebSearch não substitui os motores — usá-lo destruiria a lógica de validação cruzada, porque não é um índice independente auditável. Você lê, compara e escreve.
 8. **Consenso sobre ausência não é prova de ausência.** A validação cruzada confirma o que os motores encontram; ela não diz nada sobre o que todos deixaram de encontrar. Se os três concordam que uma norma, um precedente ou um estudo não existe, isso não é um fato confirmado por três fontes — é uma busca que falhou três vezes, possivelmente pelo mesmo motivo.
 
-   Nunca escreva "não existe" com base em concordância. Escreva que os motores não localizaram, e diga onde se procurou. Quando a resposta negativa importa para a decisão do Danilo — e ela quase sempre importa, porque "não há impedimento" costuma virar autorização —, abra a fonte primária e confira você mesmo.
+   Nunca escreva "não existe" com base em concordância. Escreva que os motores não localizaram, e diga onde se procurou. Quando a resposta negativa importa para a decisão do usuário — e ela quase sempre importa, porque "não há impedimento" costuma virar autorização —, abra a fonte primária e confira você mesmo.
 
    Aconteceu em 04/08/2026: os três afirmaram que nenhum dispositivo impunha teto de 75 kW à potência de geração. O art. 23, § 6º, da REN ANEEL 1.000/2021 diz exatamente isso, e nenhum dos três o localizou. Só apareceu na conferência manual do texto oficial.
 
@@ -77,6 +77,23 @@ date "+%Y-%m-%d %H:%M"
 ```
 
 Vale para o cabeçalho do relatório e o nome da pasta. Não estime a hora.
+
+### Passo 0b — Pasta das pesquisas
+
+```bash
+python3 ~/.claude/skills/pesquisa/scripts/pasta.py
+```
+
+A linha `pasta:` é a `<SAIDA>` usada em todo o resto do fluxo. Se a resposta for `escolhida pelo
+usuário: não`, é a primeira pesquisa nesta máquina: **pergunte ao usuário onde ele quer guardar
+as pesquisas antes de continuar.** Ofereça a pasta mostrada como padrão (fica dentro do
+repositório, ignorada pelo git) e lembre que os relatórios podem conter material confidencial,
+então uma pasta sincronizada com a nuvem é escolha dele, não sua. Grave a resposta, mesmo que
+seja o padrão, para a pergunta não se repetir:
+
+```bash
+python3 ~/.claude/skills/pesquisa/scripts/pasta.py --definir "<caminho escolhido>"
+```
 
 ### Passo 1 — Clarificação
 
@@ -108,7 +125,7 @@ centenárias é profundo com criticidade baixa.
 python3 ~/.claude/skills/pesquisa/scripts/memoria.py buscar <termos do tema>
 ```
 
-Se houver afirmação registrada sobre o tema, mostre ao Danilo antes de montar o prompt — com a
+Se houver afirmação registrada sobre o tema, mostre ao usuário antes de montar o prompt — com a
 data e o aviso de vencimento, quando houver. Pesquisa que redescobre o que já se sabia é dinheiro
 gasto duas vezes, e pior, pode contradizer o próprio acervo sem ninguém notar.
 
@@ -122,7 +139,7 @@ Ele devolve uma linha por motor com id, rótulo, índice de busca, custo típico
 
 Três coisas não se negociam nessa aba, e as três já foram violadas na prática:
 
-- **`multiSelect: true`, com um item por motor.** Nunca combinações prontas em escolha única. Quem decide a composição é o Danilo, e oferecer pacotes fechados tira dele a decisão que a aba existe para fazer.
+- **`multiSelect: true`, com um item por motor.** Nunca combinações prontas em escolha única. Quem decide a composição é o usuário, e oferecer pacotes fechados tira dele a decisão que a aba existe para fazer.
 - **Custo à vista.** Já vem no comando. Em 21/08/2026 ele pediu "ChatGPT e outro motor baratinho" e escolheu o Perplexity, que custa catorze vezes mais que o GPT — a informação existia no `config.json` e não chegou à tela.
 - **Nota à vista, junto do custo.** A régua de qualidade é o diferencial do projeto e rodava tarde demais: o `--resumo` é chamado no passo 3b, depois da rodada 1, quando o dinheiro já foi gasto. Mostrar só custo empurraria a escolha para o barato, o que é tão ruim quanto o contrário.
 
@@ -165,7 +182,7 @@ Monte o prompt mestre seguindo `references/prompt-mestre.md`. É o mesmo texto p
 Crie a pasta de trabalho e grave o prompt:
 
 ```bash
-mkdir -p ~/Experimentos/pesquisa-orquestrada/outputs/AAAA-MM-DD_slug-do-tema
+mkdir -p "<SAIDA>/AAAA-MM-DD_slug-do-tema"
 ```
 
 **Pare aqui e abra o arquivo na tela dele. Nada é disparado antes de ele ter lido.**
@@ -210,7 +227,7 @@ python3 ~/.claude/skills/pesquisa/scripts/buscar.py \
   --prompt-file <pasta>/prompt_mestre.md --estimar --modo normal --rodada 1
 ```
 
-Apresente o valor ao Danilo e espere o aval. Se o modo for `profunda`, avise que o agente A pode levar de 3 a 10 minutos.
+Apresente o valor ao usuário e espere o aval. Se o modo for `profunda`, avise que o agente A pode levar de 3 a 10 minutos.
 
 O comando devolve quatro números, e os quatro vão para a tela: a faixa desta rodada, a
 projeção da pesquisa inteira, o saldo do OpenRouter e o que sobra depois. **O que precisa
@@ -259,7 +276,7 @@ python3 ~/.claude/skills/pesquisa/scripts/verificar.py <pasta> \
 ```
 
 **Leia `r1_decisoes.md` antes de ler qualquer resposta de motor.** Se houver itens ali, leve-os
-ao Danilo agora, no formato em que estão: no máximo dez, cada um com uma pergunta fechada. Em
+ao usuário agora, no formato em que estão: no máximo dez, cada um com uma pergunta fechada. Em
 criticidade alta, nada segue sem as respostas.
 
 O parecer independente vem de subagente com contexto isolado, seguindo
@@ -283,7 +300,7 @@ Use o papel no passo 4:
 - **descoberta** — não sustenta consenso sozinho. O que vier só dele vai para a rodada 2 mesmo que pareça sólido, e o que sobreviver entra marcado.
 - **em avaliação** — amostra pequena; trate como confirmação com ressalva.
 
-Se um motor está em "descoberta", diga isso ao Danilo no resumo do passo 4, com o número medido, não com adjetivo.
+Se um motor está em "descoberta", diga isso ao usuário no resumo do passo 4, com o número medido, não com adjetivo.
 
 ### Passo 4 — Consenso e divergência
 
@@ -308,7 +325,7 @@ Cuidado com falso consenso: dois agentes citando a mesma matéria não são duas
 
 **A ausência da linha não diz nada.** Domínio que recusa leitura automatizada não devolve cartão, e `sec.gov` é um deles. Sem cartão, a pergunta continua de pé e quem responde é você.
 
-Mostre ao Danilo um resumo curto do que foi consenso e do que vai para validação. Não peça aprovação, só informe e siga.
+Mostre ao usuário um resumo curto do que foi consenso e do que vai para validação. Não peça aprovação, só informe e siga.
 
 ### Passo 5 — Rodada 2 cirúrgica
 
@@ -359,7 +376,7 @@ O que fazer nesses casos, no lugar da conferência: separe no relatório o que �
 Escreva seguindo `references/formato-relatorio.md`. Salve em:
 
 ```
-~/Experimentos/pesquisa-orquestrada/outputs/AAAA-MM-DD_slug-do-tema/relatorio.md
+<SAIDA>/AAAA-MM-DD_slug-do-tema/relatorio.md
 ```
 
 ### Passo 6b — O que fica na memória
@@ -373,12 +390,12 @@ python3 ~/.claude/skills/pesquisa/scripts/memoria.py inserir \
   --vale-ate AAAA-MM-DD --invalida-se "o que precisa mudar no mundo"
 ```
 
-A porta é estreita de propósito: só entra o que teve duas origens independentes ou o que o Danilo
+A porta é estreita de propósito: só entra o que teve duas origens independentes ou o que o usuário
 validou (`--validado`). Uma pesquisa boa rende de cinco a quinze linhas. O resto continua no
 relatório, que não se apaga.
 
-Nada vai para o brain-v3 automaticamente. Se um fato sustentar decisão de projeto, ele entra lá
-pelo `/salve`, com a curadoria do Danilo.
+Nada sai da skill automaticamente. Se um fato sustentar uma decisão de projeto, quem o leva para
+as próprias notas é o usuário, com a curadoria dele.
 
 ### Passo 7 — Metadados e painel
 
@@ -418,7 +435,7 @@ O bloco `contribuicao_por_motor` é o que mede qual motor vale o que custa. Voc�
 
 Conte por afirmação, não por parágrafo. Se não der para separar com honestidade, grave `null` em vez de chutar: número inventado aqui contamina a série inteira e é pior que campo vazio.
 
-`nota_manual` é opcional, de 1 a 5, só quando o Danilo quiser dar. Não pergunte a cada pesquisa.
+`nota_manual` é opcional, de 1 a 5, só quando o usuário quiser dar. Não pergunte a cada pesquisa.
 
 Regenere o painel e a medição de qualidade:
 
@@ -440,7 +457,7 @@ Não gasta crédito: o endpoint de créditos é leitura. É o que mantém a esti
 porque ela é o número em cima do qual o aval de gastar é dado, e o que dispensa manter uma
 janela do painel aberta para saber se dá para a próxima.
 
-Feche informando ao Danilo: caminho do relatório, custo real somado de todas as rodadas (campo `custo_real_usd` em cada JSON), **quanto sobrou de saldo e para quantas pesquisas dá**, quantas afirmações ficaram como fonte única e o que permaneceu sem resolução.
+Feche informando ao usuário: caminho do relatório, custo real somado de todas as rodadas (campo `custo_real_usd` em cada JSON), **quanto sobrou de saldo e para quantas pesquisas dá**, quantas afirmações ficaram como fonte única e o que permaneceu sem resolução.
 
 ## Comandos do script
 
@@ -497,12 +514,35 @@ Os contornos acima existem para tocar o trabalho. Quando o problema é da própr
 erra, uma regra produz falso positivo, uma etapa custa caro sem entregar —, isso se anota e não se
 conserta agora.
 
-Onde: `~/Experimentos/pesquisa-orquestrada/BACKLOG.md`
+Onde: `BACKLOG.md` na raiz do repositório, a pasta acima de `skill/`:
+
+```bash
+echo "$(dirname "$(readlink -f ~/.claude/skills/pesquisa)")/BACKLOG.md"
+```
+
+Se o arquivo não existir, crie-o com o título `# BACKLOG — pesquisa-orquestrada` e anote cada
+problema neste formato:
+
+```
+## [DD/MM] <número>. <título curto do problema>
+
+**Estado: observado | diagnosticado | confirmado**
+
+**O que aconteceu.** o sintoma, como apareceu
+**Evidência.** onde conferir — arquivo, pasta da pesquisa, linha de código
+**Custo.** o que se perdeu: tempo, dinheiro, trabalho refeito
+**O que resolveria.** a correção proposta, sem aplicá-la
+```
+
+O `BACKLOG.md` fica fora do git, porque cita temas e URLs das pesquisas. Se o defeito for do
+código e não do seu uso, vale também abrir uma issue em
+https://github.com/daniloblima/pesquisa-orquestrada/issues, sem colar tema nem conteúdo de
+pesquisa confidencial.
 
 **Nunca editar a skill durante uma sessão de uso.** Conserto feito no meio de uma entrega não é
 testado, e o trabalho é o que tem prazo. A sessão de manutenção é outra, e é ela que decide o que
 entra.
 
-O formato e os três estados — `observado`, `diagnosticado`, `confirmado` — estão no cabeçalho do
-próprio BACKLOG. O que você concluiu sobre a causa entra como `diagnosticado`, nunca como
+Os três estados — `observado`, `diagnosticado`, `confirmado` — medem o quanto a causa foi
+conferida. O que você concluiu sobre a causa entra como `diagnosticado`, nunca como
 `confirmado`, a menos que você tenha aberto o código ou o arquivo e conferido ali.

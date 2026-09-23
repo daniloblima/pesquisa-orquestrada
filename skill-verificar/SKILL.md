@@ -1,6 +1,6 @@
 ---
 name: verificar
-description: Verifica se o material coletado numa pesquisa presta, antes de ele virar relatório. Confere existência e procedência de cada fonte, mede coerência entre os números dos motores, conta origens independentes e devolve no máximo dez perguntas para o Danilo decidir. Não gasta crédito de API e roda sobre pesquisa nova ou antiga. Triggers "verificar", "/verificar", "confere essa pesquisa", "essa coleta presta?".
+description: Verifica se o material coletado numa pesquisa presta, antes de ele virar relatório. Confere existência e procedência de cada fonte, mede coerência entre os números dos motores, conta origens independentes e devolve no máximo dez perguntas para o usuário decidir. Não gasta crédito de API e roda sobre pesquisa nova ou antiga. Triggers "verificar", "/verificar", "confere essa pesquisa", "essa coleta presta?".
 ---
 
 # /verificar — o miolo do sistema
@@ -32,7 +32,7 @@ tê-la construído, se a página trata do assunto, e qual trecho do texto ela su
 diz.** As cinco primeiras medem forma — endereço, domínio, vocabulário, número escrito. Esta lê
 sentido, e quem julga é o Jev, da TypeSafe, pelo `sustentacao.py`. Devolve um de quatro
 vereditos — sustenta, sustenta em parte, contradiz, não trata — com uma confiança: acima de
-0,80 o veredito vale, abaixo disso entra como aviso de leitura e quem decide é o Danilo.
+0,80 o veredito vale, abaixo disso entra como aviso de leitura e quem decide é o usuário.
 
 Ela também substitui a conferência de tema, que conta raiz de palavra e reprova fonte legítima
 escrita em outro idioma. O texto de Capoche sobre Potosí, em espanhol com termos em inglês,
@@ -63,7 +63,7 @@ usaria sem cair na palavra que serve para tudo. Detalhe em `references/termos.md
 
 ## Camada 2 — parecer independente
 
-Sempre, nas duas rodadas, salvo pedido explícito do Danilo para pular numa pesquisa leve.
+Sempre, nas duas rodadas, salvo pedido explícito do usuário para pular numa pesquisa leve.
 
 Lance um subagente com a instrução de `references/prompt-parecer.md`. Ele recebe os markdowns
 brutos dos motores e a pergunta original, **sem ver a sua análise**, e devolve o que considera
@@ -77,7 +77,7 @@ Onde o parecer divergir da sua leitura, a divergência vira item de decisão. N�
 
 ## Os cinco gatilhos que param para perguntar
 
-Não são sugestões. Se qualquer um disparar, o Danilo é chamado antes de seguir.
+Não são sugestões. Se qualquer um disparar, o usuário é chamado antes de seguir.
 
 1. **Afirmação negativa que importa.** Nunca escreva que algo não existe. Escreva que não foi
    localizado, diga onde procurou e peça a conferência na fonte primária. Ausência de evidência
@@ -89,7 +89,7 @@ Não são sugestões. Se qualquer um disparar, o Danilo é chamado antes de segu
 4. **Divergência de escola.** Quando a contradição é de corrente de pensamento e não de fato,
    pergunte qual corrente interessa ao uso. Não arbitre.
 5. **Fonte decisiva atrás de muro.** Paywall, proteção anti-robô, documento que o servidor não
-   entrega. Peça o arquivo ao Danilo — ele baixa.
+   entrega. Peça o arquivo ao usuário — ele baixa.
 
 O `r1_decisoes.md` já vem no formato certo: no máximo dez itens, cada um com uma linha de
 contexto e uma pergunta fechada. Se não couber em dez minutos de leitura, a triagem falhou e
@@ -108,7 +108,7 @@ Eixo separado de profundidade. Profundidade governa custo; criticidade governa r
 ## O que esta skill nunca faz
 
 Não gasta crédito de API. Não reescreve o material coletado. Não decide o que entra no
-relatório — ela informa, e quem decide é a `/pesquisa` com o Danilo.
+relatório — ela informa, e quem decide é a `/pesquisa` com o usuário.
 
 ## Defeito da skill vai para o BACKLOG
 
@@ -116,14 +116,37 @@ Os contornos acima existem para tocar o trabalho. Quando o problema é da própr
 erra, uma regra produz falso positivo, uma etapa custa caro sem entregar —, isso se anota e não se
 conserta agora.
 
-Onde: `~/Experimentos/pesquisa-orquestrada/BACKLOG.md`
+Onde: `BACKLOG.md` na raiz do repositório, a pasta acima de `skill/`:
+
+```bash
+echo "$(dirname "$(readlink -f ~/.claude/skills/pesquisa)")/BACKLOG.md"
+```
+
+Se o arquivo não existir, crie-o com o título `# BACKLOG — pesquisa-orquestrada` e anote cada
+problema neste formato:
+
+```
+## [DD/MM] <número>. <título curto do problema>
+
+**Estado: observado | diagnosticado | confirmado**
+
+**O que aconteceu.** o sintoma, como apareceu
+**Evidência.** onde conferir — arquivo, pasta da pesquisa, linha de código
+**Custo.** o que se perdeu: tempo, dinheiro, trabalho refeito
+**O que resolveria.** a correção proposta, sem aplicá-la
+```
+
+O `BACKLOG.md` fica fora do git, porque cita temas e URLs das pesquisas. Se o defeito for do
+código e não do seu uso, vale também abrir uma issue em
+https://github.com/daniloblima/pesquisa-orquestrada/issues, sem colar tema nem conteúdo de
+pesquisa confidencial.
 
 **Nunca editar a skill durante uma sessão de uso.** Conserto feito no meio de uma entrega não é
 testado, e o trabalho é o que tem prazo. A sessão de manutenção é outra, e é ela que decide o que
 entra.
 
-O formato e os três estados — `observado`, `diagnosticado`, `confirmado` — estão no cabeçalho do
-próprio BACKLOG. O que você concluiu sobre a causa entra como `diagnosticado`, nunca como
+Os três estados — `observado`, `diagnosticado`, `confirmado` — medem o quanto a causa foi
+conferida. O que você concluiu sobre a causa entra como `diagnosticado`, nunca como
 `confirmado`, a menos que você tenha aberto o código ou o arquivo e conferido ali.
 
 Vale também para o que esta skill julga: gatilho que para o fluxo sem motivo real é

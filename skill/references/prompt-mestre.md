@@ -33,7 +33,7 @@ nenhum dos lados.
 
 [LISTA DE ÂNGULOS. Cada um precisa ser coberto explicitamente.]
 [Cada linha termina com a marca de origem: `[combinado]` quando o ângulo saiu do que o
-Danilo aprovou na clarificação, `[acrescentado por mim]` quando você o deduziu ao detalhar
+usuário aprovou na clarificação, `[acrescentado por mim]` quando você o deduziu ao detalhar
 o recorte. A marca é para ele ler, e sai do prompt antes do disparo — ver abaixo.]
 
 ## Perspectiva contrária
@@ -83,7 +83,7 @@ Cada ângulo da lista termina com uma destas duas marcas:
 4. Conteúdo local, exigências e histórico                    [acrescentado por mim]
 ```
 
-`[combinado]` é o ângulo que saiu do que o Danilo aprovou na clarificação. `[acrescentado
+`[combinado]` é o ângulo que saiu do que o usuário aprovou na clarificação. `[acrescentado
 por mim]` é o que você deduziu ao transformar o recorte de tema em instrução específica.
 
 **Esse detalhamento é trabalho legítimo e não se deve evitar.** O que a clarificação aprova

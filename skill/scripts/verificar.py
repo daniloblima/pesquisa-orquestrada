@@ -539,7 +539,7 @@ def verificar_rodada(pasta, rodada, termos, criticidade, sem_rede=False, recalcu
 
     escrever_decisoes(pasta, rodada, pacote)
     log("VERIFICAR", f"gravado: {destino.name} e r{rodada}_decisoes.md · "
-                     f"{len(pacote['decisoes'])} itens para o Danilo")
+                     f"{len(pacote['decisoes'])} itens para o usuário decidir")
     return pacote
 
 

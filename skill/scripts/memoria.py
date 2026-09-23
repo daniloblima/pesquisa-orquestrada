@@ -31,11 +31,8 @@ RAIZ_SKILL = Path(__file__).resolve().parent.parent
 
 
 def caminho_memoria():
-    cfg = json.loads((RAIZ_SKILL / "config.json").read_text(encoding="utf-8"))
-    configurada = (cfg.get("saida_padrao") or "").strip()
-    raiz = Path(configurada).expanduser().resolve() if configurada else RAIZ_SKILL.parent / "outputs"
-    raiz.mkdir(parents=True, exist_ok=True)
-    return raiz / "memoria.jsonl"
+    from pasta import raiz_saida  # a pasta das pesquisas tem uma fonte só
+    return raiz_saida() / "memoria.jsonl"
 
 
 def _sem_acento(t):
@@ -62,7 +59,7 @@ def inserir(args):
     if args.origens < 2 and not args.validado:
         raise SystemExit(
             "ERRO: a porta é estreita de propósito. Só entra afirmação com duas origens "
-            "independentes ou com --validado, que significa que o Danilo conferiu.\n"
+            "independentes ou com --validado, que significa que o usuário conferiu.\n"
             "O resto continua no relatório da pesquisa, que não se apaga."
         )
     item = {
@@ -136,7 +133,7 @@ def main():
     i.add_argument("--fonte", required=True)
     i.add_argument("--pesquisa", required=True, help="Pasta da pesquisa que estabeleceu")
     i.add_argument("--origens", type=int, default=0, help="Origens independentes que sustentam")
-    i.add_argument("--validado", action="store_true", help="O Danilo conferiu na fonte primária")
+    i.add_argument("--validado", action="store_true", help="O usuário conferiu na fonte primária")
     i.add_argument("--data", default=None)
     i.add_argument("--vale-ate", default=None, dest="vale_ate")
     i.add_argument("--invalida-se", default=None, dest="invalida_se")

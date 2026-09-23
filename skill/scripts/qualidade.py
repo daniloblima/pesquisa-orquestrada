@@ -65,8 +65,8 @@ def carregar_cfg():
 
 
 def raiz_outputs(cfg):
-    configurada = (cfg.get("saida_padrao") or "").strip()
-    return Path(configurada).expanduser().resolve() if configurada else RAIZ_SKILL.parent / "outputs"
+    from pasta import raiz_saida  # a pasta das pesquisas tem uma fonte só
+    return raiz_saida(criar=False)
 
 
 def ler(caminho):

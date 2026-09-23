@@ -1,6 +1,6 @@
 # Pesquisa orquestrada
 
-Versão 2.3.0, de 23/09/2026. O histórico de versões está no fim deste arquivo e o detalhe de cada mudança no [CHANGELOG.md](CHANGELOG.md).
+Versão 2.4.0, de 23/09/2026. O histórico de versões está no fim deste arquivo e o detalhe de cada mudança no [CHANGELOG.md](CHANGELOG.md).
 
 Skill do Claude Code que faz pesquisa com validação cruzada entre três motores de busca independentes, via OpenRouter.
 
@@ -28,12 +28,26 @@ A orquestração inteira roda no Claude Code. O OpenRouter paga apenas as chamad
 
 Requisitos: Claude Code, Python 3.9 ou superior e uma conta no OpenRouter com crédito. O script não usa biblioteca externa, só a padrão do Python.
 
-Clone o repositório e ligue a skill ao Claude Code:
+O repositório tem três skills que trabalham juntas, e as três precisam ser ligadas ao Claude Code:
+
+| Skill | Pasta | Para que serve |
+|---|---|---|
+| `/pesquisa` | `skill/` | conduz a pesquisa inteira e guarda todos os scripts |
+| `/verificar` | `skill-verificar/` | confere se as fontes prestam antes de virarem relatório; a `/pesquisa` a chama sozinha |
+| `/qualidade` | `skill-qualidade/` | mede o desempenho dos motores ao longo das pesquisas |
+
+Clone o repositório e crie os três atalhos. Os nomes dos atalhos importam, porque as skills se chamam por eles:
 
 ```bash
-git clone https://github.com/<usuario>/pesquisa-orquestrada.git
-ln -s "$(pwd)/pesquisa-orquestrada/skill" ~/.claude/skills/pesquisa
+git clone https://github.com/daniloblima/pesquisa-orquestrada.git
+cd pesquisa-orquestrada
+mkdir -p ~/.claude/skills
+ln -s "$(pwd)/skill" ~/.claude/skills/pesquisa
+ln -s "$(pwd)/skill-verificar" ~/.claude/skills/verificar
+ln -s "$(pwd)/skill-qualidade" ~/.claude/skills/qualidade
 ```
+
+Abra uma sessão nova do Claude Code depois de criar os atalhos: sessão já aberta não enxerga skill nova.
 
 Grave a chave fora do repositório, com permissão restrita:
 
@@ -52,9 +66,16 @@ No Claude Code, em qualquer pasta:
 /pesquisa regulação de armazenamento de energia no Brasil
 ```
 
-A skill conduz a clarificação, mostra a faixa de custo estimada, espera seu aval e roda as duas rodadas. O relatório sai em `outputs/AAAA-MM-DD_tema/relatorio.md`, junto com o material bruto de cada motor.
+A skill conduz a clarificação, mostra a faixa de custo estimada, espera seu aval e roda as duas rodadas. O relatório sai em `<pasta das pesquisas>/AAAA-MM-DD_tema/relatorio.md`, junto com o material bruto de cada motor.
 
-O painel fica em `outputs/dashboard.html` e abre com duplo clique. Mostra custo acumulado, desempenho por motor, fontes exclusivas e as fontes mais recorrentes.
+**Onde as pesquisas ficam.** Na primeira pesquisa, a skill pergunta onde você quer guardá-las e grava a resposta como `PESQUISA_SAIDA` em `~/.claude/.env`, o mesmo arquivo da chave. O padrão sugerido é a pasta `outputs/` dentro do repositório, que o git ignora. Os relatórios podem conter material confidencial, então escolher uma pasta sincronizada com a nuvem é decisão sua. Para ver ou trocar a pasta depois:
+
+```bash
+python3 skill/scripts/pasta.py                      # mostra a pasta atual
+python3 skill/scripts/pasta.py --definir ~/Pesquisas  # troca
+```
+
+O painel fica em `<pasta das pesquisas>/dashboard.html` e abre com duplo clique. Mostra custo acumulado, desempenho por motor, fontes exclusivas e as fontes mais recorrentes.
 
 ## Motores
 
@@ -157,6 +178,7 @@ O projeto segue versionamento semântico. O número do meio sobe a cada funciona
 | 2.1.0 | 21/08/2026 | Quinta camada (a fonte traz o número atribuído a ela), régua de regressão contra as pesquisas já feitas e nota dos motores publicada com a skill | `205b18d` |
 | 2.2.0 | 31/08/2026 | Saldo do OpenRouter na estimativa e aferição do custo previsto contra o gasto | `34775d7` |
 | 2.3.0 | 23/09/2026 | Sexta camada (a fonte sustenta a afirmação, via Jev), correções de URL suja, coerência numérica e truncamento, prompt legível antes de pagar. Arquivo LICENSE e versionamento | tag `v2.3.0` |
+| 2.4.0 | 23/09/2026 | Instalação autônoma: o README liga as três skills, a pasta das pesquisas é perguntada na primeira pesquisa e gravada em `~/.claude/.env` (`pasta.py`), caminhos da máquina do autor e o nome dele saem das instruções | tag `v2.4.0` |
 
 ## Licença
 

@@ -137,7 +137,12 @@ def main():
                    help="Mostra cada URL que mudou de estado, com o motivo.")
     args = p.parse_args()
 
-    origem = Path(args.outputs) if args.outputs else OUTPUTS
+    if args.outputs:
+        origem = Path(args.outputs)
+    else:
+        sys.path.insert(0, str(AQUI))
+        from pasta import raiz_saida  # a pasta das pesquisas tem uma fonte só
+        origem = raiz_saida(criar=False)
     pesquisas = sorted(d for d in origem.glob("*") if d.is_dir() and (d / "r1.json").exists())
     if not pesquisas:
         log(f"nenhuma pesquisa em {origem} — nada com que comparar.")

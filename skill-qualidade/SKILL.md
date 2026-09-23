@@ -6,7 +6,7 @@ description: Mede o desempenho dos motores de pesquisa a partir das pesquisas j�
 # /qualidade — a memória da skill sobre si mesma
 
 Mede quanto cada motor acerta, em que tema, e a que custo. É dado da ferramenta: sem a skill,
-não significa nada, e por isso não vai para o brain do Danilo.
+não significa nada, e por isso fica com ela e não vai para as notas pessoais do usuário.
 
 ## Quando roda
 
@@ -47,7 +47,7 @@ aproveitável — a diferença entre citar bem e servir.
 
 ## Informa, nunca decide
 
-A composição padrão do `config.json` só muda por decisão do Danilo, registrada, com no mínimo
+A composição padrão do `config.json` só muda por decisão do usuário, registrada, com no mínimo
 duas medições. Em 12/08/2026 ela mudou duas vezes em um dia, as duas por número que estava
 errado, e uma delas tirou do padrão o motor com a melhor precisão da série.
 
@@ -67,14 +67,37 @@ Os contornos acima existem para tocar o trabalho. Quando o problema é da própr
 erra, uma regra produz falso positivo, uma etapa custa caro sem entregar —, isso se anota e não se
 conserta agora.
 
-Onde: `~/Experimentos/pesquisa-orquestrada/BACKLOG.md`
+Onde: `BACKLOG.md` na raiz do repositório, a pasta acima de `skill/`:
+
+```bash
+echo "$(dirname "$(readlink -f ~/.claude/skills/pesquisa)")/BACKLOG.md"
+```
+
+Se o arquivo não existir, crie-o com o título `# BACKLOG — pesquisa-orquestrada` e anote cada
+problema neste formato:
+
+```
+## [DD/MM] <número>. <título curto do problema>
+
+**Estado: observado | diagnosticado | confirmado**
+
+**O que aconteceu.** o sintoma, como apareceu
+**Evidência.** onde conferir — arquivo, pasta da pesquisa, linha de código
+**Custo.** o que se perdeu: tempo, dinheiro, trabalho refeito
+**O que resolveria.** a correção proposta, sem aplicá-la
+```
+
+O `BACKLOG.md` fica fora do git, porque cita temas e URLs das pesquisas. Se o defeito for do
+código e não do seu uso, vale também abrir uma issue em
+https://github.com/daniloblima/pesquisa-orquestrada/issues, sem colar tema nem conteúdo de
+pesquisa confidencial.
 
 **Nunca editar a skill durante uma sessão de uso.** Conserto feito no meio de uma entrega não é
 testado, e o trabalho é o que tem prazo. A sessão de manutenção é outra, e é ela que decide o que
 entra.
 
-O formato e os três estados — `observado`, `diagnosticado`, `confirmado` — estão no cabeçalho do
-próprio BACKLOG. O que você concluiu sobre a causa entra como `diagnosticado`, nunca como
+Os três estados — `observado`, `diagnosticado`, `confirmado` — medem o quanto a causa foi
+conferida. O que você concluiu sobre a causa entra como `diagnosticado`, nunca como
 `confirmado`, a menos que você tenha aberto o código ou o arquivo e conferido ali.
 
 Vale também para a própria régua: se a nota de um motor contradiz o que o uso mostrou, isso é

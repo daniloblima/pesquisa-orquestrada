@@ -16,6 +16,7 @@ Acrescentado em 23/09/2026. As entradas datadas abaixo são o diário técnico, 
 | 2.1.0 | 21/08/2026 | Quinta camada (a fonte traz o número atribuído a ela), régua de regressão contra as pesquisas já feitas e nota dos motores publicada com a skill | `205b18d` |
 | 2.2.0 | 31/08/2026 | Saldo do OpenRouter na estimativa e aferição do custo previsto contra o gasto | `34775d7` |
 | 2.3.0 | 23/09/2026 | Sexta camada (a fonte sustenta a afirmação, via Jev), correções de URL suja, coerência numérica e truncamento, prompt legível antes de pagar. Arquivo LICENSE e versionamento | tag `v2.3.0` |
+| 2.4.0 | 23/09/2026 | Instalação autônoma: o README liga as três skills, a pasta das pesquisas é perguntada na primeira pesquisa e gravada em `~/.claude/.env` (`pasta.py`), caminhos da máquina do autor e o nome dele saem das instruções | tag `v2.4.0` |
 
 ---
 
@@ -3136,3 +3137,32 @@ Evidências de que funcionou. Testes executados.
 
 ### LIÇÕES APRENDIDAS
 O que funcionou bem, o que evitar, descobertas úteis.
+
+---
+
+## [2026-09-23] — Instalação autônoma: qualquer pessoa que clonar consegue usar (14:44)
+
+### OBJETIVO
+Validar o repositório como produto para terceiros, não só como instalação da máquina do autor.
+
+### PROBLEMAS ENCONTRADOS
+- O README ligava só a skill `/pesquisa`. A `/pesquisa` chama a `/verificar`, que numa instalação nova não existia: o fluxo quebrava na etapa que dá valor ao projeto. Na máquina do autor funcionava porque os três atalhos foram criados à mão em 13/08.
+- O endereço do clone no README era `github.com/<usuario>/...`.
+- A `SKILL.md` mandava criar a pasta de trabalho e o relatório em `~/Experimentos/pesquisa-orquestrada/outputs/`, caminho da máquina do autor, ignorando a chave `saida_padrao` do `config.json` que os scripts já liam.
+- As três skills apontavam o registro de defeito para `~/Experimentos/pesquisa-orquestrada/BACKLOG.md` e diziam que o formato estava "no cabeçalho do próprio BACKLOG", arquivo que fica fora do git.
+- 24 menções ao nome do autor nas instruções ("pergunte ao Danilo"), três delas em mensagens visíveis dos scripts, e duas referências ao sistema pessoal dele (brain-v3, `/salve`).
+
+### SOLUÇÃO
+- `skill/scripts/pasta.py`: fonte única da pasta das pesquisas. Ordem: variável `PESQUISA_SAIDA` no ambiente, depois em `~/.claude/.env`, depois `saida_padrao` no `config.json`, por fim `outputs/` ao lado do repositório. `--definir` grava em `~/.claude/.env` (permissão 600, preservando as outras linhas). `memoria.py`, `qualidade.py`, `dashboard.py` e `regressao.py` passam a usá-lo.
+- `SKILL.md`, novo passo 0b: roda `pasta.py`. Se a pasta não foi escolhida, pergunta ao usuário antes da primeira pesquisa e grava a resposta, lembrando que relatório pode ter material confidencial. Os caminhos fixos viraram `<SAIDA>`.
+- BACKLOG: `BACKLOG.md` na raiz do repositório de quem instalou, com o formato dentro da própria skill, e convite para abrir issue no GitHub sem colar conteúdo de pesquisa.
+- Nome do autor trocado por "o usuário" nas instruções e nas mensagens dos scripts. Comentários de código que registram histórico ficaram.
+- README: tabela das três skills, os três atalhos, o endereço real, aviso de sessão nova e a seção "Onde as pesquisas ficam".
+- Máquina do autor: `PESQUISA_SAIDA` gravada com a pasta que já era usada, para a pergunta nunca aparecer.
+
+### RESULTADOS
+Instalação do zero numa casa temporária (`HOME` falso), seguindo só o README: três atalhos, primeira execução acusando pasta não escolhida, `--definir` gravando o `.env` com permissão 600, memória, painel e qualidade rodando numa instalação vazia, e painel criado na pasta escolhida. Não testado: pesquisa paga, que exige chave e crédito. O caminho da busca não mudou.
+
+### ACHADO FORA DO ESCOPO
+`regressao.py` mostra "divergência numérica N -> 0" em todas as 15 pesquisas mesmo com o código de trabalho idêntico ao HEAD. Conferido guardando as mudanças desta sessão com `git stash`, e a diferença continua. Nenhuma URL muda de estado. Hipótese não conferida: a cópia do commit não leva um arquivo local fora do git (`qualidade-motores.json` ou a versão modificada de `notas-motores.json`) que a coerência numérica consulta. Fica para uma sessão de manutenção.
+

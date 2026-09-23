@@ -1,6 +1,6 @@
 # Formato do relatório final
 
-Documento que o Danilo vai ler e usar, muitas vezes carregando em NotebookLM ou anexando a um material de cliente. Precisa se sustentar sozinho, sem a conversa que o gerou.
+Documento que o usuário vai ler e usar, muitas vezes carregando em NotebookLM ou anexando a um material de cliente. Precisa se sustentar sozinho, sem a conversa que o gerou.
 
 Vale o perfil de voz: português correto, sem emoji, sem negrito decorativo, sem vírgula antes de "e" ou "ou" em adição simples, sem a estrutura "não é X, é Y".
 
@@ -100,7 +100,7 @@ Nunca omitir a seção.]
 
 ## Critérios de qualidade
 
-**O sumário responde a pergunta.** Se o Danilo precisa ler os achados para saber a resposta, o sumário falhou.
+**O sumário responde a pergunta.** Se o usuário precisa ler os achados para saber a resposta, o sumário falhou.
 
 **Toda URL aparece.** As três listas somadas contêm cada URL de cada agente das duas rodadas, sem exceção. Repetida entre agentes, aparece uma vez, na categoria mais alta a que faz jus.
 
