@@ -1,5 +1,7 @@
 # Pesquisa orquestrada
 
+Versão 2.3.0, de 23/09/2026. O histórico de versões está no fim deste arquivo e o detalhe de cada mudança no [CHANGELOG.md](CHANGELOG.md).
+
 Skill do Claude Code que faz pesquisa com validação cruzada entre três motores de busca independentes, via OpenRouter.
 
 Três modelos de famílias diferentes pesquisam o mesmo tema em paralelo, cada um com seu próprio índice. O que dois ou mais confirmam entra no relatório como fato. O que só um trouxe volta para os outros validarem numa segunda rodada. O que sobra sem confirmação entra marcado.
@@ -144,6 +146,18 @@ A qualidade depende de os motores serem mesmo independentes. Se dois deles usare
 
 Confirmação por dois motores reduz o risco de erro, não o elimina. Modelos compartilham dados de treino e vieses, então erros não são inteiramente independentes e não se cancelam como amostras aleatórias.
 
+## Versões
+
+O projeto segue versionamento semântico. O número do meio sobe a cada funcionalidade nova, o último a cada correção, e o primeiro quando muda a estrutura da skill. Cada versão tem uma marca de release no GitHub.
+
+| Versão | Data | O que entregou | Commit |
+|---|---|---|---|
+| 1.0.0 | 05/08/2026 | Skill em produção: três motores via OpenRouter, rodada de revalidação, verificação de fontes pelo arquivo da internet e índice de qualidade por motor | `e40ea7b` |
+| 2.0.0 | 13/08/2026 | A verificação vira skill separada da coleta (`/verificar`), com falha dura separada de sinal fraco. Mudança de estrutura, por isso versão maior | `d8a6709` |
+| 2.1.0 | 21/08/2026 | Quinta camada (a fonte traz o número atribuído a ela), régua de regressão contra as pesquisas já feitas e nota dos motores publicada com a skill | `205b18d` |
+| 2.2.0 | 31/08/2026 | Saldo do OpenRouter na estimativa e aferição do custo previsto contra o gasto | `34775d7` |
+| 2.3.0 | 23/09/2026 | Sexta camada (a fonte sustenta a afirmação, via Jev), correções de URL suja, coerência numérica e truncamento, prompt legível antes de pagar. Arquivo LICENSE e versionamento | tag `v2.3.0` |
+
 ## Licença
 
-MIT.
+MIT. O texto completo está em [LICENSE](LICENSE).

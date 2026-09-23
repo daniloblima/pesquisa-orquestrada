@@ -340,3 +340,7 @@ URLs de sete pesquisas, e as 21 tinham o mesmo motivo. Se uma tivesse outro, era
 
 Isso existe porque a régua não tem teste, e a evidência dela é histórica — o material de
 prova é caro, já foi comprado e está em `outputs/`.
+
+## Versões e licença — acrescentado em 23/09/2026
+
+O projeto passou a ter número de versão e arquivo LICENSE (MIT, que o README já declarava). A tabela de versões está no topo do `CHANGELOG.md` e no fim do `README.md`, e cada versão tem tag no GitHub. Versão atual: 2.3.0. Ao fechar uma manutenção, subir o número (meio para funcionalidade, último para correção, primeiro para mudança de estrutura), acrescentar a linha nas duas tabelas e criar a tag.

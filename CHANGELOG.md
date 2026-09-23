@@ -5,6 +5,20 @@
 
 ---
 
+## Versões
+
+Acrescentado em 23/09/2026. As entradas datadas abaixo são o diário técnico, em ordem cronológica. As versões foram atribuídas depois, marcando os commits que fecharam cada fase. O 2.0.0 aproveita o "v2" que o commit de 13/08 já usava.
+
+| Versão | Data | O que entregou | Commit |
+|---|---|---|---|
+| 1.0.0 | 05/08/2026 | Skill em produção: três motores via OpenRouter, rodada de revalidação, verificação de fontes pelo arquivo da internet e índice de qualidade por motor | `e40ea7b` |
+| 2.0.0 | 13/08/2026 | A verificação vira skill separada da coleta (`/verificar`), com falha dura separada de sinal fraco. Mudança de estrutura, por isso versão maior | `d8a6709` |
+| 2.1.0 | 21/08/2026 | Quinta camada (a fonte traz o número atribuído a ela), régua de regressão contra as pesquisas já feitas e nota dos motores publicada com a skill | `205b18d` |
+| 2.2.0 | 31/08/2026 | Saldo do OpenRouter na estimativa e aferição do custo previsto contra o gasto | `34775d7` |
+| 2.3.0 | 23/09/2026 | Sexta camada (a fonte sustenta a afirmação, via Jev), correções de URL suja, coerência numérica e truncamento, prompt legível antes de pagar. Arquivo LICENSE e versionamento | tag `v2.3.0` |
+
+---
+
 ## [2026-03-06] — Sessão de Planejamento Inicial
 
 ### OBJETIVO
